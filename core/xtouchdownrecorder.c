@@ -16,19 +16,46 @@
     with this program; if not, write to the Free Software Foundation, Inc.,
     51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
-#include "XPLMPlugin.h"
+
 #include <math.h>
 #include <string.h>
 #include <time.h>
+#include <stdio.h>
+
+#include <XPLMPlugin.h>
+#include <XPLMDisplay.h>
+#include <XPLMGraphics.h>
+#include <XPLMDataAccess.h>
+#include <XPLMUtilities.h>
+#include <XPLMProcessing.h>
+#include <XPLMMenus.h>
+#include <XPLMNavigation.h>
+
+static XPLMWindowID g_win = NULL;
+
+static float flightcb(float inElapsedSinceLastCall,
+	float inElapsedTimeSinceLastFlightLoop, int inCounter,
+	void *inRefcon)
+{
+	/*if (!g_win)
+		g_win = XPLMCreateWindow(winPosX, winPosY,
+			winPosX + WINDOW_WIDTH, winPosY - WINDOW_HEIGHT,
+			1, drawWindowCallback, keyboardCallback,
+			mouseCallback, NULL);*/
+	return 0.01f;
+}
 
 PLUGIN_API int XPluginStart(char * outName, char * outSig, char * outDesc) {
-    // Plugin details
+    /* Plugin details */
 	strcpy(outName, "XTouchDownRecorder V4");
 	strcpy(outSig, "cpuwolf.xtouchdownrecorder");
 	strcpy(outDesc, "More information https://github.com/cpuwolf");
 
     // You probably want this on
 	XPLMEnableFeature("XPLM_USE_NATIVE_PATHS", 1);
+
+	/* register loopback in 0.01s */
+	XPLMRegisterFlightLoopCallback(flightcb, 0.01f, NULL);
 
 	return 1;
 }
