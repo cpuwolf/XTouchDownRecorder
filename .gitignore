@@ -1,6 +1,7 @@
 output
 x64
 x32
+*.dir
 # Compiled Object files
 *.slo
 *.lo
