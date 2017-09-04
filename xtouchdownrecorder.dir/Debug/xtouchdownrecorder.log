@@ -1,0 +1,5 @@
+﻿  Building Custom Rule F:/works/GitHub/XTouchDownRecorder/core/CMakeLists.txt
+  CMake does not need to re-run because F:/works/GitHub/XTouchDownRecorder/output/CMakeFiles/generate.stamp is up-to-date.
+  xtouchdownrecorder.cpp
+     Creating library F:/works/GitHub/XTouchDownRecorder/output/Debug/win.xpl.lib and object F:/works/GitHub/XTouchDownRecorder/output/Debug/win.xpl.exp
+  xtouchdownrecorder.vcxproj -> F:\works\GitHub\XTouchDownRecorder\output\Debug\win.xpl.dll

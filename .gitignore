@@ -1,3 +1,6 @@
+output
+x64
+x32
 # Compiled Object files
 *.slo
 *.lo
