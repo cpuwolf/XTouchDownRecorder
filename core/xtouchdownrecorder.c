@@ -31,6 +31,14 @@
 #include <XPLMMenus.h>
 #include <XPLMNavigation.h>
 
+#ifdef __APPLE__
+#include <OpenGL/gl.h>
+#include <Carbon/Carbon.h>
+#else
+#include <stdlib.h>
+#include <GL/gl.h>
+#endif
+
 #define MAX_TABLE_ELEMENTS 500
 
 static XPLMDataRef gearFRef,gForceRef,vertSpeedRef,pitchRef,elevatorRef,engRef,aglRef,tmRef;
@@ -147,9 +155,126 @@ static int mousecb(XPLMWindowID inWindowID, int x, int y,
 {
 	return 1;
 }
+static draw_line(float r,float g, float b, float alpha, float width, int x1, int y1, int x2, int y2)
+{
+	glDisable(GL_TEXTURE_2D);
+	glColor3f(1.0, 1.0, 1.0);
+	glBegin(GL_LINES);
+	glVertex2i(x1, y1);
+	glVertex2i(x2, y2);
+	glEnd();
+	glEnable(GL_TEXTURE_2D);
+}
 static void drawcb(XPLMWindowID inWindowID, void *inRefcon)
 {
+    /*-- draw background first*/
+    int x, y, x_tmp;
+    int left, top, right, bottom;
+    float color[] = { 1.0, 1.0, 1.0 };
+            
+    XPLMGetWindowGeometry(inWindowID, &left, &top, &right, &bottom);
+    XPLMDrawTranslucentDarkBox(left, top, right, bottom);
 
+    x = left;
+    y = top;
+
+    /*-- draw center line*/
+    draw_line(0, 0, 0, 1, 3,x, y + (_TD_CHART_HEIGHT / 2), x + (MAX_TABLE_ELEMENTS * 2), y + (_TD_CHART_HEIGHT / 2));
+
+    /*-- draw horizontal axis*/
+ /*
+    x_tmp = x
+    local last_tm_recorded = touchdown_tm_table[1]
+    for k, a in pairs(touchdown_tm_table) do
+        -- second axis
+        if a - last_tm_recorded >= 1.0 then
+            -- 1 second
+            graphics.draw_line(x_tmp, y, x_tmp, y + _TD_CHART_HEIGHT)
+            last_tm_recorded = touchdown_tm_table[k]
+        end
+        x_tmp = x_tmp + 2
+    end
+*/
+    
+    /*-- title*/
+    color[0] = 1.0;
+    color[1] = 1.0;
+    color[2] = 1.0;
+    XPLMDrawString(color, x + 5, y + _TD_CHART_HEIGHT - 15, "TouchDownRecorder V3.0 by cpuwolf", NULL, xplmFont_Basic);
+/*
+    local x_text = x + 5
+    local y_text = y + 8
+    -- draw touch point vertical lines
+    x_tmp = x
+    landingString = ""
+    local last_air_recorded = touchdown_air_table[1]
+    for k, a in pairs(touchdown_air_table) do
+        if a ~= last_air_recorded then
+            if a then
+                IsTouchDown = true
+                -- draw vertical line
+                graphics.draw_line(x_tmp, y + (_TD_CHART_HEIGHT/4), x_tmp, y + (_TD_CHART_HEIGHT*3/4))
+                -- print text
+                landingVS = touchdown_vs_table[k]
+                landingG = touchdown_g_table[k]
+                landingPitch = touchdown_pch_table[k]
+                text_to_print = string.format("%.02f", landingVS).."fpm "..string.format("%.02f", landingG).."G "..string.format("%.02f", landingPitch).."Degree | "
+                landingString = landingString..text_to_print
+                width_text_to_print = measure_string(text_to_print)
+                draw_string(x_text, y_text, text_to_print)
+                x_text = x_text + width_text_to_print
+            end
+        end
+        x_tmp = x_tmp + 2
+        last_air_recorded = a
+    end
+
+    -- now draw the chart line green
+    max_vs_axis = 1000.0
+    max_vs_recorded = get_max_val(touchdown_vs_table)
+    text_to_p = "Max "..string.format("%.02f", max_vs_recorded).."fpm "
+    x_text = draw_curve(touchdown_vs_table, 0,1,0, text_to_p, x_text, y_text, x, y, x, y + (_TD_CHART_HEIGHT / 2), max_vs_axis, max_vs_recorded)
+
+    -- now draw the chart line red
+    max_g_axis = 2.0
+    max_g_recorded = get_max_val(touchdown_g_table)
+    text_to_p = "Max "..string.format("%.02f", max_g_recorded).."G "
+    x_text = draw_curve(touchdown_g_table, 1,0.68,0.78, text_to_p, x_text, y_text, x, y, x, y, max_g_axis, max_g_recorded)
+
+    -- now draw the chart line light blue
+    max_pch_axis = 14.0
+    max_pch_recorded = get_max_val(touchdown_pch_table)
+    text_to_p = "Max pitch "..string.format("%.02f", max_pch_recorded).."Degree "
+    x_text = draw_curve(touchdown_pch_table, 0.6,0.85,0.87, text_to_p, x_text, y_text, x, y, x, y + (_TD_CHART_HEIGHT / 2), max_pch_axis, max_pch_recorded)
+
+    -- now draw the chart line orange
+    max_elev_axis = 2.0
+    max_elev_recorded = get_max_val(touchdown_elev_table)
+    text_to_p = "Max elevator "..string.format("%.02f", max_elev_recorded*100.0).."% "
+    x_text = draw_curve(touchdown_elev_table, 1.0,0.49,0.15, text_to_p, x_text, y_text, x, y, x, y + (_TD_CHART_HEIGHT / 2), max_elev_axis, max_elev_recorded)
+
+    -- now draw the chart line yellow
+    max_eng_axis = 2.0
+    max_eng_recorded = get_max_val(touchdown_eng_table)
+    text_to_p = "Max eng "..string.format("%.02f", max_eng_recorded*100.0).."% "
+    x_text = draw_curve(touchdown_eng_table, 1.0,1.0,0.0, text_to_p, x_text, y_text, x, y, x, y + (_TD_CHART_HEIGHT / 2), max_eng_axis, max_eng_recorded)
+
+    -- now draw the chart line red
+    max_agl_axis = 6.0
+    max_agl_recorded = get_max_val(touchdown_agl_table)
+    text_to_p = "Max AGL "..string.format("%.02f", max_agl_recorded).."M "
+    x_text = draw_curve(touchdown_agl_table, 1.0,0.1,0.1, text_to_p, x_text, y_text, x, y, x, y + (_TD_CHART_HEIGHT / 2), max_agl_axis, max_agl_recorded)
+*/
+    /*-- draw close button on top-right*/
+	glDisable(GL_TEXTURE_2D);
+	glColor3f(1.0, 1.0, 1.0);
+	glBegin(GL_LINES);
+	glVertex2i(right - 1, top - 1);
+	glVertex2i(right - 18, top - 18);
+	glVertex2i(right - 18, top - 1);
+	glVertex2i(right - 1, top - 18);
+	glEnd();
+	glEnable(GL_TEXTURE_2D);
 }
 
 static float flightcb(float inElapsedSinceLastCall,
