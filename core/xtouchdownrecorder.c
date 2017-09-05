@@ -31,7 +31,100 @@
 #include <XPLMMenus.h>
 #include <XPLMNavigation.h>
 
+#define MAX_TABLE_ELEMENTS 500
+
+static XPLMDataRef gearFRef,gForceRef,vertSpeedRef,pitchRef,elevatorRef,engRef,aglRef,tmRef;
+
+static float * g_pbuffer = NULL;
+static int g_start = 0;
+static int g_end = 0;
+
+#define BUFFER_EMPTY() (g_end==g_start)
+
+/* set value firstly, then increase index */
+#define BUFFER_INSERT_BACK() if(g_end < MAX_TABLE_ELEMENTS) {g_end++;} else {g_end = 0;}
+
+#define BUFFER_DEL_HEAD() if(g_start < MAX_TABLE_ELEMENTS) {g_start++;} else {g_start = 0;}
+
+enum
+{
+	TOUCHDOWN_VS_IDX = 0,
+	TOUCHDOWN_G_IDX,
+	TOUCHDOWN_PCH_IDX,
+	TOUCHDOWN_AIR_IDX,
+	TOUCHDOWN_ELEV_IDX,
+	TOUCHDOWN_ENG_IDX,
+	TOUCHDOWN_AGL_IDX,
+	TOUCHDOWN_TM_IDX,
+	MAX_TOUCHDOWN_IDX
+};
+
+static float *touchdown_vs_table;
+static float *touchdown_g_table;
+static float *touchdown_pch_table;
+static BOOL *touchdown_air_table;
+static float *touchdown_elev_table;
+static float *touchdown_eng_table;
+static float *touchdown_agl_table;
+static float *touchdown_tm_table;
+
+static float lastVS = 1.0;
+static float lastG = 1.0;
+static float lastPitch = 1.0;
+static BOOL lastAir = FALSE;
+static float lastElev = 0.0;
+static float lastEng = 0.0;
+static float lastAgl = 0.0;
+static float lastTm = 0.0;
+
 static XPLMWindowID g_win = NULL;
+
+static BOOL check_ground(float n)
+{
+    if ( 0.0 != n ) {
+        return TRUE;
+        /*-- LAND */
+    }
+
+    return FALSE;
+    /*-- AIR*/
+}
+
+static int is_on_ground()
+{
+    return check_ground(XPLMGetDataf(gearFRef));
+}
+
+
+void collect_flight_data()
+{
+	float engtb[4];
+	int iw= g_end;
+
+    lastVS = XPLMGetDataf(vertSpeedRef);
+    lastG = XPLMGetDataf(gForceRef);
+    lastPitch = XPLMGetDataf(pitchRef);
+    lastAir = check_ground(XPLMGetDataf(gearFRef));
+    lastElev = XPLMGetDataf(elevatorRef);
+    lastAgl = XPLMGetDataf(aglRef);
+    lastTm = XPLMGetDataf(tmRef);
+    XPLMGetDatavf(engRef,engtb,0,4);
+    lastEng = engtb[0];
+
+    /*-- fill the table */
+    touchdown_vs_table[iw] = lastVS;
+    touchdown_g_table[iw] = lastG;
+    touchdown_pch_table[iw] = lastPitch;
+    touchdown_air_table[iw] = lastAir;
+    touchdown_elev_table[iw] = lastElev;
+    touchdown_eng_table[iw] = lastEng;
+    touchdown_agl_table[iw] = lastAgl;
+    touchdown_tm_table[iw] = lastTm;
+    BUFFER_INSERT_BACK();
+
+    BUFFER_DEL_HEAD();
+
+}
 
 static float flightcb(float inElapsedSinceLastCall,
 	float inElapsedTimeSinceLastFlightLoop, int inCounter,
@@ -51,6 +144,29 @@ PLUGIN_API int XPluginStart(char * outName, char * outSig, char * outDesc) {
 	strcpy(outSig, "cpuwolf.xtouchdownrecorder");
 	strcpy(outDesc, "More information https://github.com/cpuwolf");
 
+	g_pbuffer = malloc(MAX_TABLE_ELEMENTS * sizeof(float) * MAX_TOUCHDOWN_IDX);
+	if(!g_pbuffer) {
+		XPLMDebugString("malloc error!");
+		return 0;
+	}
+	touchdown_vs_table = g_pbuffer + (TOUCHDOWN_VS_IDX * MAX_TABLE_ELEMENTS);
+	touchdown_g_table  = g_pbuffer + (TOUCHDOWN_G_IDX * MAX_TABLE_ELEMENTS);
+	touchdown_pch_table = g_pbuffer + (TOUCHDOWN_PCH_IDX * MAX_TABLE_ELEMENTS);
+	touchdown_air_table = (BOOL *)(g_pbuffer + (TOUCHDOWN_AIR_IDX * MAX_TABLE_ELEMENTS));
+	touchdown_elev_table = g_pbuffer + (TOUCHDOWN_ELEV_IDX * MAX_TABLE_ELEMENTS);
+	touchdown_eng_table = g_pbuffer + (TOUCHDOWN_ENG_IDX * MAX_TABLE_ELEMENTS);
+	touchdown_agl_table = g_pbuffer + (TOUCHDOWN_AGL_IDX * MAX_TABLE_ELEMENTS);
+	touchdown_tm_table = g_pbuffer + (TOUCHDOWN_TM_IDX * MAX_TABLE_ELEMENTS);
+
+	gearFRef = XPLMFindDataRef("sim/flightmodel/forces/fnrml_gear");
+	gForceRef = XPLMFindDataRef("sim/flightmodel2/misc/gforce_normal");
+	vertSpeedRef = XPLMFindDataRef("sim/flightmodel/position/vh_ind_fpm2");
+	pitchRef = XPLMFindDataRef("sim/flightmodel/position/theta");
+	elevatorRef = XPLMFindDataRef("sim/flightmodel2/controls/pitch_ratio");
+	engRef = XPLMFindDataRef("sim/flightmodel2/engines/throttle_used_ratio");
+	aglRef = XPLMFindDataRef("sim/flightmodel/position/y_agl");
+	tmRef = XPLMFindDataRef("sim/time/total_flight_time_sec");
+
     // You probably want this on
 	XPLMEnableFeature("XPLM_USE_NATIVE_PATHS", 1);
 
@@ -61,6 +177,10 @@ PLUGIN_API int XPluginStart(char * outName, char * outSig, char * outDesc) {
 }
 
 PLUGIN_API void	XPluginStop(void) {
+	if(g_pbuffer) {
+		free(g_pbuffer);
+		g_pbuffer = NULL;
+	}
 }
 
 PLUGIN_API void XPluginDisable(void) {
