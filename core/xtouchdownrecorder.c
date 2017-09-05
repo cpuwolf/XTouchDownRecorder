@@ -36,15 +36,22 @@
 static XPLMDataRef gearFRef,gForceRef,vertSpeedRef,pitchRef,elevatorRef,engRef,aglRef,tmRef;
 
 static float * g_pbuffer = NULL;
-static int g_start = 0;
-static int g_end = 0;
+static unsigned int g_start = 0;
+static unsigned int g_end = 0;
+static unsigned int g_size = 0;
 
-#define BUFFER_EMPTY() (g_end==g_start)
+#define BUFFER_EMPTY() (g_size==0)
 
 /* set value firstly, then increase index */
-#define BUFFER_INSERT_BACK() if(g_end < MAX_TABLE_ELEMENTS) {g_end++;} else {g_end = 0;}
-
-#define BUFFER_DEL_HEAD() if(g_start < MAX_TABLE_ELEMENTS) {g_start++;} else {g_start = 0;}
+#define BUFFER_INSERT_BACK() if(g_end < MAX_TABLE_ELEMENTS) {\
+								g_end++;} else {\
+									g_end = 0;\
+								} \
+								if(g_size < MAX_TABLE_ELEMENTS) {\
+									g_size++;\
+								} else {\
+									if(g_start < MAX_TABLE_ELEMENTS) {g_start++;} else {g_start = 0;}\
+								}
 
 enum
 {
@@ -77,7 +84,13 @@ static float lastEng = 0.0;
 static float lastAgl = 0.0;
 static float lastTm = 0.0;
 
+#define _TD_CHART_HEIGHT 200
 static XPLMWindowID g_win = NULL;
+static int g_winposx = 0;
+static int g_winposy = 500;
+
+static BOOL collect_touchdown_data = TRUE;
+static unsigned int show_touchdown_counter = 3;
 
 static BOOL check_ground(float n)
 {
@@ -99,7 +112,7 @@ static int is_on_ground()
 void collect_flight_data()
 {
 	float engtb[4];
-	int iw= g_end;
+	int iw = g_end;
 
     lastVS = XPLMGetDataf(vertSpeedRef);
     lastG = XPLMGetDataf(gForceRef);
@@ -122,7 +135,20 @@ void collect_flight_data()
     touchdown_tm_table[iw] = lastTm;
     BUFFER_INSERT_BACK();
 
-    BUFFER_DEL_HEAD();
+}
+
+static void keycb(XPLMWindowID inWindowID, char inKey, XPLMKeyFlags inFlags,
+                   char inVirtualKey, void *inRefcon, int losingFocus)
+{
+
+}
+static int mousecb(XPLMWindowID inWindowID, int x, int y,
+                   XPLMMouseStatus inMouse, void *inRefcon)
+{
+	return 1;
+}
+static void drawcb(XPLMWindowID inWindowID, void *inRefcon)
+{
 
 }
 
@@ -130,12 +156,25 @@ static float flightcb(float inElapsedSinceLastCall,
 	float inElapsedTimeSinceLastFlightLoop, int inCounter,
 	void *inRefcon)
 {
-	/*if (!g_win)
-		g_win = XPLMCreateWindow(winPosX, winPosY,
-			winPosX + WINDOW_WIDTH, winPosY - WINDOW_HEIGHT,
-			1, drawWindowCallback, keyboardCallback,
-			mouseCallback, NULL);*/
-	return 0.01f;
+	if (!g_win)
+		g_win = XPLMCreateWindow(g_winposx, g_winposy,
+			g_winposx + _TD_CHART_HEIGHT, g_winposy - _TD_CHART_HEIGHT,
+			1, drawcb, keycb,
+			mousecb, NULL);
+
+	if(collect_touchdown_data) {
+        collect_flight_data();
+    }
+    /*-- dont draw when the function isn't wanted*/
+    if(show_touchdown_counter <= 0) {
+		XPLMSetWindowIsVisible(g_win, 0);
+		goto flightclean;
+	} else {
+		XPLMSetWindowIsVisible(g_win, 1);
+    }
+
+flightclean:
+	return -1;
 }
 
 PLUGIN_API int XPluginStart(char * outName, char * outSig, char * outDesc) {
@@ -171,12 +210,17 @@ PLUGIN_API int XPluginStart(char * outName, char * outSig, char * outDesc) {
 	XPLMEnableFeature("XPLM_USE_NATIVE_PATHS", 1);
 
 	/* register loopback in 0.01s */
-	XPLMRegisterFlightLoopCallback(flightcb, 0.01f, NULL);
+	XPLMRegisterFlightLoopCallback(flightcb, -1, NULL);
 
 	return 1;
 }
 
 PLUGIN_API void	XPluginStop(void) {
+	XPLMUnregisterFlightLoopCallback(flightcb, NULL);
+	if (!g_win) {
+		XPLMDestroyWindow(g_win);
+		g_win = NULL;
+	}
 	if(g_pbuffer) {
 		free(g_pbuffer);
 		g_pbuffer = NULL;
