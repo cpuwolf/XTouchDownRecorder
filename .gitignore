@@ -20,11 +20,6 @@ x32
 # Fortran module files
 *.mod
 
-# Compiled Static libraries
-*.lai
-*.la
-*.a
-*.lib
 
 # Executables
 *.exe
