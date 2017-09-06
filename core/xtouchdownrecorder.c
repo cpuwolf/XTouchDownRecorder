@@ -138,8 +138,10 @@ static BOOL is_on_ground()
 static BOOL is_taxing()
 {
 	float speed = XPLMGetDataf(gndSpeedRef);
-	if((speed > 0.0f) && (speed <20.0f)) {
-		return TRUE;
+	if(is_on_ground) {
+		if((speed > 0.0f) && (speed <20.0f)) {
+			return TRUE;
+		}
 	}
 	return FALSE;
 }
@@ -367,13 +369,13 @@ static void drawcb(XPLMWindowID inWindowID, void *inRefcon)
 	/*-- now draw the chart line orange*/
 	float max_elev_axis = 2.0;
 	float max_elev_recorded = get_max_val(touchdown_elev_table);
-	sprintf(text_buf, "Max elevator %.02f%%", max_elev_recorded*100.0);
+	sprintf(text_buf, "Max elevator %.02f%%", max_elev_recorded*100.0f);
 	x_text = draw_curve(touchdown_elev_table, 1.0f,0.49f,0.15f, text_buf, x_text, y_text, x, y, x, y + (_TD_CHART_HEIGHT / 2), max_elev_axis, max_elev_recorded);
 
 	/*-- now draw the chart line yellow*/
 	float max_eng_axis = 2.0;
 	float max_eng_recorded = get_max_val(touchdown_eng_table);
-	sprintf(text_buf, "Max eng %.02f %%", max_eng_recorded*100.0);
+	sprintf(text_buf, "Max eng %.02f %%", max_eng_recorded*100.0f);
 	x_text = draw_curve(touchdown_eng_table, 1.0f,1.0f,0.0f, text_buf, x_text, y_text, x, y, x, y + (_TD_CHART_HEIGHT / 2), max_eng_axis, max_eng_recorded);
 
 	/*-- now draw the chart line red*/
@@ -419,7 +421,9 @@ flightclean:
 	return -1;
 }
 
-static void secondcb()
+static float secondcb(float inElapsedSinceLastCall,
+	float inElapsedTimeSinceLastFlightLoop, int inCounter,
+	void *inRefcon)
 {
 	BOOL is_gnd = is_on_ground();
 	if (is_gnd) {
@@ -448,6 +452,7 @@ static void secondcb()
 	if (show_touchdown_counter > 0) {
 		show_touchdown_counter = show_touchdown_counter - 1;
 	}
+	return 1.0f;
 }
 
 static int ToggleCommandHandler(XPLMCommandRef       inCommand,
@@ -493,11 +498,14 @@ PLUGIN_API int XPluginStart(char * outName, char * outSig, char * outDesc) {
 
 	gndSpeedRef = XPLMFindDataRef("sim/flightmodel/position/groundspeed");
 
-	// You probably want this on
+	/* MAC OS */
 	XPLMEnableFeature("XPLM_USE_NATIVE_PATHS", 1);
 
 	/* register loopback in 0.01s */
 	XPLMRegisterFlightLoopCallback(flightcb, -1, NULL);
+
+	/* register loopback in 1s */
+	XPLMRegisterFlightLoopCallback(secondcb, 1.0f, NULL);
 
 	ToggleCommand = XPLMCreateCommand("cpuwolf/TouchDownRecorder/Toggle", "Toggle TouchDownRecorder Chart");
 	XPLMRegisterCommandHandler(ToggleCommand, ToggleCommandHandler, 0, NULL);
@@ -507,6 +515,7 @@ PLUGIN_API int XPluginStart(char * outName, char * outSig, char * outDesc) {
 
 PLUGIN_API void	XPluginStop(void) {
 	XPLMUnregisterCommandHandler(ToggleCommand, ToggleCommandHandler, 0, 0);
+	XPLMUnregisterFlightLoopCallback(secondcb, NULL);
 	XPLMUnregisterFlightLoopCallback(flightcb, NULL);
 	if (!g_win) {
 		XPLMDestroyWindow(g_win);
