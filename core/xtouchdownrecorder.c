@@ -42,6 +42,8 @@
 #define MAX_TABLE_ELEMENTS 500
 #define CURVE_LEN 2
 
+static XPLMCommandRef ToggleCommand = NULL;
+
 static XPLMDataRef gearFRef,gForceRef,vertSpeedRef,pitchRef,elevatorRef,engRef,aglRef,tmRef,gndSpeedRef;
 
 static float * g_pbuffer = NULL;
@@ -150,7 +152,7 @@ static float get_max_val(float mytable[])
 	BUFFER_GO_START(k,tmpc);
 	while(!BUFFER_GO_IS_END(k,tmpc)) {
 		float el = mytable[k];
-		if (abs(el) > abs(max_data)) {
+		if (fabs(el) > fabs(max_data)) {
 			max_data = el;
 		}
 		BUFFER_GO_NEXT(k,tmpc);
@@ -223,7 +225,7 @@ static int draw_curve(float mytable[], float cr, float cg, float cb,
 	char * text_to_print,
 	int x_text_start, int y_text_start, int x_orig, int y_orig,
 	int x_start,int y_start,
-	int max_axis, float max_data)
+	float max_axis, float max_data)
 {
 	int k,tmpc;
 	float color[] = { cr, cg, cb };
@@ -232,7 +234,7 @@ static int draw_curve(float mytable[], float cr, float cg, float cb,
 	/*-- print text*/
 	int x_text = x_text_start;
 	int y_text = y_text_start;
-	int width_text_to_print = abs(XPLMMeasureString(xplmFont_Basic, text_to_print, strlen(text_to_print)));
+	int width_text_to_print = floor(XPLMMeasureString(xplmFont_Basic, text_to_print, strlen(text_to_print)));
 	XPLMDrawString(color, x_text, y_text, text_to_print, NULL, xplmFont_Basic);
 	x_text = x_text + width_text_to_print;
 	/*-- draw line*/
@@ -243,7 +245,7 @@ static int draw_curve(float mytable[], float cr, float cg, float cb,
 	int draw_max_counter = 0;
 	while(!BUFFER_GO_IS_END(k,tmpc)) {
 		float p = mytable[k];
-		int y_height = (p / max_axis * _TD_CHART_HEIGHT);
+		int y_height = (p / floor(max_axis) * _TD_CHART_HEIGHT);
 		draw_line(cr,cg,cb,1,1,x_tmp, y_tmp + (last_recorded / max_axis * _TD_CHART_HEIGHT), x_tmp + 2, y_tmp + y_height);
 		if (p == max_data) {
 			if (draw_max_counter == 0) {
@@ -332,7 +334,7 @@ static void drawcb(XPLMWindowID inWindowID, void *inRefcon)
 				char *text_to_print = text_buf;
 				sprintf(text_to_print,"%.02f fpm %.02f G %.02f Degree", landingVS, landingG, landingPitch);
 				strcat(landingString,text_to_print);
-				int width_text_to_print = abs(XPLMMeasureString(xplmFont_Basic, text_to_print, strlen(text_to_print)));
+				int width_text_to_print = floor(XPLMMeasureString(xplmFont_Basic, text_to_print, strlen(text_to_print)));
 				XPLMDrawString(color, x_text, y_text, text_to_print, NULL, xplmFont_Basic);
 				x_text = x_text + width_text_to_print;
 			}
@@ -346,37 +348,37 @@ static void drawcb(XPLMWindowID inWindowID, void *inRefcon)
 	float max_vs_axis = 1000.0f;
 	float max_vs_recorded = get_max_val(touchdown_vs_table);
 	sprintf(text_buf, "Max %.02f fpm", max_vs_recorded);
-	x_text = draw_curve(touchdown_vs_table, 0,1,0, text_buf, x_text, y_text, x, y, x, y + (_TD_CHART_HEIGHT / 2), max_vs_axis, max_vs_recorded);
+	x_text = draw_curve(touchdown_vs_table, 0.0f,1.0f,0.0f, text_buf, x_text, y_text, x, y, x, y + (_TD_CHART_HEIGHT / 2), max_vs_axis, max_vs_recorded);
 
 	/*-- now draw the chart line red*/
 	float max_g_axis = 2.0;
 	float max_g_recorded = get_max_val(touchdown_g_table);
 	sprintf(text_buf, "Max %.02f G", max_g_recorded);
-	x_text = draw_curve(touchdown_g_table, 1,0.68,0.78, text_buf, x_text, y_text, x, y, x, y, max_g_axis, max_g_recorded);
+	x_text = draw_curve(touchdown_g_table, 1,0.68f,0.78f, text_buf, x_text, y_text, x, y, x, y, max_g_axis, max_g_recorded);
 
 	/*-- now draw the chart line light blue*/
 	float max_pch_axis = 14.0;
 	float max_pch_recorded = get_max_val(touchdown_pch_table);
 	sprintf(text_buf, "Max pitch %.02f Degree ", max_pch_recorded);
-	x_text = draw_curve(touchdown_pch_table, 0.6,0.85,0.87, text_buf, x_text, y_text, x, y, x, y + (_TD_CHART_HEIGHT / 2), max_pch_axis, max_pch_recorded);
+	x_text = draw_curve(touchdown_pch_table, 0.6f,0.85f,0.87f, text_buf, x_text, y_text, x, y, x, y + (_TD_CHART_HEIGHT / 2), max_pch_axis, max_pch_recorded);
 
 	/*-- now draw the chart line orange*/
 	float max_elev_axis = 2.0;
 	float max_elev_recorded = get_max_val(touchdown_elev_table);
 	sprintf(text_buf, "Max elevator %.02f%%", max_elev_recorded*100.0);
-	x_text = draw_curve(touchdown_elev_table, 1.0,0.49,0.15, text_buf, x_text, y_text, x, y, x, y + (_TD_CHART_HEIGHT / 2), max_elev_axis, max_elev_recorded);
+	x_text = draw_curve(touchdown_elev_table, 1.0f,0.49f,0.15f, text_buf, x_text, y_text, x, y, x, y + (_TD_CHART_HEIGHT / 2), max_elev_axis, max_elev_recorded);
 
 	/*-- now draw the chart line yellow*/
 	float max_eng_axis = 2.0;
 	float max_eng_recorded = get_max_val(touchdown_eng_table);
 	sprintf(text_buf, "Max eng %.02f %%", max_eng_recorded*100.0);
-	x_text = draw_curve(touchdown_eng_table, 1.0,1.0,0.0, text_buf, x_text, y_text, x, y, x, y + (_TD_CHART_HEIGHT / 2), max_eng_axis, max_eng_recorded);
+	x_text = draw_curve(touchdown_eng_table, 1.0f,1.0f,0.0f, text_buf, x_text, y_text, x, y, x, y + (_TD_CHART_HEIGHT / 2), max_eng_axis, max_eng_recorded);
 
 	/*-- now draw the chart line red*/
 	float max_agl_axis = 6.0;
 	float max_agl_recorded = get_max_val(touchdown_agl_table);
 	sprintf(text_buf, "Max AGL %.02f M", max_agl_recorded);
-	x_text = draw_curve(touchdown_agl_table, 1.0,0.1,0.1, text_buf, x_text, y_text, x, y, x, y + (_TD_CHART_HEIGHT / 2), max_agl_axis, max_agl_recorded);
+	x_text = draw_curve(touchdown_agl_table, 1.0f,0.1f,0.1f, text_buf, x_text, y_text, x, y, x, y + (_TD_CHART_HEIGHT / 2), max_agl_axis, max_agl_recorded);
 
 	/*-- draw close button on top-right*/
 	glDisable(GL_TEXTURE_2D);
@@ -413,6 +415,18 @@ static float flightcb(float inElapsedSinceLastCall,
 
 flightclean:
 	return -1;
+}
+
+static int ToggleCommandHandler(XPLMCommandRef       inCommand,
+                                XPLMCommandPhase     inPhase,
+                                void *               inRefcon)
+{
+    if (show_touchdown_counter > 0) {
+        show_touchdown_counter = 0;
+    } else {
+        show_touchdown_counter = 60;
+    }
+    return 0;
 }
 
 PLUGIN_API int XPluginStart(char * outName, char * outSig, char * outDesc) {
@@ -452,10 +466,14 @@ PLUGIN_API int XPluginStart(char * outName, char * outSig, char * outDesc) {
 	/* register loopback in 0.01s */
 	XPLMRegisterFlightLoopCallback(flightcb, -1, NULL);
 
+    ToggleCommand = XPLMCreateCommand("cpuwolf/TouchDownRecorder/Toggle", "Toggle TouchDownRecorder Chart");
+    XPLMRegisterCommandHandler(ToggleCommand, ToggleCommandHandler, 0, NULL);
+
 	return 1;
 }
 
 PLUGIN_API void	XPluginStop(void) {
+    XPLMUnregisterCommandHandler(ToggleCommand, ToggleCommandHandler, 0, 0);
 	XPLMUnregisterFlightLoopCallback(flightcb, NULL);
 	if (!g_win) {
 		XPLMDestroyWindow(g_win);
