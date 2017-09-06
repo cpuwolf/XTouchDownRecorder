@@ -1,20 +1,20 @@
 /*
-    XTouchDownRecorder
-    Copyright (C) 2017  Wei Shuai <cpuwolf@gmail.com>
+	XTouchDownRecorder
+	Copyright (C) 2017  Wei Shuai <cpuwolf@gmail.com>
 
-    This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation; either version 2 of the License, or
-    (at your option) any later version.
+	This program is free software; you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation; either version 2 of the License, or
+	(at your option) any later version.
 
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
 
-    You should have received a copy of the GNU General Public License along
-    with this program; if not, write to the Free Software Foundation, Inc.,
-    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+	You should have received a copy of the GNU General Public License along
+	with this program; if not, write to the Free Software Foundation, Inc.,
+	51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
 #include <math.h>
@@ -67,9 +67,9 @@ static unsigned int g_size = 0;
 #define BUFFER_GO_IS_END(idx,tmp_count)  (tmp_count<=0)
 
 #define BUFFER_GO_NEXT(idx,tmp_count) if(idx < MAX_TABLE_ELEMENTS) {\
-                                idx++;} else {\
-                                    idx = 0;\
-                                } tmp_count--;\
+								idx++;} else {\
+									idx = 0;\
+								} tmp_count--;\
 
 enum
 {
@@ -118,35 +118,35 @@ static BOOL IsTouchDown = FALSE;
 
 static BOOL check_ground(float n)
 {
-    if ( 0.0 != n ) {
-        return TRUE;
-        /*-- LAND */
-    }
+	if ( 0.0 != n ) {
+		return TRUE;
+		/*-- LAND */
+	}
 
-    return FALSE;
-    /*-- AIR*/
+	return FALSE;
+	/*-- AIR*/
 }
 
 static int is_on_ground()
 {
-    return check_ground(XPLMGetDataf(gearFRef));
+	return check_ground(XPLMGetDataf(gearFRef));
 }
 
 static float get_max_val(float mytable[])
 {
-    int k,tmpc;
-    /*-- calculate max data*/
-    float max_data = 0.0f;
+	int k,tmpc;
+	/*-- calculate max data*/
+	float max_data = 0.0f;
 
-    BUFFER_GO_START(k,tmpc);
-    while(!BUFFER_GO_IS_END(k,tmpc)) {
-        float el = mytable[k];
-        if (abs(el) > abs(max_data)) {
-            max_data = el;
-        }
-        BUFFER_GO_NEXT(k,tmpc);
-    }
-    return max_data;
+	BUFFER_GO_START(k,tmpc);
+	while(!BUFFER_GO_IS_END(k,tmpc)) {
+		float el = mytable[k];
+		if (abs(el) > abs(max_data)) {
+			max_data = el;
+		}
+		BUFFER_GO_NEXT(k,tmpc);
+	}
+	return max_data;
 }
 
 void collect_flight_data()
@@ -154,78 +154,100 @@ void collect_flight_data()
 	float engtb[4];
 	int iw = g_end;
 
-    lastVS = XPLMGetDataf(vertSpeedRef);
-    lastG = XPLMGetDataf(gForceRef);
-    lastPitch = XPLMGetDataf(pitchRef);
-    lastAir = check_ground(XPLMGetDataf(gearFRef));
-    lastElev = XPLMGetDataf(elevatorRef);
-    lastAgl = XPLMGetDataf(aglRef);
-    lastTm = XPLMGetDataf(tmRef);
-    XPLMGetDatavf(engRef,engtb,0,4);
-    lastEng = engtb[0];
+	lastVS = XPLMGetDataf(vertSpeedRef);
+	lastG = XPLMGetDataf(gForceRef);
+	lastPitch = XPLMGetDataf(pitchRef);
+	lastAir = check_ground(XPLMGetDataf(gearFRef));
+	lastElev = XPLMGetDataf(elevatorRef);
+	lastAgl = XPLMGetDataf(aglRef);
+	lastTm = XPLMGetDataf(tmRef);
+	XPLMGetDatavf(engRef,engtb,0,4);
+	lastEng = engtb[0];
 
-    /*-- fill the table */
-    touchdown_vs_table[iw] = lastVS;
-    touchdown_g_table[iw] = lastG;
-    touchdown_pch_table[iw] = lastPitch;
-    touchdown_air_table[iw] = lastAir;
-    touchdown_elev_table[iw] = lastElev;
-    touchdown_eng_table[iw] = lastEng;
-    touchdown_agl_table[iw] = lastAgl;
-    touchdown_tm_table[iw] = lastTm;
-    BUFFER_INSERT_BACK();
+	/*-- fill the table */
+	touchdown_vs_table[iw] = lastVS;
+	touchdown_g_table[iw] = lastG;
+	touchdown_pch_table[iw] = lastPitch;
+	touchdown_air_table[iw] = lastAir;
+	touchdown_elev_table[iw] = lastElev;
+	touchdown_eng_table[iw] = lastEng;
+	touchdown_agl_table[iw] = lastAgl;
+	touchdown_tm_table[iw] = lastTm;
+	BUFFER_INSERT_BACK();
 
 }
 
 static void keycb(XPLMWindowID inWindowID, char inKey, XPLMKeyFlags inFlags,
-                   char inVirtualKey, void *inRefcon, int losingFocus)
+				   char inVirtualKey, void *inRefcon, int losingFocus)
 {
 
 }
 static int mousecb(XPLMWindowID inWindowID, int x, int y,
-                   XPLMMouseStatus inMouse, void *inRefcon)
+				   XPLMMouseStatus inMouse, void *inRefcon)
 {
+    static int lastMouseX, lastMouseY;
+	switch (inMouse) {
+	case xplm_MouseDown:
+		if ((x >= g_winposx + _TD_CHART_WIDTH - 10) && (x <= g_winposx + _TD_CHART_WIDTH) &&
+					(y <= g_winposy) && (y >= g_winposy - 10))
+			XPLMSetWindowIsVisible(inWindowID, 0);
+		else {
+			lastMouseX = x;
+			lastMouseY = y;
+		}
+		break;
+
+	case xplm_MouseDrag:
+		g_winposx += x - lastMouseX;
+		g_winposy += y - lastMouseY;
+		XPLMSetWindowGeometry(inWindowID, g_winposx, g_winposy,
+				g_winposx + _TD_CHART_WIDTH, g_winposy - _TD_CHART_HEIGHT);
+		lastMouseX = x;
+		lastMouseY = y;
+		break;
+
+	}
 	return 1;
 }
 
 static int draw_curve(float mytable[], float cr, float cg, float cb,
-    char * text_to_print,
-    int x_text_start, int y_text_start, int x_orig, int y_orig,
-    int x_start,int y_start,
-    int max_axis, float max_data)
+	char * text_to_print,
+	int x_text_start, int y_text_start, int x_orig, int y_orig,
+	int x_start,int y_start,
+	int max_axis, float max_data)
 {
-    int k,tmpc;
-    float color[] = { cr, cg, cb };
-    //graphics.set_color(cr, cg, cb, 1)
-    //graphics.set_width(1)
-    /*-- print text*/
-    int x_text = x_text_start;
-    int y_text = y_text_start;
-    int width_text_to_print = abs(XPLMMeasureString(xplmFont_Basic, text_to_print, strlen(text_to_print)));
-    XPLMDrawString(color, x_text, y_text, text_to_print, NULL, xplmFont_Basic);
-    x_text = x_text + width_text_to_print;
-    /*-- draw line*/
-    int x_tmp = x_start;
-    int y_tmp = y_start;
-    BUFFER_GO_START(k,tmpc);
-    float last_recorded = mytable[k];
-    int draw_max_counter = 0;
-    while(!BUFFER_GO_IS_END(k,tmpc)) {
-        float p = mytable[k];
-        int y_height = (p / max_axis * _TD_CHART_HEIGHT);
-        draw_line(cr,cg,cb,1,1,x_tmp, y_tmp + (last_recorded / max_axis * _TD_CHART_HEIGHT), x_tmp + 2, y_tmp + y_height);
-        if (p == max_data) {
-            if (draw_max_counter == 0) {
-                draw_line(cr,cg,cb,1,1,x_tmp, y_orig, x_tmp, y_orig + _TD_CHART_HEIGHT);
-            }
-            draw_max_counter = draw_max_counter + 1;
-        }
-        x_tmp = x_tmp + 2;
-        last_recorded = p;
-        BUFFER_GO_NEXT(k,tmpc);
-    }
+	int k,tmpc;
+	float color[] = { cr, cg, cb };
+	//graphics.set_color(cr, cg, cb, 1)
+	//graphics.set_width(1)
+	/*-- print text*/
+	int x_text = x_text_start;
+	int y_text = y_text_start;
+	int width_text_to_print = abs(XPLMMeasureString(xplmFont_Basic, text_to_print, strlen(text_to_print)));
+	XPLMDrawString(color, x_text, y_text, text_to_print, NULL, xplmFont_Basic);
+	x_text = x_text + width_text_to_print;
+	/*-- draw line*/
+	int x_tmp = x_start;
+	int y_tmp = y_start;
+	BUFFER_GO_START(k,tmpc);
+	float last_recorded = mytable[k];
+	int draw_max_counter = 0;
+	while(!BUFFER_GO_IS_END(k,tmpc)) {
+		float p = mytable[k];
+		int y_height = (p / max_axis * _TD_CHART_HEIGHT);
+		draw_line(cr,cg,cb,1,1,x_tmp, y_tmp + (last_recorded / max_axis * _TD_CHART_HEIGHT), x_tmp + 2, y_tmp + y_height);
+		if (p == max_data) {
+			if (draw_max_counter == 0) {
+				draw_line(cr,cg,cb,1,1,x_tmp, y_orig, x_tmp, y_orig + _TD_CHART_HEIGHT);
+			}
+			draw_max_counter = draw_max_counter + 1;
+		}
+		x_tmp = x_tmp + 2;
+		last_recorded = p;
+		BUFFER_GO_NEXT(k,tmpc);
+	}
 
-    return x_text;
+	return x_text;
 }
 
 static draw_line(float r,float g, float b, float alpha, float width, int x1, int y1, int x2, int y2)
@@ -240,114 +262,114 @@ static draw_line(float r,float g, float b, float alpha, float width, int x1, int
 }
 static void drawcb(XPLMWindowID inWindowID, void *inRefcon)
 {
-    /*-- draw background first*/
-    int x, y, x_tmp;
-    int left, top, right, bottom;
-    float color[] = { 1.0, 1.0, 1.0 };
-    char text_buf[100];
-            
-    XPLMGetWindowGeometry(inWindowID, &left, &top, &right, &bottom);
-    XPLMDrawTranslucentDarkBox(left, top, right, bottom);
+	/*-- draw background first*/
+	int x, y, x_tmp;
+	int left, top, right, bottom;
+	float color[] = { 1.0, 1.0, 1.0 };
+	char text_buf[100];
 
-    x = left;
-    y = bottom;
+	XPLMGetWindowGeometry(inWindowID, &left, &top, &right, &bottom);
+	XPLMDrawTranslucentDarkBox(left, top, right, bottom);
 
-    /*-- draw center line*/
-    draw_line(0, 0, 0, 1, 3,x, y + (_TD_CHART_HEIGHT / 2), x + (MAX_TABLE_ELEMENTS * 2), y + (_TD_CHART_HEIGHT / 2));
+	x = left;
+	y = bottom;
 
-    /*-- draw horizontal axis*/
-    int k,tmpc;
-    x_tmp = x;
-    BUFFER_GO_START(k,tmpc);
-    float last_tm_recorded = touchdown_tm_table[k];
-    float a;
-    while(!BUFFER_GO_IS_END(k,tmpc)) {
-        /*-- second axis*/
-        a = touchdown_tm_table[k];
-        if (a - last_tm_recorded >= 1.0) {
-            /*-- 1 second*/
-            draw_line(0,0,0,1,3,x_tmp, y, x_tmp, y + _TD_CHART_HEIGHT);
-            last_tm_recorded = touchdown_tm_table[k];
-        }
-        x_tmp = x_tmp + 2;
-        BUFFER_GO_NEXT(k,tmpc);
-    }
-    
-    /*-- title*/
-    color[0] = 1.0;
-    color[1] = 1.0;
-    color[2] = 1.0;
-    XPLMDrawString(color, x + 5, y + _TD_CHART_HEIGHT - 15, "TouchDownRecorder V3.0 by cpuwolf", NULL, xplmFont_Basic);
+	/*-- draw center line*/
+	draw_line(0, 0, 0, 1, 3,x, y + (_TD_CHART_HEIGHT / 2), x + (MAX_TABLE_ELEMENTS * 2), y + (_TD_CHART_HEIGHT / 2));
 
-    int x_text = x + 5;
-    int y_text = y + 8;
-    /*-- draw touch point vertical lines*/
-    x_tmp = x;
-    memset(landingString,0,sizeof(landingString));
-    BUFFER_GO_START(k,tmpc);
-    BOOL last_air_recorded = touchdown_air_table[k];
-    BOOL b;
-    while(!BUFFER_GO_IS_END(k,tmpc)) {
-        b = touchdown_air_table[k];
-        if(b != last_air_recorded) {
-            if(b) {
-                IsTouchDown = TRUE;
-                /*-- draw vertical line*/
-                draw_line(1,1,1,1,3,x_tmp, y + (_TD_CHART_HEIGHT/4), x_tmp, y + (_TD_CHART_HEIGHT*3/4));
-                /*-- print text*/
-                float landingVS = touchdown_vs_table[k];
-                float landingG = touchdown_g_table[k];
-                float landingPitch = touchdown_pch_table[k];
-                char *text_to_print = text_buf;
-                sprintf(text_to_print,"%.02f fpm %.02f G %.02f Degree", landingVS, landingG, landingPitch);
-                strcat(landingString,text_to_print);
-                int width_text_to_print = abs(XPLMMeasureString(xplmFont_Basic, text_to_print, strlen(text_to_print)));
-                XPLMDrawString(color, x_text, y_text, text_to_print, NULL, xplmFont_Basic);
-                x_text = x_text + width_text_to_print;
-            }
-        }
-        x_tmp = x_tmp + 2;
-        last_air_recorded = b;
-        BUFFER_GO_NEXT(k,tmpc);
-    }
+	/*-- draw horizontal axis*/
+	int k,tmpc;
+	x_tmp = x;
+	BUFFER_GO_START(k,tmpc);
+	float last_tm_recorded = touchdown_tm_table[k];
+	float a;
+	while(!BUFFER_GO_IS_END(k,tmpc)) {
+		/*-- second axis*/
+		a = touchdown_tm_table[k];
+		if (a - last_tm_recorded >= 1.0) {
+			/*-- 1 second*/
+			draw_line(0,0,0,1,3,x_tmp, y, x_tmp, y + _TD_CHART_HEIGHT);
+			last_tm_recorded = touchdown_tm_table[k];
+		}
+		x_tmp = x_tmp + 2;
+		BUFFER_GO_NEXT(k,tmpc);
+	}
 
-    /*-- now draw the chart line green*/
-    float max_vs_axis = 1000.0f;
-    float max_vs_recorded = get_max_val(touchdown_vs_table);
-    sprintf(text_buf, "Max %.02f fpm", max_vs_recorded);
-    x_text = draw_curve(touchdown_vs_table, 0,1,0, text_buf, x_text, y_text, x, y, x, y + (_TD_CHART_HEIGHT / 2), max_vs_axis, max_vs_recorded);
+	/*-- title*/
+	color[0] = 1.0;
+	color[1] = 1.0;
+	color[2] = 1.0;
+	XPLMDrawString(color, x + 5, y + _TD_CHART_HEIGHT - 15, "TouchDownRecorder V3.0 by cpuwolf", NULL, xplmFont_Basic);
 
-    /*-- now draw the chart line red*/
-    float max_g_axis = 2.0;
-    float max_g_recorded = get_max_val(touchdown_g_table);
-    sprintf(text_buf, "Max %.02f G", max_g_recorded);
-    x_text = draw_curve(touchdown_g_table, 1,0.68,0.78, text_buf, x_text, y_text, x, y, x, y, max_g_axis, max_g_recorded);
+	int x_text = x + 5;
+	int y_text = y + 8;
+	/*-- draw touch point vertical lines*/
+	x_tmp = x;
+	memset(landingString,0,sizeof(landingString));
+	BUFFER_GO_START(k,tmpc);
+	BOOL last_air_recorded = touchdown_air_table[k];
+	BOOL b;
+	while(!BUFFER_GO_IS_END(k,tmpc)) {
+		b = touchdown_air_table[k];
+		if(b != last_air_recorded) {
+			if(b) {
+				IsTouchDown = TRUE;
+				/*-- draw vertical line*/
+				draw_line(1,1,1,1,3,x_tmp, y + (_TD_CHART_HEIGHT/4), x_tmp, y + (_TD_CHART_HEIGHT*3/4));
+				/*-- print text*/
+				float landingVS = touchdown_vs_table[k];
+				float landingG = touchdown_g_table[k];
+				float landingPitch = touchdown_pch_table[k];
+				char *text_to_print = text_buf;
+				sprintf(text_to_print,"%.02f fpm %.02f G %.02f Degree", landingVS, landingG, landingPitch);
+				strcat(landingString,text_to_print);
+				int width_text_to_print = abs(XPLMMeasureString(xplmFont_Basic, text_to_print, strlen(text_to_print)));
+				XPLMDrawString(color, x_text, y_text, text_to_print, NULL, xplmFont_Basic);
+				x_text = x_text + width_text_to_print;
+			}
+		}
+		x_tmp = x_tmp + 2;
+		last_air_recorded = b;
+		BUFFER_GO_NEXT(k,tmpc);
+	}
 
-    /*-- now draw the chart line light blue*/
-    float max_pch_axis = 14.0;
-    float max_pch_recorded = get_max_val(touchdown_pch_table);
-    sprintf(text_buf, "Max pitch %.02f Degree ", max_pch_recorded);
-    x_text = draw_curve(touchdown_pch_table, 0.6,0.85,0.87, text_buf, x_text, y_text, x, y, x, y + (_TD_CHART_HEIGHT / 2), max_pch_axis, max_pch_recorded);
+	/*-- now draw the chart line green*/
+	float max_vs_axis = 1000.0f;
+	float max_vs_recorded = get_max_val(touchdown_vs_table);
+	sprintf(text_buf, "Max %.02f fpm", max_vs_recorded);
+	x_text = draw_curve(touchdown_vs_table, 0,1,0, text_buf, x_text, y_text, x, y, x, y + (_TD_CHART_HEIGHT / 2), max_vs_axis, max_vs_recorded);
 
-    /*-- now draw the chart line orange*/
-    float max_elev_axis = 2.0;
-    float max_elev_recorded = get_max_val(touchdown_elev_table);
-    sprintf(text_buf, "Max elevator %.02f%%", max_elev_recorded*100.0);
-    x_text = draw_curve(touchdown_elev_table, 1.0,0.49,0.15, text_buf, x_text, y_text, x, y, x, y + (_TD_CHART_HEIGHT / 2), max_elev_axis, max_elev_recorded);
+	/*-- now draw the chart line red*/
+	float max_g_axis = 2.0;
+	float max_g_recorded = get_max_val(touchdown_g_table);
+	sprintf(text_buf, "Max %.02f G", max_g_recorded);
+	x_text = draw_curve(touchdown_g_table, 1,0.68,0.78, text_buf, x_text, y_text, x, y, x, y, max_g_axis, max_g_recorded);
 
-    /*-- now draw the chart line yellow*/
-    float max_eng_axis = 2.0;
-    float max_eng_recorded = get_max_val(touchdown_eng_table);
-    sprintf(text_buf, "Max eng %.02f %%", max_eng_recorded*100.0);
-    x_text = draw_curve(touchdown_eng_table, 1.0,1.0,0.0, text_buf, x_text, y_text, x, y, x, y + (_TD_CHART_HEIGHT / 2), max_eng_axis, max_eng_recorded);
+	/*-- now draw the chart line light blue*/
+	float max_pch_axis = 14.0;
+	float max_pch_recorded = get_max_val(touchdown_pch_table);
+	sprintf(text_buf, "Max pitch %.02f Degree ", max_pch_recorded);
+	x_text = draw_curve(touchdown_pch_table, 0.6,0.85,0.87, text_buf, x_text, y_text, x, y, x, y + (_TD_CHART_HEIGHT / 2), max_pch_axis, max_pch_recorded);
 
-    /*-- now draw the chart line red*/
-    float max_agl_axis = 6.0;
-    float max_agl_recorded = get_max_val(touchdown_agl_table);
-    sprintf(text_buf, "Max AGL %.02f M", max_agl_recorded);
-    x_text = draw_curve(touchdown_agl_table, 1.0,0.1,0.1, text_buf, x_text, y_text, x, y, x, y + (_TD_CHART_HEIGHT / 2), max_agl_axis, max_agl_recorded);
+	/*-- now draw the chart line orange*/
+	float max_elev_axis = 2.0;
+	float max_elev_recorded = get_max_val(touchdown_elev_table);
+	sprintf(text_buf, "Max elevator %.02f%%", max_elev_recorded*100.0);
+	x_text = draw_curve(touchdown_elev_table, 1.0,0.49,0.15, text_buf, x_text, y_text, x, y, x, y + (_TD_CHART_HEIGHT / 2), max_elev_axis, max_elev_recorded);
 
-    /*-- draw close button on top-right*/
+	/*-- now draw the chart line yellow*/
+	float max_eng_axis = 2.0;
+	float max_eng_recorded = get_max_val(touchdown_eng_table);
+	sprintf(text_buf, "Max eng %.02f %%", max_eng_recorded*100.0);
+	x_text = draw_curve(touchdown_eng_table, 1.0,1.0,0.0, text_buf, x_text, y_text, x, y, x, y + (_TD_CHART_HEIGHT / 2), max_eng_axis, max_eng_recorded);
+
+	/*-- now draw the chart line red*/
+	float max_agl_axis = 6.0;
+	float max_agl_recorded = get_max_val(touchdown_agl_table);
+	sprintf(text_buf, "Max AGL %.02f M", max_agl_recorded);
+	x_text = draw_curve(touchdown_agl_table, 1.0,0.1,0.1, text_buf, x_text, y_text, x, y, x, y + (_TD_CHART_HEIGHT / 2), max_agl_axis, max_agl_recorded);
+
+	/*-- draw close button on top-right*/
 	glDisable(GL_TEXTURE_2D);
 	glColor3f(1.0, 1.0, 1.0);
 	glBegin(GL_LINES);
@@ -370,22 +392,22 @@ static float flightcb(float inElapsedSinceLastCall,
 			mousecb, NULL);
 
 	if(collect_touchdown_data) {
-        collect_flight_data();
-    }
-    /*-- dont draw when the function isn't wanted*/
-    if(show_touchdown_counter <= 0) {
+		collect_flight_data();
+	}
+	/*-- dont draw when the function isn't wanted*/
+	if(show_touchdown_counter <= 0) {
 		XPLMSetWindowIsVisible(g_win, 0);
 		goto flightclean;
 	} else {
 		XPLMSetWindowIsVisible(g_win, 1);
-    }
+	}
 
 flightclean:
 	return -1;
 }
 
 PLUGIN_API int XPluginStart(char * outName, char * outSig, char * outDesc) {
-    /* Plugin details */
+	/* Plugin details */
 	strcpy(outName, "XTouchDownRecorder V4");
 	strcpy(outSig, "cpuwolf.xtouchdownrecorder");
 	strcpy(outDesc, "More information https://github.com/cpuwolf");
@@ -413,7 +435,7 @@ PLUGIN_API int XPluginStart(char * outName, char * outSig, char * outDesc) {
 	aglRef = XPLMFindDataRef("sim/flightmodel/position/y_agl");
 	tmRef = XPLMFindDataRef("sim/time/total_flight_time_sec");
 
-    // You probably want this on
+	// You probably want this on
 	XPLMEnableFeature("XPLM_USE_NATIVE_PATHS", 1);
 
 	/* register loopback in 0.01s */
