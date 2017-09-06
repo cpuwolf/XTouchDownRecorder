@@ -21,6 +21,11 @@
 #include <string.h>
 #include <time.h>
 #include <stdio.h>
+#ifndef BOOL
+#define BOOL unsigned char
+#define TRUE 1
+#define FALSE 0
+#endif
 
 #include <XPLMPlugin.h>
 #include <XPLMDisplay.h>
@@ -226,7 +231,7 @@ static int mousecb(XPLMWindowID inWindowID, int x, int y,
 	return 1;
 }
 
-static draw_line(float r,float g, float b, float alpha, float width, int x1, int y1, int x2, int y2)
+static void draw_line(float r,float g, float b, float alpha, float width, int x1, int y1, int x2, int y2)
 {
 	glDisable(GL_TEXTURE_2D);
 	glColor3f(r, g, b);
