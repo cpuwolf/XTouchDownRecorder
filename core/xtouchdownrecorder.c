@@ -132,6 +132,22 @@ static int is_on_ground()
     return check_ground(XPLMGetDataf(gearFRef));
 }
 
+static float get_max_val(float mytable[])
+{
+    int k,tmpc;
+    /*-- calculate max data*/
+    float max_data = 0.0f;
+
+    BUFFER_GO_START(k,tmpc);
+    while(!BUFFER_GO_IS_END(k,tmpc)) {
+        float el = mytable[k];
+        if (abs(el) > abs(max_data)) {
+            max_data = el;
+        }
+        BUFFER_GO_NEXT(k,tmpc);
+    }
+    return max_data;
+}
 
 void collect_flight_data()
 {
@@ -171,6 +187,38 @@ static int mousecb(XPLMWindowID inWindowID, int x, int y,
 {
 	return 1;
 }
+/*
+static int draw_curve(mytable, cr,cg,cb, text_to_print, x_text_start, y_text_start, x_orig, y_orig, x_start, y_start, max_axis, max_data)
+{
+    graphics.set_color(cr, cg, cb, 1)
+    graphics.set_width(1)
+    -- print text
+    local x_text = x_text_start
+    local y_text = y_text_start
+    local width_text_to_print = measure_string(text_to_print)
+    draw_string(x_text, y_text, text_to_print, cr, cg, cb)
+    x_text = x_text + width_text_to_print
+    -- draw line
+    local x_tmp = x_start
+    local y_tmp = y_start
+    local last_recorded = mytable[1]
+    local draw_max_counter = 0
+    for k, p in pairs(mytable) do
+        local y_height = (p / max_axis * _TD_CHART_HEIGHT)
+        graphics.draw_line(x_tmp, y_tmp + (last_recorded / max_axis * _TD_CHART_HEIGHT), x_tmp + 2, y_tmp + y_height)
+        if p == max_data then
+            if draw_max_counter == 0 then
+                graphics.draw_line(x_tmp, y_orig, x_tmp, y_orig + _TD_CHART_HEIGHT)
+            end
+            draw_max_counter = draw_max_counter + 1
+        end
+        x_tmp = x_tmp + 2
+        last_recorded = p
+    end
+
+    return x_text;
+}*/
+
 static draw_line(float r,float g, float b, float alpha, float width, int x1, int y1, int x2, int y2)
 {
 	glDisable(GL_TEXTURE_2D);
