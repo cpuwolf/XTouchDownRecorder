@@ -127,7 +127,7 @@ static unsigned int show_touchdown_counter = 3;
 static unsigned int ground_counter = 10;
 
 
-static char *landingString[128];
+static char landingString[128];
 static BOOL IsLogWritten = TRUE;
 static BOOL IsTouchDown = FALSE;
 
