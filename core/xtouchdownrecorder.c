@@ -187,37 +187,46 @@ static int mousecb(XPLMWindowID inWindowID, int x, int y,
 {
 	return 1;
 }
-/*
-static int draw_curve(mytable, cr,cg,cb, text_to_print, x_text_start, y_text_start, x_orig, y_orig, x_start, y_start, max_axis, max_data)
+
+static int draw_curve(float mytable[], float cr, float cg, float cb,
+    char * text_to_print,
+    int x_text_start, int y_text_start, int x_orig, int y_orig,
+    int x_start,int y_start,
+    int max_axis, float max_data)
 {
-    graphics.set_color(cr, cg, cb, 1)
-    graphics.set_width(1)
-    -- print text
-    local x_text = x_text_start
-    local y_text = y_text_start
-    local width_text_to_print = measure_string(text_to_print)
-    draw_string(x_text, y_text, text_to_print, cr, cg, cb)
-    x_text = x_text + width_text_to_print
-    -- draw line
-    local x_tmp = x_start
-    local y_tmp = y_start
-    local last_recorded = mytable[1]
-    local draw_max_counter = 0
-    for k, p in pairs(mytable) do
-        local y_height = (p / max_axis * _TD_CHART_HEIGHT)
-        graphics.draw_line(x_tmp, y_tmp + (last_recorded / max_axis * _TD_CHART_HEIGHT), x_tmp + 2, y_tmp + y_height)
-        if p == max_data then
-            if draw_max_counter == 0 then
-                graphics.draw_line(x_tmp, y_orig, x_tmp, y_orig + _TD_CHART_HEIGHT)
-            end
-            draw_max_counter = draw_max_counter + 1
-        end
-        x_tmp = x_tmp + 2
-        last_recorded = p
-    end
+    int k,tmpc;
+    float color[] = { cr, cg, cb };
+    //graphics.set_color(cr, cg, cb, 1)
+    //graphics.set_width(1)
+    /*-- print text*/
+    int x_text = x_text_start;
+    int y_text = y_text_start;
+    int width_text_to_print = abs(XPLMMeasureString(xplmFont_Basic, text_to_print, strlen(text_to_print)));
+    XPLMDrawString(color, x_text, y_text, text_to_print, NULL, xplmFont_Basic);
+    x_text = x_text + width_text_to_print;
+    /*-- draw line*/
+    int x_tmp = x_start;
+    int y_tmp = y_start;
+    BUFFER_GO_START(k,tmpc);
+    float last_recorded = mytable[k];
+    int draw_max_counter = 0;
+    while(!BUFFER_GO_IS_END(k,tmpc)) {
+        float p = mytable[k];
+        int y_height = (p / max_axis * _TD_CHART_HEIGHT);
+        draw_line(cr,cg,cb,1,1,x_tmp, y_tmp + (last_recorded / max_axis * _TD_CHART_HEIGHT), x_tmp + 2, y_tmp + y_height);
+        if (p == max_data) {
+            if (draw_max_counter == 0) {
+                draw_line(cr,cg,cb,1,1,x_tmp, y_orig, x_tmp, y_orig + _TD_CHART_HEIGHT);
+            }
+            draw_max_counter = draw_max_counter + 1;
+        }
+        x_tmp = x_tmp + 2;
+        last_recorded = p;
+        BUFFER_GO_NEXT(k,tmpc);
+    }
 
     return x_text;
-}*/
+}
 
 static draw_line(float r,float g, float b, float alpha, float width, int x1, int y1, int x2, int y2)
 {
@@ -301,43 +310,43 @@ static void drawcb(XPLMWindowID inWindowID, void *inRefcon)
         last_air_recorded = b;
         BUFFER_GO_NEXT(k,tmpc);
     }
-/*
-    -- now draw the chart line green
-    max_vs_axis = 1000.0
-    max_vs_recorded = get_max_val(touchdown_vs_table)
-    text_to_p = "Max "..string.format("%.02f", max_vs_recorded).."fpm "
-    x_text = draw_curve(touchdown_vs_table, 0,1,0, text_to_p, x_text, y_text, x, y, x, y + (_TD_CHART_HEIGHT / 2), max_vs_axis, max_vs_recorded)
 
-    -- now draw the chart line red
-    max_g_axis = 2.0
-    max_g_recorded = get_max_val(touchdown_g_table)
-    text_to_p = "Max "..string.format("%.02f", max_g_recorded).."G "
-    x_text = draw_curve(touchdown_g_table, 1,0.68,0.78, text_to_p, x_text, y_text, x, y, x, y, max_g_axis, max_g_recorded)
+    /*-- now draw the chart line green*/
+    float max_vs_axis = 1000.0f;
+    float max_vs_recorded = get_max_val(touchdown_vs_table);
+    sprintf(text_buf, "Max %.02f fpm", max_vs_recorded);
+    x_text = draw_curve(touchdown_vs_table, 0,1,0, text_buf, x_text, y_text, x, y, x, y + (_TD_CHART_HEIGHT / 2), max_vs_axis, max_vs_recorded);
 
-    -- now draw the chart line light blue
-    max_pch_axis = 14.0
-    max_pch_recorded = get_max_val(touchdown_pch_table)
-    text_to_p = "Max pitch "..string.format("%.02f", max_pch_recorded).."Degree "
-    x_text = draw_curve(touchdown_pch_table, 0.6,0.85,0.87, text_to_p, x_text, y_text, x, y, x, y + (_TD_CHART_HEIGHT / 2), max_pch_axis, max_pch_recorded)
+    /*-- now draw the chart line red*/
+    float max_g_axis = 2.0;
+    float max_g_recorded = get_max_val(touchdown_g_table);
+    sprintf(text_buf, "Max %.02f G", max_g_recorded);
+    x_text = draw_curve(touchdown_g_table, 1,0.68,0.78, text_buf, x_text, y_text, x, y, x, y, max_g_axis, max_g_recorded);
 
-    -- now draw the chart line orange
-    max_elev_axis = 2.0
-    max_elev_recorded = get_max_val(touchdown_elev_table)
-    text_to_p = "Max elevator "..string.format("%.02f", max_elev_recorded*100.0).."% "
-    x_text = draw_curve(touchdown_elev_table, 1.0,0.49,0.15, text_to_p, x_text, y_text, x, y, x, y + (_TD_CHART_HEIGHT / 2), max_elev_axis, max_elev_recorded)
+    /*-- now draw the chart line light blue*/
+    float max_pch_axis = 14.0;
+    float max_pch_recorded = get_max_val(touchdown_pch_table);
+    sprintf(text_buf, "Max pitch %.02f Degree ", max_pch_recorded);
+    x_text = draw_curve(touchdown_pch_table, 0.6,0.85,0.87, text_buf, x_text, y_text, x, y, x, y + (_TD_CHART_HEIGHT / 2), max_pch_axis, max_pch_recorded);
 
-    -- now draw the chart line yellow
-    max_eng_axis = 2.0
-    max_eng_recorded = get_max_val(touchdown_eng_table)
-    text_to_p = "Max eng "..string.format("%.02f", max_eng_recorded*100.0).."% "
-    x_text = draw_curve(touchdown_eng_table, 1.0,1.0,0.0, text_to_p, x_text, y_text, x, y, x, y + (_TD_CHART_HEIGHT / 2), max_eng_axis, max_eng_recorded)
+    /*-- now draw the chart line orange*/
+    float max_elev_axis = 2.0;
+    float max_elev_recorded = get_max_val(touchdown_elev_table);
+    sprintf(text_buf, "Max elevator %.02f%%", max_elev_recorded*100.0);
+    x_text = draw_curve(touchdown_elev_table, 1.0,0.49,0.15, text_buf, x_text, y_text, x, y, x, y + (_TD_CHART_HEIGHT / 2), max_elev_axis, max_elev_recorded);
 
-    -- now draw the chart line red
-    max_agl_axis = 6.0
-    max_agl_recorded = get_max_val(touchdown_agl_table)
-    text_to_p = "Max AGL "..string.format("%.02f", max_agl_recorded).."M "
-    x_text = draw_curve(touchdown_agl_table, 1.0,0.1,0.1, text_to_p, x_text, y_text, x, y, x, y + (_TD_CHART_HEIGHT / 2), max_agl_axis, max_agl_recorded)
-*/
+    /*-- now draw the chart line yellow*/
+    float max_eng_axis = 2.0;
+    float max_eng_recorded = get_max_val(touchdown_eng_table);
+    sprintf(text_buf, "Max eng %.02f %%", max_eng_recorded*100.0);
+    x_text = draw_curve(touchdown_eng_table, 1.0,1.0,0.0, text_buf, x_text, y_text, x, y, x, y + (_TD_CHART_HEIGHT / 2), max_eng_axis, max_eng_recorded);
+
+    /*-- now draw the chart line red*/
+    float max_agl_axis = 6.0;
+    float max_agl_recorded = get_max_val(touchdown_agl_table);
+    sprintf(text_buf, "Max AGL %.02f M", max_agl_recorded);
+    x_text = draw_curve(touchdown_agl_table, 1.0,0.1,0.1, text_buf, x_text, y_text, x, y, x, y + (_TD_CHART_HEIGHT / 2), max_agl_axis, max_agl_recorded);
+
     /*-- draw close button on top-right*/
 	glDisable(GL_TEXTURE_2D);
 	glColor3f(1.0, 1.0, 1.0);
