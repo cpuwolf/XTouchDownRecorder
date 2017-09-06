@@ -42,7 +42,7 @@
 #define MAX_TABLE_ELEMENTS 500
 #define CURVE_LEN 2
 
-static XPLMDataRef gearFRef,gForceRef,vertSpeedRef,pitchRef,elevatorRef,engRef,aglRef,tmRef;
+static XPLMDataRef gearFRef,gForceRef,vertSpeedRef,pitchRef,elevatorRef,engRef,aglRef,tmRef,gndSpeedRef;
 
 static float * g_pbuffer = NULL;
 static unsigned int g_start = 0;
@@ -127,9 +127,18 @@ static BOOL check_ground(float n)
 	/*-- AIR*/
 }
 
-static int is_on_ground()
+static BOOL is_on_ground()
 {
 	return check_ground(XPLMGetDataf(gearFRef));
+}
+
+static BOOL is_taxing()
+{
+    float speed = XPLMGetDataf(gndSpeedRef);
+    if((speed > 0.0f) && (speed <20.0f)) {
+        return TRUE;
+    }
+    return FALSE;
 }
 
 static float get_max_val(float mytable[])
@@ -434,6 +443,8 @@ PLUGIN_API int XPluginStart(char * outName, char * outSig, char * outDesc) {
 	engRef = XPLMFindDataRef("sim/flightmodel2/engines/throttle_used_ratio");
 	aglRef = XPLMFindDataRef("sim/flightmodel/position/y_agl");
 	tmRef = XPLMFindDataRef("sim/time/total_flight_time_sec");
+
+    gndSpeedRef = XPLMFindDataRef("sim/flightmodel/position/groundspeed");
 
 	// You probably want this on
 	XPLMEnableFeature("XPLM_USE_NATIVE_PATHS", 1);
