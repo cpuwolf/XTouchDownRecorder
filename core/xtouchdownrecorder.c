@@ -176,7 +176,7 @@ static void drawcb(XPLMWindowID inWindowID, void *inRefcon)
     XPLMDrawTranslucentDarkBox(left, top, right, bottom);
 
     x = left;
-    y = top;
+    y = bottom;
 
     /*-- draw center line*/
     draw_line(0, 0, 0, 1, 3,x, y + (_TD_CHART_HEIGHT / 2), x + (MAX_TABLE_ELEMENTS * 2), y + (_TD_CHART_HEIGHT / 2));
@@ -270,9 +270,9 @@ static void drawcb(XPLMWindowID inWindowID, void *inRefcon)
 	glColor3f(1.0, 1.0, 1.0);
 	glBegin(GL_LINES);
 	glVertex2i(right - 1, top - 1);
-	glVertex2i(right - 18, top - 18);
-	glVertex2i(right - 18, top - 1);
-	glVertex2i(right - 1, top - 18);
+	glVertex2i(right - 10, top - 10);
+	glVertex2i(right - 10, top - 1);
+	glVertex2i(right - 1, top - 10);
 	glEnd();
 	glEnable(GL_TEXTURE_2D);
 }
