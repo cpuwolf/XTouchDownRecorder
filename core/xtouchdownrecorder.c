@@ -62,11 +62,11 @@ static unsigned int g_size = 0;
 									if(g_start < MAX_TABLE_ELEMENTS) {g_start++;} else {g_start = 0;}\
 								}
 
-#define BUFFER_GO_START(idx)  int tmp_count=g_size; idx=g_start;
+#define BUFFER_GO_START(idx,tmp_count)  tmp_count=g_size; idx=g_start;
 
-#define BUFFER_GO_IS_END(idx)  (tmp_count<=0)
+#define BUFFER_GO_IS_END(idx,tmp_count)  (tmp_count<=0)
 
-#define BUFFER_GO_NEXT(idx) if(idx < MAX_TABLE_ELEMENTS) {\
+#define BUFFER_GO_NEXT(idx,tmp_count) if(idx < MAX_TABLE_ELEMENTS) {\
                                 idx++;} else {\
                                     idx = 0;\
                                 } tmp_count--;\
@@ -110,6 +110,11 @@ static int g_winposy = 500;
 
 static BOOL collect_touchdown_data = TRUE;
 static unsigned int show_touchdown_counter = 3;
+
+
+static char *landingString[128];
+static BOOL IsLogWritten = TRUE;
+static BOOL IsTouchDown = FALSE;
 
 static BOOL check_ground(float n)
 {
@@ -182,6 +187,7 @@ static void drawcb(XPLMWindowID inWindowID, void *inRefcon)
     int x, y, x_tmp;
     int left, top, right, bottom;
     float color[] = { 1.0, 1.0, 1.0 };
+    char text_buf[100];
             
     XPLMGetWindowGeometry(inWindowID, &left, &top, &right, &bottom);
     XPLMDrawTranslucentDarkBox(left, top, right, bottom);
@@ -193,12 +199,12 @@ static void drawcb(XPLMWindowID inWindowID, void *inRefcon)
     draw_line(0, 0, 0, 1, 3,x, y + (_TD_CHART_HEIGHT / 2), x + (MAX_TABLE_ELEMENTS * 2), y + (_TD_CHART_HEIGHT / 2));
 
     /*-- draw horizontal axis*/
-    int k;
+    int k,tmpc;
     x_tmp = x;
-    BUFFER_GO_START(k);
+    BUFFER_GO_START(k,tmpc);
     float last_tm_recorded = touchdown_tm_table[k];
     float a;
-    while(!BUFFER_GO_IS_END(k)) {
+    while(!BUFFER_GO_IS_END(k,tmpc)) {
         /*-- second axis*/
         a = touchdown_tm_table[k];
         if (a - last_tm_recorded >= 1.0) {
@@ -207,7 +213,7 @@ static void drawcb(XPLMWindowID inWindowID, void *inRefcon)
             last_tm_recorded = touchdown_tm_table[k];
         }
         x_tmp = x_tmp + 2;
-        BUFFER_GO_NEXT(k);
+        BUFFER_GO_NEXT(k,tmpc);
     }
     
     /*-- title*/
@@ -215,34 +221,39 @@ static void drawcb(XPLMWindowID inWindowID, void *inRefcon)
     color[1] = 1.0;
     color[2] = 1.0;
     XPLMDrawString(color, x + 5, y + _TD_CHART_HEIGHT - 15, "TouchDownRecorder V3.0 by cpuwolf", NULL, xplmFont_Basic);
-/*
-    local x_text = x + 5
-    local y_text = y + 8
-    -- draw touch point vertical lines
-    x_tmp = x
-    landingString = ""
-    local last_air_recorded = touchdown_air_table[1]
-    for k, a in pairs(touchdown_air_table) do
-        if a ~= last_air_recorded then
-            if a then
-                IsTouchDown = true
-                -- draw vertical line
-                graphics.draw_line(x_tmp, y + (_TD_CHART_HEIGHT/4), x_tmp, y + (_TD_CHART_HEIGHT*3/4))
-                -- print text
-                landingVS = touchdown_vs_table[k]
-                landingG = touchdown_g_table[k]
-                landingPitch = touchdown_pch_table[k]
-                text_to_print = string.format("%.02f", landingVS).."fpm "..string.format("%.02f", landingG).."G "..string.format("%.02f", landingPitch).."Degree | "
-                landingString = landingString..text_to_print
-                width_text_to_print = measure_string(text_to_print)
-                draw_string(x_text, y_text, text_to_print)
-                x_text = x_text + width_text_to_print
-            end
-        end
-        x_tmp = x_tmp + 2
-        last_air_recorded = a
-    end
 
+    int x_text = x + 5;
+    int y_text = y + 8;
+    /*-- draw touch point vertical lines*/
+    x_tmp = x;
+    memset(landingString,0,sizeof(landingString));
+    BUFFER_GO_START(k,tmpc);
+    BOOL last_air_recorded = touchdown_air_table[k];
+    BOOL b;
+    while(!BUFFER_GO_IS_END(k,tmpc)) {
+        b = touchdown_air_table[k];
+        if(b != last_air_recorded) {
+            if(b) {
+                IsTouchDown = TRUE;
+                /*-- draw vertical line*/
+                draw_line(1,1,1,1,3,x_tmp, y + (_TD_CHART_HEIGHT/4), x_tmp, y + (_TD_CHART_HEIGHT*3/4));
+                /*-- print text*/
+                float landingVS = touchdown_vs_table[k];
+                float landingG = touchdown_g_table[k];
+                float landingPitch = touchdown_pch_table[k];
+                char *text_to_print = text_buf;
+                sprintf(text_to_print,"%.02f fpm %.02f G %.02f Degree", landingVS, landingG, landingPitch);
+                strcat(landingString,text_to_print);
+                int width_text_to_print = abs(XPLMMeasureString(xplmFont_Basic, text_to_print, strlen(text_to_print)));
+                XPLMDrawString(color, x_text, y_text, text_to_print, NULL, xplmFont_Basic);
+                x_text = x_text + width_text_to_print;
+            }
+        }
+        x_tmp = x_tmp + 2;
+        last_air_recorded = b;
+        BUFFER_GO_NEXT(k,tmpc);
+    }
+/*
     -- now draw the chart line green
     max_vs_axis = 1000.0
     max_vs_recorded = get_max_val(touchdown_vs_table)
