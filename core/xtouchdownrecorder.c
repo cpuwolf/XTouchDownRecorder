@@ -221,6 +221,17 @@ static int mousecb(XPLMWindowID inWindowID, int x, int y,
 	return 1;
 }
 
+static draw_line(float r,float g, float b, float alpha, float width, int x1, int y1, int x2, int y2)
+{
+    glDisable(GL_TEXTURE_2D);
+    glColor3f(r, g, b);
+    glBegin(GL_LINES);
+    glVertex2i(x1, y1);
+    glVertex2i(x2, y2);
+    glEnd();
+    glEnable(GL_TEXTURE_2D);
+}
+
 static int draw_curve(float mytable[], float cr, float cg, float cb,
 	char * text_to_print,
 	int x_text_start, int y_text_start, int x_orig, int y_orig,
@@ -234,7 +245,7 @@ static int draw_curve(float mytable[], float cr, float cg, float cb,
 	/*-- print text*/
 	int x_text = x_text_start;
 	int y_text = y_text_start;
-	int width_text_to_print = floor(XPLMMeasureString(xplmFont_Basic, text_to_print, strlen(text_to_print)));
+	int width_text_to_print = (int)(floor(XPLMMeasureString(xplmFont_Basic, text_to_print, strlen(text_to_print))));
 	XPLMDrawString(color, x_text, y_text, text_to_print, NULL, xplmFont_Basic);
 	x_text = x_text + width_text_to_print;
 	/*-- draw line*/
@@ -245,7 +256,7 @@ static int draw_curve(float mytable[], float cr, float cg, float cb,
 	int draw_max_counter = 0;
 	while(!BUFFER_GO_IS_END(k,tmpc)) {
 		float p = mytable[k];
-		int y_height = (p / floor(max_axis) * _TD_CHART_HEIGHT);
+		int y_height = (int)round(p / max_axis * _TD_CHART_HEIGHT);
 		draw_line(cr,cg,cb,1,1,x_tmp, y_tmp + (last_recorded / max_axis * _TD_CHART_HEIGHT), x_tmp + 2, y_tmp + y_height);
 		if (p == max_data) {
 			if (draw_max_counter == 0) {
@@ -261,16 +272,6 @@ static int draw_curve(float mytable[], float cr, float cg, float cb,
 	return x_text;
 }
 
-static draw_line(float r,float g, float b, float alpha, float width, int x1, int y1, int x2, int y2)
-{
-	glDisable(GL_TEXTURE_2D);
-	glColor3f(r, g, b);
-	glBegin(GL_LINES);
-	glVertex2i(x1, y1);
-	glVertex2i(x2, y2);
-	glEnd();
-	glEnable(GL_TEXTURE_2D);
-}
 static void drawcb(XPLMWindowID inWindowID, void *inRefcon)
 {
 	/*-- draw background first*/
@@ -334,7 +335,7 @@ static void drawcb(XPLMWindowID inWindowID, void *inRefcon)
 				char *text_to_print = text_buf;
 				sprintf(text_to_print,"%.02f fpm %.02f G %.02f Degree", landingVS, landingG, landingPitch);
 				strcat(landingString,text_to_print);
-				int width_text_to_print = floor(XPLMMeasureString(xplmFont_Basic, text_to_print, strlen(text_to_print)));
+				int width_text_to_print = (int)floor(XPLMMeasureString(xplmFont_Basic, text_to_print, strlen(text_to_print)));
 				XPLMDrawString(color, x_text, y_text, text_to_print, NULL, xplmFont_Basic);
 				x_text = x_text + width_text_to_print;
 			}
