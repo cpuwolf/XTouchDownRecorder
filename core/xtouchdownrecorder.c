@@ -40,6 +40,7 @@
 #endif
 
 #define MAX_TABLE_ELEMENTS 500
+#define CURVE_LEN 2
 
 static XPLMDataRef gearFRef,gForceRef,vertSpeedRef,pitchRef,elevatorRef,engRef,aglRef,tmRef;
 
@@ -93,6 +94,7 @@ static float lastAgl = 0.0;
 static float lastTm = 0.0;
 
 #define _TD_CHART_HEIGHT 200
+#define _TD_CHART_WIDTH (MAX_TABLE_ELEMENTS*CURVE_LEN)
 static XPLMWindowID g_win = NULL;
 static int g_winposx = 0;
 static int g_winposy = 500;
@@ -283,7 +285,7 @@ static float flightcb(float inElapsedSinceLastCall,
 {
 	if (!g_win)
 		g_win = XPLMCreateWindow(g_winposx, g_winposy,
-			g_winposx + _TD_CHART_HEIGHT, g_winposy - _TD_CHART_HEIGHT,
+			g_winposx + _TD_CHART_WIDTH, g_winposy - _TD_CHART_HEIGHT,
 			1, drawcb, keycb,
 			mousecb, NULL);
 
