@@ -112,6 +112,7 @@ static int g_winposy = 500;
 
 static BOOL collect_touchdown_data = TRUE;
 static unsigned int show_touchdown_counter = 3;
+static unsigned int ground_counter = 10;
 
 
 static char *landingString[128];
@@ -136,11 +137,11 @@ static BOOL is_on_ground()
 
 static BOOL is_taxing()
 {
-    float speed = XPLMGetDataf(gndSpeedRef);
-    if((speed > 0.0f) && (speed <20.0f)) {
-        return TRUE;
-    }
-    return FALSE;
+	float speed = XPLMGetDataf(gndSpeedRef);
+	if((speed > 0.0f) && (speed <20.0f)) {
+		return TRUE;
+	}
+	return FALSE;
 }
 
 static float get_max_val(float mytable[])
@@ -196,12 +197,12 @@ static void keycb(XPLMWindowID inWindowID, char inKey, XPLMKeyFlags inFlags,
 static int mousecb(XPLMWindowID inWindowID, int x, int y,
 				   XPLMMouseStatus inMouse, void *inRefcon)
 {
-    static int lastMouseX, lastMouseY;
+	static int lastMouseX, lastMouseY;
 	switch (inMouse) {
 	case xplm_MouseDown:
 		if ((x >= g_winposx + _TD_CHART_WIDTH - 10) && (x <= g_winposx + _TD_CHART_WIDTH) &&
 					(y <= g_winposy) && (y >= g_winposy - 10))
-			XPLMSetWindowIsVisible(inWindowID, 0);
+			show_touchdown_counter = 0;
 		else {
 			lastMouseX = x;
 			lastMouseY = y;
@@ -223,13 +224,13 @@ static int mousecb(XPLMWindowID inWindowID, int x, int y,
 
 static draw_line(float r,float g, float b, float alpha, float width, int x1, int y1, int x2, int y2)
 {
-    glDisable(GL_TEXTURE_2D);
-    glColor3f(r, g, b);
-    glBegin(GL_LINES);
-    glVertex2i(x1, y1);
-    glVertex2i(x2, y2);
-    glEnd();
-    glEnable(GL_TEXTURE_2D);
+	glDisable(GL_TEXTURE_2D);
+	glColor3f(r, g, b);
+	glBegin(GL_LINES);
+	glVertex2i(x1, y1);
+	glVertex2i(x2, y2);
+	glEnd();
+	glEnable(GL_TEXTURE_2D);
 }
 
 static int draw_curve(float mytable[], float cr, float cg, float cb,
@@ -418,16 +419,47 @@ flightclean:
 	return -1;
 }
 
-static int ToggleCommandHandler(XPLMCommandRef       inCommand,
-                                XPLMCommandPhase     inPhase,
-                                void *               inRefcon)
+static void secondcb()
 {
-    if (show_touchdown_counter > 0) {
-        show_touchdown_counter = 0;
-    } else {
-        show_touchdown_counter = 60;
-    }
-    return 0;
+	BOOL is_gnd = is_on_ground();
+	if (is_gnd) {
+		ground_counter = ground_counter + 1;
+		/*-- ignore debounce takeoff*/
+		if (ground_counter == 2) {
+			show_touchdown_counter = 4;
+		/*-- stop data collection*/
+		} else if (ground_counter == 3) {
+			collect_touchdown_data = FALSE;
+			if (IsTouchDown) {
+				IsLogWritten = FALSE;
+			}
+		} else if (ground_counter == 5) {
+			if (!IsLogWritten) {
+				//write_log_file()
+			}
+		}
+	} else {
+		/*-- in the air*/
+		ground_counter = 0;
+		collect_touchdown_data = TRUE;
+		IsTouchDown = FALSE;
+	}
+	/*-- count down*/
+	if (show_touchdown_counter > 0) {
+		show_touchdown_counter = show_touchdown_counter - 1;
+	}
+}
+
+static int ToggleCommandHandler(XPLMCommandRef       inCommand,
+								XPLMCommandPhase     inPhase,
+								void *               inRefcon)
+{
+	if (show_touchdown_counter > 0) {
+		show_touchdown_counter = 0;
+	} else {
+		show_touchdown_counter = 60;
+	}
+	return 0;
 }
 
 PLUGIN_API int XPluginStart(char * outName, char * outSig, char * outDesc) {
@@ -459,7 +491,7 @@ PLUGIN_API int XPluginStart(char * outName, char * outSig, char * outDesc) {
 	aglRef = XPLMFindDataRef("sim/flightmodel/position/y_agl");
 	tmRef = XPLMFindDataRef("sim/time/total_flight_time_sec");
 
-    gndSpeedRef = XPLMFindDataRef("sim/flightmodel/position/groundspeed");
+	gndSpeedRef = XPLMFindDataRef("sim/flightmodel/position/groundspeed");
 
 	// You probably want this on
 	XPLMEnableFeature("XPLM_USE_NATIVE_PATHS", 1);
@@ -467,14 +499,14 @@ PLUGIN_API int XPluginStart(char * outName, char * outSig, char * outDesc) {
 	/* register loopback in 0.01s */
 	XPLMRegisterFlightLoopCallback(flightcb, -1, NULL);
 
-    ToggleCommand = XPLMCreateCommand("cpuwolf/TouchDownRecorder/Toggle", "Toggle TouchDownRecorder Chart");
-    XPLMRegisterCommandHandler(ToggleCommand, ToggleCommandHandler, 0, NULL);
+	ToggleCommand = XPLMCreateCommand("cpuwolf/TouchDownRecorder/Toggle", "Toggle TouchDownRecorder Chart");
+	XPLMRegisterCommandHandler(ToggleCommand, ToggleCommandHandler, 0, NULL);
 
 	return 1;
 }
 
 PLUGIN_API void	XPluginStop(void) {
-    XPLMUnregisterCommandHandler(ToggleCommand, ToggleCommandHandler, 0, 0);
+	XPLMUnregisterCommandHandler(ToggleCommand, ToggleCommandHandler, 0, 0);
 	XPLMUnregisterFlightLoopCallback(flightcb, NULL);
 	if (!g_win) {
 		XPLMDestroyWindow(g_win);
