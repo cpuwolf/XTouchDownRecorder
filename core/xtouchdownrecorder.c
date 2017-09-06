@@ -480,7 +480,9 @@ static int ToggleCommandHandler(XPLMCommandRef       inCommand,
 								XPLMCommandPhase     inPhase,
 								void *               inRefcon)
 {
-	toggle_touchdown();
+    if (inPhase == xplm_CommandEnd) {
+        toggle_touchdown();
+    }
 	return 0;
 }
 
