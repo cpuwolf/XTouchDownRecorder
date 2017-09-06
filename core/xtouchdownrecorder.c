@@ -21,10 +21,13 @@
 #include <string.h>
 #include <time.h>
 #include <stdio.h>
+
+#ifdef __APPLE__
 #ifndef BOOL
 #define BOOL unsigned char
 #define TRUE 1
 #define FALSE 0
+#endif
 #endif
 
 #include <XPLMPlugin.h>
