@@ -62,6 +62,15 @@ static unsigned int g_size = 0;
 									if(g_start < MAX_TABLE_ELEMENTS) {g_start++;} else {g_start = 0;}\
 								}
 
+#define BUFFER_GO_START(idx)  int tmp_count=g_size; idx=g_start;
+
+#define BUFFER_GO_IS_END(idx)  (tmp_count<=0)
+
+#define BUFFER_GO_NEXT(idx) if(idx < MAX_TABLE_ELEMENTS) {\
+                                idx++;} else {\
+                                    idx = 0;\
+                                } tmp_count--;\
+
 enum
 {
 	TOUCHDOWN_VS_IDX = 0,
@@ -184,19 +193,22 @@ static void drawcb(XPLMWindowID inWindowID, void *inRefcon)
     draw_line(0, 0, 0, 1, 3,x, y + (_TD_CHART_HEIGHT / 2), x + (MAX_TABLE_ELEMENTS * 2), y + (_TD_CHART_HEIGHT / 2));
 
     /*-- draw horizontal axis*/
- /*
-    x_tmp = x
-    local last_tm_recorded = touchdown_tm_table[1]
-    for k, a in pairs(touchdown_tm_table) do
-        -- second axis
-        if a - last_tm_recorded >= 1.0 then
-            -- 1 second
-            graphics.draw_line(x_tmp, y, x_tmp, y + _TD_CHART_HEIGHT)
-            last_tm_recorded = touchdown_tm_table[k]
-        end
-        x_tmp = x_tmp + 2
-    end
-*/
+    int k;
+    x_tmp = x;
+    BUFFER_GO_START(k);
+    float last_tm_recorded = touchdown_tm_table[k];
+    float a;
+    while(!BUFFER_GO_IS_END(k)) {
+        /*-- second axis*/
+        a = touchdown_tm_table[k];
+        if (a - last_tm_recorded >= 1.0) {
+            /*-- 1 second*/
+            draw_line(0,0,0,1,3,x_tmp, y, x_tmp, y + _TD_CHART_HEIGHT);
+            last_tm_recorded = touchdown_tm_table[k];
+        }
+        x_tmp = x_tmp + 2;
+        BUFFER_GO_NEXT(k);
+    }
     
     /*-- title*/
     color[0] = 1.0;
