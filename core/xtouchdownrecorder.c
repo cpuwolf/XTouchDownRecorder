@@ -484,7 +484,7 @@ PLUGIN_API int XPluginStart(char * outName, char * outSig, char * outDesc)
     int menuidx;
 
 	/* Plugin details */
-	strcpy(outName, "XTouchDownRecorder V4");
+	sprintf(outName, "XTouchDownRecorder V4a %s %s", __DATE__ , __TIME__);
 	strcpy(outSig, "cpuwolf.xtouchdownrecorder");
 	strcpy(outDesc, "More information https://github.com/cpuwolf");
 
