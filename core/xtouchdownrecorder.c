@@ -63,13 +63,15 @@ static unsigned int g_size = 0;
 
 /* set value firstly, then increase index */
 #define BUFFER_INSERT_BACK() if(g_end < MAX_TABLE_ELEMENTS) {\
-								g_end++;} else {\
+								g_end++;} if(g_end==MAX_TABLE_ELEMENTS) {\
 									g_end = 0;\
 								} \
 								if(g_size < MAX_TABLE_ELEMENTS) {\
 									g_size++;\
 								} else {\
-									if(g_start < MAX_TABLE_ELEMENTS) {g_start++;} else {g_start = 0;}\
+									if(g_start < MAX_TABLE_ELEMENTS) {\
+										g_start++;} if(g_start==MAX_TABLE_ELEMENTS) {\
+											g_start = 0;}\
 								}
 
 #define BUFFER_GO_START(idx,tmp_count)  tmp_count=g_size; idx=g_start;
@@ -77,7 +79,7 @@ static unsigned int g_size = 0;
 #define BUFFER_GO_IS_END(idx,tmp_count)  (tmp_count<=0)
 
 #define BUFFER_GO_NEXT(idx,tmp_count) if(idx < MAX_TABLE_ELEMENTS) {\
-								idx++;} else {\
+								idx++;} if(idx==MAX_TABLE_ELEMENTS) {\
 									idx = 0;\
 								} tmp_count--;\
 
@@ -238,6 +240,7 @@ static void draw_line(float r,float g, float b, float alpha, float width, int x1
 {
 	glDisable(GL_TEXTURE_2D);
 	glColor3f(r, g, b);
+	glLineWidth(width);
 	glBegin(GL_LINES);
 	glVertex2i(x1, y1);
 	glVertex2i(x2, y2);
@@ -346,7 +349,7 @@ static void drawcb(XPLMWindowID inWindowID, void *inRefcon)
 				float landingG = touchdown_g_table[k];
 				float landingPitch = touchdown_pch_table[k];
 				char *text_to_print = text_buf;
-				sprintf(text_to_print,"%.02f fpm %.02f G %.02f Degree | ", landingVS, landingG, landingPitch);
+				sprintf(text_to_print,"%.02ffpm %.02fG %.02fDegree | ", landingVS, landingG, landingPitch);
 				strcat(landingString,text_to_print);
 				int width_text_to_print = (int)floor(XPLMMeasureString(xplmFont_Basic, text_to_print, strlen(text_to_print)));
 				XPLMDrawString(color, x_text, y_text, text_to_print, NULL, xplmFont_Basic);
@@ -361,19 +364,19 @@ static void drawcb(XPLMWindowID inWindowID, void *inRefcon)
 	/*-- now draw the chart line green*/
 	float max_vs_axis = 1000.0f;
 	float max_vs_recorded = get_max_val(touchdown_vs_table);
-	sprintf(text_buf, "Max %.02f fpm ", max_vs_recorded);
+	sprintf(text_buf, "Max %.02ffpm ", max_vs_recorded);
 	x_text = draw_curve(touchdown_vs_table, 0.0f,1.0f,0.0f, text_buf, x_text, y_text, x, y, x, y + (_TD_CHART_HEIGHT / 2), max_vs_axis, max_vs_recorded);
 
 	/*-- now draw the chart line red*/
 	float max_g_axis = 2.0;
 	float max_g_recorded = get_max_val(touchdown_g_table);
-	sprintf(text_buf, "Max %.02f G ", max_g_recorded);
+	sprintf(text_buf, "Max %.02fG ", max_g_recorded);
 	x_text = draw_curve(touchdown_g_table, 1,0.68f,0.78f, text_buf, x_text, y_text, x, y, x, y, max_g_axis, max_g_recorded);
 
 	/*-- now draw the chart line light blue*/
 	float max_pch_axis = 14.0;
 	float max_pch_recorded = get_max_val(touchdown_pch_table);
-	sprintf(text_buf, "Max pitch %.02f Degree ", max_pch_recorded);
+	sprintf(text_buf, "Max pitch %.02fDegree ", max_pch_recorded);
 	x_text = draw_curve(touchdown_pch_table, 0.6f,0.85f,0.87f, text_buf, x_text, y_text, x, y, x, y + (_TD_CHART_HEIGHT / 2), max_pch_axis, max_pch_recorded);
 
 	/*-- now draw the chart line orange*/
@@ -385,13 +388,13 @@ static void drawcb(XPLMWindowID inWindowID, void *inRefcon)
 	/*-- now draw the chart line yellow*/
 	float max_eng_axis = 2.0;
 	float max_eng_recorded = get_max_val(touchdown_eng_table);
-	sprintf(text_buf, "Max eng %.02f %% ", max_eng_recorded*100.0f);
+	sprintf(text_buf, "Max eng %.02f%% ", max_eng_recorded*100.0f);
 	x_text = draw_curve(touchdown_eng_table, 1.0f,1.0f,0.0f, text_buf, x_text, y_text, x, y, x, y + (_TD_CHART_HEIGHT / 2), max_eng_axis, max_eng_recorded);
 
 	/*-- now draw the chart line red*/
 	float max_agl_axis = 6.0;
 	float max_agl_recorded = get_max_val(touchdown_agl_table);
-	sprintf(text_buf, "Max AGL %.02f M ", max_agl_recorded);
+	sprintf(text_buf, "Max AGL %.02fM ", max_agl_recorded);
 	x_text = draw_curve(touchdown_agl_table, 1.0f,0.1f,0.1f, text_buf, x_text, y_text, x, y, x, y + (_TD_CHART_HEIGHT / 2), max_agl_axis, max_agl_recorded);
 
 	/*-- draw close button on top-right*/
@@ -546,13 +549,13 @@ PLUGIN_API void	XPluginStop(void) {
 	XPLMUnregisterCommandHandler(ToggleCommand, ToggleCommandHandler, 0, 0);
 	XPLMUnregisterFlightLoopCallback(secondcb, NULL);
 	XPLMUnregisterFlightLoopCallback(flightcb, NULL);
-	if (!g_win) {
+	if (g_win) {
 		XPLMDestroyWindow(g_win);
-		g_win = NULL;
+		//g_win = NULL;
 	}
 	if(g_pbuffer) {
 		free(g_pbuffer);
-		g_pbuffer = NULL;
+		//g_pbuffer = NULL;
 	}
 }
 
