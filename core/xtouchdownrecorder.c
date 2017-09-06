@@ -492,7 +492,7 @@ static void menucb(void *menuRef, void *param)
 PLUGIN_API int XPluginStart(char * outName, char * outSig, char * outDesc)
 {
 	XPLMMenuID plugins_menu;
-    int menuidx;
+	int menuidx;
 
 	/* Plugin details */
 	sprintf(outName, "XTouchDownRecorder V4a %s %s", __DATE__ , __TIME__);
@@ -539,8 +539,8 @@ PLUGIN_API int XPluginStart(char * outName, char * outSig, char * outDesc)
 	plugins_menu = XPLMFindPluginsMenu();
 	menuidx = XPLMAppendMenuItem(plugins_menu, "XTouchDownRecorder", NULL, 1);
 	tdr_menu = XPLMCreateMenu("XTouchDownRecorder", plugins_menu, menuidx,
-                menucb, NULL);
-    XPLMAppendMenuItem(tdr_menu, "Show/Hide", NULL, 1);
+				menucb, NULL);
+	XPLMAppendMenuItem(tdr_menu, "Show/Hide", NULL, 1);
 
 	return 1;
 }
