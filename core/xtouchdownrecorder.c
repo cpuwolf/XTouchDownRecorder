@@ -160,7 +160,7 @@ static int mousecb(XPLMWindowID inWindowID, int x, int y,
 static draw_line(float r,float g, float b, float alpha, float width, int x1, int y1, int x2, int y2)
 {
 	glDisable(GL_TEXTURE_2D);
-	glColor3f(1.0, 1.0, 1.0);
+	glColor3f(r, g, b);
 	glBegin(GL_LINES);
 	glVertex2i(x1, y1);
 	glVertex2i(x2, y2);
