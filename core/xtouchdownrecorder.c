@@ -324,7 +324,7 @@ static void drawcb(XPLMWindowID inWindowID, void *inRefcon)
 	color[0] = 1.0;
 	color[1] = 1.0;
 	color[2] = 1.0;
-	XPLMDrawString(color, x + 5, y + _TD_CHART_HEIGHT - 15, "TouchDownRecorder V3.0 by cpuwolf", NULL, xplmFont_Basic);
+	XPLMDrawString(color, x + 5, y + _TD_CHART_HEIGHT - 15, "TouchDownRecorder V4a by cpuwolf", NULL, xplmFont_Basic);
 
 	int x_text = x + 5;
 	int y_text = y + 8;
@@ -346,7 +346,7 @@ static void drawcb(XPLMWindowID inWindowID, void *inRefcon)
 				float landingG = touchdown_g_table[k];
 				float landingPitch = touchdown_pch_table[k];
 				char *text_to_print = text_buf;
-				sprintf(text_to_print,"%.02f fpm %.02f G %.02f Degree", landingVS, landingG, landingPitch);
+				sprintf(text_to_print,"%.02f fpm %.02f G %.02f Degree | ", landingVS, landingG, landingPitch);
 				strcat(landingString,text_to_print);
 				int width_text_to_print = (int)floor(XPLMMeasureString(xplmFont_Basic, text_to_print, strlen(text_to_print)));
 				XPLMDrawString(color, x_text, y_text, text_to_print, NULL, xplmFont_Basic);
@@ -361,13 +361,13 @@ static void drawcb(XPLMWindowID inWindowID, void *inRefcon)
 	/*-- now draw the chart line green*/
 	float max_vs_axis = 1000.0f;
 	float max_vs_recorded = get_max_val(touchdown_vs_table);
-	sprintf(text_buf, "Max %.02f fpm", max_vs_recorded);
+	sprintf(text_buf, "Max %.02f fpm ", max_vs_recorded);
 	x_text = draw_curve(touchdown_vs_table, 0.0f,1.0f,0.0f, text_buf, x_text, y_text, x, y, x, y + (_TD_CHART_HEIGHT / 2), max_vs_axis, max_vs_recorded);
 
 	/*-- now draw the chart line red*/
 	float max_g_axis = 2.0;
 	float max_g_recorded = get_max_val(touchdown_g_table);
-	sprintf(text_buf, "Max %.02f G", max_g_recorded);
+	sprintf(text_buf, "Max %.02f G ", max_g_recorded);
 	x_text = draw_curve(touchdown_g_table, 1,0.68f,0.78f, text_buf, x_text, y_text, x, y, x, y, max_g_axis, max_g_recorded);
 
 	/*-- now draw the chart line light blue*/
@@ -379,19 +379,19 @@ static void drawcb(XPLMWindowID inWindowID, void *inRefcon)
 	/*-- now draw the chart line orange*/
 	float max_elev_axis = 2.0;
 	float max_elev_recorded = get_max_val(touchdown_elev_table);
-	sprintf(text_buf, "Max elevator %.02f%%", max_elev_recorded*100.0f);
+	sprintf(text_buf, "Max elevator %.02f%% ", max_elev_recorded*100.0f);
 	x_text = draw_curve(touchdown_elev_table, 1.0f,0.49f,0.15f, text_buf, x_text, y_text, x, y, x, y + (_TD_CHART_HEIGHT / 2), max_elev_axis, max_elev_recorded);
 
 	/*-- now draw the chart line yellow*/
 	float max_eng_axis = 2.0;
 	float max_eng_recorded = get_max_val(touchdown_eng_table);
-	sprintf(text_buf, "Max eng %.02f %%", max_eng_recorded*100.0f);
+	sprintf(text_buf, "Max eng %.02f %% ", max_eng_recorded*100.0f);
 	x_text = draw_curve(touchdown_eng_table, 1.0f,1.0f,0.0f, text_buf, x_text, y_text, x, y, x, y + (_TD_CHART_HEIGHT / 2), max_eng_axis, max_eng_recorded);
 
 	/*-- now draw the chart line red*/
 	float max_agl_axis = 6.0;
 	float max_agl_recorded = get_max_val(touchdown_agl_table);
-	sprintf(text_buf, "Max AGL %.02f M", max_agl_recorded);
+	sprintf(text_buf, "Max AGL %.02f M ", max_agl_recorded);
 	x_text = draw_curve(touchdown_agl_table, 1.0f,0.1f,0.1f, text_buf, x_text, y_text, x, y, x, y + (_TD_CHART_HEIGHT / 2), max_agl_axis, max_agl_recorded);
 
 	/*-- draw close button on top-right*/
@@ -530,12 +530,12 @@ PLUGIN_API int XPluginStart(char * outName, char * outSig, char * outDesc)
 	/* register loopback in 1s */
 	XPLMRegisterFlightLoopCallback(secondcb, 1.0f, NULL);
 
-	ToggleCommand = XPLMCreateCommand("cpuwolf/TouchDownRecorder/Toggle", "Toggle TouchDownRecorder Chart");
+	ToggleCommand = XPLMCreateCommand("cpuwolf/XTouchDownRecorder/Toggle", "Toggle TouchDownRecorder Chart");
 	XPLMRegisterCommandHandler(ToggleCommand, ToggleCommandHandler, 0, NULL);
 
 	plugins_menu = XPLMFindPluginsMenu();
-	menuidx = XPLMAppendMenuItem(plugins_menu, "TouchDownRecorder", NULL, 1);
-	tdr_menu = XPLMCreateMenu("TouchDownRecorder", plugins_menu, menuidx,
+	menuidx = XPLMAppendMenuItem(plugins_menu, "XTouchDownRecorder", NULL, 1);
+	tdr_menu = XPLMCreateMenu("XTouchDownRecorder", plugins_menu, menuidx,
                 menucb, NULL);
     XPLMAppendMenuItem(tdr_menu, "Show/Hide", NULL, 1);
 
