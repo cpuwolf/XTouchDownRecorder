@@ -110,6 +110,8 @@ static XPLMWindowID g_win = NULL;
 static int g_winposx = 0;
 static int g_winposy = 500;
 
+static XPLMMenuID tdr_menu = NULL;
+
 static BOOL collect_touchdown_data = TRUE;
 static unsigned int show_touchdown_counter = 3;
 static unsigned int ground_counter = 10;
@@ -455,19 +457,32 @@ static float secondcb(float inElapsedSinceLastCall,
 	return 1.0f;
 }
 
-static int ToggleCommandHandler(XPLMCommandRef       inCommand,
-								XPLMCommandPhase     inPhase,
-								void *               inRefcon)
+static void toggle_touchdown()
 {
 	if (show_touchdown_counter > 0) {
 		show_touchdown_counter = 0;
 	} else {
 		show_touchdown_counter = 60;
 	}
+}
+static int ToggleCommandHandler(XPLMCommandRef       inCommand,
+								XPLMCommandPhase     inPhase,
+								void *               inRefcon)
+{
+	toggle_touchdown();
 	return 0;
 }
 
-PLUGIN_API int XPluginStart(char * outName, char * outSig, char * outDesc) {
+static void menucb(void *menuRef, void *param)
+{
+	toggle_touchdown();
+}
+
+PLUGIN_API int XPluginStart(char * outName, char * outSig, char * outDesc)
+{
+	XPLMMenuID plugins_menu;
+    int menuidx;
+
 	/* Plugin details */
 	strcpy(outName, "XTouchDownRecorder V4");
 	strcpy(outSig, "cpuwolf.xtouchdownrecorder");
@@ -509,6 +524,12 @@ PLUGIN_API int XPluginStart(char * outName, char * outSig, char * outDesc) {
 
 	ToggleCommand = XPLMCreateCommand("cpuwolf/TouchDownRecorder/Toggle", "Toggle TouchDownRecorder Chart");
 	XPLMRegisterCommandHandler(ToggleCommand, ToggleCommandHandler, 0, NULL);
+
+	plugins_menu = XPLMFindPluginsMenu();
+	menuidx = XPLMAppendMenuItem(plugins_menu, "TouchDownRecorder", NULL, 1);
+	tdr_menu = XPLMCreateMenu("TouchDownRecorder", plugins_menu, menuidx,
+                menucb, NULL);
+    XPLMAppendMenuItem(tdr_menu, "Show/Hide", NULL, 1);
 
 	return 1;
 }
