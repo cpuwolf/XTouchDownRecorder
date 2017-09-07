@@ -472,12 +472,16 @@ static float secondcb(float inElapsedSinceLastCall,
 {
 	BOOL is_gnd = is_on_ground();
 	if (is_gnd) {
+		if(is_taxing()) {
+			taxi_counter++;
+			/*-- ignore debounce takeoff*/
+			if (taxi_counter == 3) {
+				show_touchdown_counter = 4;
+			}
+		} else taxi_counter=0;
 		ground_counter = ground_counter + 1;
-		/*-- ignore debounce takeoff*/
-		if (ground_counter == 2) {
-			show_touchdown_counter = 4;
-		/*-- stop data collection*/
-		} else if (ground_counter == 3) {
+		if (ground_counter == 3) {
+			/*-- stop data collection*/
 			collect_touchdown_data = FALSE;
 			if (IsTouchDown) {
 				IsLogWritten = FALSE;
