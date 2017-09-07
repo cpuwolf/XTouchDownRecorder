@@ -214,12 +214,13 @@ static int mousecb(XPLMWindowID inWindowID, int x, int y,
 	switch (inMouse) {
 	case xplm_MouseDown:
 		if ((x >= g_winposx + _TD_CHART_WIDTH - 10) && (x <= g_winposx + _TD_CHART_WIDTH) &&
-					(y <= g_winposy) && (y >= g_winposy - 10))
+					(y <= g_winposy) && (y >= g_winposy - 10)) {
 			show_touchdown_counter = 0;
-		else {
-			lastMouseX = x;
-			lastMouseY = y;
 		}
+
+		lastMouseX = x;
+		lastMouseY = y;
+
 		break;
 
 	case xplm_MouseDrag:
