@@ -451,7 +451,7 @@ flightclean:
 
 static void write_log_file()
 {
-	FILE *of;
+	FILE *ofile;
 	time_t touchTime;
 	int num;
 	char logAirportId[50];
@@ -477,11 +477,13 @@ static void write_log_file()
 	num = XPLMGetDatab(tailRef, logAircraftTail, 0, 50);
 	logAircraftTail[num] = 0;
 
-	of = fopen("XTouchDownRecorderLog.txt", "a");
-	if (of) {
-		fprintf(of, "%s [%s] %s %s %s\n", timebuf, logAircraftTail, logAirportId, logAirportName, landingString);
-		fclose(of);
-	}
+	ofile = fopen("XTouchDownRecorderLog.txt", "a");
+	if (ofile) {
+		fprintf(ofile, "%s [%s] %s %s %s\n", timebuf, logAircraftTail, logAirportId, logAirportName, landingString);
+		fclose(ofile);
+    } else {
+        XPLMDebugString("XTouchDownRecorderLog.txt open error");
+    }
 	IsLogWritten = TRUE;
 }
 static float secondcb(float inElapsedSinceLastCall,
@@ -506,7 +508,7 @@ static float secondcb(float inElapsedSinceLastCall,
 			}
 		} else if (ground_counter == 5) {
 			if (!IsLogWritten) {
-				//write_log_file();
+				write_log_file();
 			}
 		}
 	} else {
