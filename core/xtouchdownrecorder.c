@@ -267,13 +267,18 @@ static int draw_curve(float mytable[], float cr, float cg, float cb,
 	int x_tmp = x_start;
 	int y_tmp = y_start;
 	int x_max_tmp = x_tmp;
+	glDisable(GL_TEXTURE_2D);
+	glColor3f(cr, cg, cb);
+	glLineWidth(1);
+	glBegin(GL_LINE_STRIP);
 	BUFFER_GO_START(k,tmpc);
-	float last_recorded = mytable[k];
+	float p;
+	int y_height;
 	int draw_max_counter = 0;
 	while(!BUFFER_GO_IS_END(k,tmpc)) {
-		float p = mytable[k];
-		int y_height = (int)round(p / max_axis * _TD_CHART_HEIGHT);
-		draw_line(cr,cg,cb,1,1,x_tmp, y_tmp + (last_recorded / max_axis * _TD_CHART_HEIGHT), x_tmp + 2, y_tmp + y_height);
+		p = mytable[k];
+		y_height = (int)round(p / max_axis * _TD_CHART_HEIGHT);
+		glVertex2i(x_tmp, y_tmp + y_height);
 		if (p == max_data) {
 			if (draw_max_counter == 0) {
 				x_max_tmp = x_tmp;
@@ -281,9 +286,10 @@ static int draw_curve(float mytable[], float cr, float cg, float cb,
 			draw_max_counter = draw_max_counter + 1;
 		}
 		x_tmp = x_tmp + 2;
-		last_recorded = p;
 		BUFFER_GO_NEXT(k,tmpc);
 	}
+	glEnd();
+	glEnable(GL_TEXTURE_2D);
 	draw_line(cr,cg,cb,1,1,x_max_tmp, y_orig, x_max_tmp, y_orig + _TD_CHART_HEIGHT);
 
 	return x_text;
