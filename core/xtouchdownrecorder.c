@@ -255,8 +255,7 @@ static int draw_curve(float mytable[], float cr, float cg, float cb,
 {
 	int k,tmpc;
 	float color[] = { cr, cg, cb };
-	//graphics.set_color(cr, cg, cb, 1)
-	//graphics.set_width(1)
+
 	/*-- print text*/
 	int x_text = x_text_start;
 	int y_text = y_text_start;
@@ -273,12 +272,20 @@ static int draw_curve(float mytable[], float cr, float cg, float cb,
 	glBegin(GL_LINE_STRIP);
 	BUFFER_GO_START(k,tmpc);
 	float p;
-	int y_height;
+	int y_height,y1,ymax=y_orig + _TD_CHART_HEIGHT;
 	int draw_max_counter = 0;
 	while(!BUFFER_GO_IS_END(k,tmpc)) {
 		p = mytable[k];
 		y_height = (int)round(p / max_axis * _TD_CHART_HEIGHT);
-		glVertex2i(x_tmp, y_tmp + y_height);
+
+		y1 = y_tmp + y_height;
+		if(y1 < y_orig) {
+			glVertex2i(x_tmp, y_orig);
+		} else if (y1 > ymax) {
+			glVertex2i(x_tmp, ymax);
+		} else {
+			glVertex2i(x_tmp, y_tmp + y_height);
+		}
 		if (p == max_data) {
 			if (draw_max_counter == 0) {
 				x_max_tmp = x_tmp;
