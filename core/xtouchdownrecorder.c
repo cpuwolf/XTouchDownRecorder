@@ -342,7 +342,7 @@ static void drawcb(XPLMWindowID inWindowID, void *inRefcon)
 	color[0] = 1.0;
 	color[1] = 1.0;
 	color[2] = 1.0;
-	XPLMDrawString(color, x + 5, y + _TD_CHART_HEIGHT - 15, "TouchDownRecorder V4a by cpuwolf", NULL, xplmFont_Basic);
+	XPLMDrawString(color, x + 5, y + _TD_CHART_HEIGHT - 15, "XTouchDownRecorder V4a by cpuwolf", NULL, xplmFont_Basic);
 
 	int x_text = x + 5;
 	int y_text = y + 8;
@@ -478,8 +478,10 @@ static void write_log_file()
 	logAircraftTail[num] = 0;
 
 	of = fopen("XTouchDownRecorderLog.txt", "a");
-	fprintf(of, "%s [%s] %s %s %s\n", timebuf, logAircraftTail, logAirportId, logAirportName, landingString);
-	fclose(of);
+	if (of) {
+		fprintf(of, "%s [%s] %s %s %s\n", timebuf, logAircraftTail, logAirportId, logAirportName, landingString);
+		fclose(of);
+	}
 	IsLogWritten = TRUE;
 }
 static float secondcb(float inElapsedSinceLastCall,
@@ -494,7 +496,7 @@ static float secondcb(float inElapsedSinceLastCall,
 			if (taxi_counter == 3) {
 				show_touchdown_counter = 4;
 			}
-		} else taxi_counter=0;
+		}
 		ground_counter = ground_counter + 1;
 		if (ground_counter == 3) {
 			/*-- stop data collection*/
@@ -504,7 +506,7 @@ static float secondcb(float inElapsedSinceLastCall,
 			}
 		} else if (ground_counter == 5) {
 			if (!IsLogWritten) {
-				write_log_file();
+				//write_log_file();
 			}
 		}
 	} else {
@@ -512,6 +514,7 @@ static float secondcb(float inElapsedSinceLastCall,
 		ground_counter = 0;
 		collect_touchdown_data = TRUE;
 		IsTouchDown = FALSE;
+		taxi_counter = 0;
 	}
 	/*-- count down*/
 	if (show_touchdown_counter > 0) {
