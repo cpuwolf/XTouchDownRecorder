@@ -589,8 +589,8 @@ PLUGIN_API int XPluginStart(char * outName, char * outSig, char * outDesc)
 	/* MAC OS */
 	XPLMEnableFeature("XPLM_USE_NATIVE_PATHS", 1);
 
-	/* register loopback in 0.01s */
-	XPLMRegisterFlightLoopCallback(flightcb, -1, NULL);
+	/* register loopback starting at 10s */
+	XPLMRegisterFlightLoopCallback(flightcb, 10.0f, NULL);
 
 	/* register loopback in 1s */
 	XPLMRegisterFlightLoopCallback(secondcb, 1.0f, NULL);
