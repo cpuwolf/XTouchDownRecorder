@@ -151,7 +151,7 @@ static BOOL is_on_ground()
 static BOOL is_taxing()
 {
 	float speed = XPLMGetDataf(gndSpeedRef);
-	if((speed > 0.0f) && (speed <20.0f)) {
+	if((speed > 0.0f) && (speed <10.0f)) {
 		return TRUE;
 	}
 	return FALSE;
@@ -493,7 +493,7 @@ static float secondcb(float inElapsedSinceLastCall,
 		if(is_taxing()) {
 			taxi_counter++;
 			/*-- ignore debounce takeoff*/
-			if (taxi_counter == 3) {
+			if (taxi_counter == 6) {
 				show_touchdown_counter = 4;
 			}
 		}
