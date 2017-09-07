@@ -52,7 +52,7 @@
 
 static XPLMCommandRef ToggleCommand = NULL;
 
-static XPLMDataRef gearFRef,gForceRef,vertSpeedRef,pitchRef,elevatorRef,engRef,aglRef,tmRef,gndSpeedRef;
+static XPLMDataRef gearFRef,gForceRef,vertSpeedRef,pitchRef,elevatorRef,engRef,aglRef,tmRef,gndSpeedRef,latRef,longRef,tailRef;
 
 static float * g_pbuffer = NULL;
 static unsigned int g_start = 0;
@@ -125,6 +125,7 @@ static XPLMMenuID tdr_menu = NULL;
 static BOOL collect_touchdown_data = TRUE;
 static unsigned int show_touchdown_counter = 3;
 static unsigned int ground_counter = 10;
+static unsigned int taxi_counter = 0;
 
 
 static char landingString[128];
@@ -150,10 +151,8 @@ static BOOL is_on_ground()
 static BOOL is_taxing()
 {
 	float speed = XPLMGetDataf(gndSpeedRef);
-	if(is_on_ground) {
-		if((speed > 0.0f) && (speed <20.0f)) {
-			return TRUE;
-		}
+	if((speed > 0.0f) && (speed <20.0f)) {
+		return TRUE;
 	}
 	return FALSE;
 }
@@ -434,6 +433,39 @@ flightclean:
 	return -1;
 }
 
+static void write_log_file()
+{
+	FILE *of;
+	time_t touchTime;
+	int num;
+	char logAirportId[50];
+	char logAirportName[100];
+	char logAircraftTail[50];
+	char timebuf[100];
+
+	touchTime=time(NULL);
+	strcpy(timebuf, ctime(&touchTime));
+
+	float lat = XPLMGetDataf(latRef);
+	float lon = XPLMGetDataf(longRef);
+	XPLMNavRef navref = XPLMFindNavAid(NULL, NULL, &lat, &lon, NULL, xplm_Nav_Airport);
+
+	if (XPLM_NAV_NOT_FOUND != navref)
+		XPLMGetNavAidInfo(navref, NULL, &lat, &lon, NULL, NULL, NULL, logAirportId,
+				logAirportName, NULL);
+	else {
+		logAirportId[0] = 0;
+		logAirportName[0] = 0;
+	}
+
+	num = XPLMGetDatab(tailRef, logAircraftTail, 0, 50);
+	logAircraftTail[num] = 0;
+
+	fprintf(of, "%s [%s] %s %s %s\n", timebuf, logAircraftTail, logAirportId, logAirportName, landingString);
+	of = fopen("XTouchDownRecorderLog.txt", "a");
+	fclose(of);
+	IsLogWritten = TRUE;
+}
 static float secondcb(float inElapsedSinceLastCall,
 	float inElapsedTimeSinceLastFlightLoop, int inCounter,
 	void *inRefcon)
@@ -452,7 +484,7 @@ static float secondcb(float inElapsedSinceLastCall,
 			}
 		} else if (ground_counter == 5) {
 			if (!IsLogWritten) {
-				//write_log_file()
+				write_log_file();
 			}
 		}
 	} else {
@@ -480,9 +512,9 @@ static int ToggleCommandHandler(XPLMCommandRef       inCommand,
 								XPLMCommandPhase     inPhase,
 								void *               inRefcon)
 {
-    if (inPhase == xplm_CommandEnd) {
-        toggle_touchdown();
-    }
+	if (inPhase == xplm_CommandEnd) {
+		toggle_touchdown();
+	}
 	return 0;
 }
 
@@ -525,6 +557,9 @@ PLUGIN_API int XPluginStart(char * outName, char * outSig, char * outDesc)
 	tmRef = XPLMFindDataRef("sim/time/total_flight_time_sec");
 
 	gndSpeedRef = XPLMFindDataRef("sim/flightmodel/position/groundspeed");
+	latRef = XPLMFindDataRef("sim/flightmodel/position/latitude");
+	longRef = XPLMFindDataRef("sim/flightmodel/position/longitude");
+	tailRef = XPLMFindDataRef("sim/aircraft/view/acf_tailnum");
 
 	/* MAC OS */
 	XPLMEnableFeature("XPLM_USE_NATIVE_PATHS", 1);
