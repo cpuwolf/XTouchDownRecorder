@@ -461,8 +461,8 @@ static void write_log_file()
 	num = XPLMGetDatab(tailRef, logAircraftTail, 0, 50);
 	logAircraftTail[num] = 0;
 
-	fprintf(of, "%s [%s] %s %s %s\n", timebuf, logAircraftTail, logAirportId, logAirportName, landingString);
 	of = fopen("XTouchDownRecorderLog.txt", "a");
+	fprintf(of, "%s [%s] %s %s %s\n", timebuf, logAircraftTail, logAirportId, logAirportName, landingString);
 	fclose(of);
 	IsLogWritten = TRUE;
 }
