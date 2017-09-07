@@ -266,6 +266,7 @@ static int draw_curve(float mytable[], float cr, float cg, float cb,
 	/*-- draw line*/
 	int x_tmp = x_start;
 	int y_tmp = y_start;
+	int x_max_tmp = x_tmp;
 	BUFFER_GO_START(k,tmpc);
 	float last_recorded = mytable[k];
 	int draw_max_counter = 0;
@@ -275,7 +276,7 @@ static int draw_curve(float mytable[], float cr, float cg, float cb,
 		draw_line(cr,cg,cb,1,1,x_tmp, y_tmp + (last_recorded / max_axis * _TD_CHART_HEIGHT), x_tmp + 2, y_tmp + y_height);
 		if (p == max_data) {
 			if (draw_max_counter == 0) {
-				draw_line(cr,cg,cb,1,1,x_tmp, y_orig, x_tmp, y_orig + _TD_CHART_HEIGHT);
+				x_max_tmp = x_tmp;
 			}
 			draw_max_counter = draw_max_counter + 1;
 		}
@@ -283,6 +284,7 @@ static int draw_curve(float mytable[], float cr, float cg, float cb,
 		last_recorded = p;
 		BUFFER_GO_NEXT(k,tmpc);
 	}
+	draw_line(cr,cg,cb,1,1,x_max_tmp, y_orig, x_max_tmp, y_orig + _TD_CHART_HEIGHT);
 
 	return x_text;
 }
