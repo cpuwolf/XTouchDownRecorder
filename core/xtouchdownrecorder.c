@@ -495,7 +495,6 @@ static void write_log_file()
 
 	ofile = fopen("XTouchDownRecorderLog.txt", "a");
 	if (ofile) {
-		fwrite(tmbuf,20,1, ofile);
 		fprintf(ofile, "%s [%s] %s %s %s\n", tmbuf, logAircraftTail, logAirportId, logAirportName, landingString);
 		fclose(ofile);
 	} else {
