@@ -451,15 +451,12 @@ flightclean:
 
 static void formattm(char *str)
 {
-    int len = strlen(str);
-    len--;
-    while (0 < len) {
-        if (('\r' == str[len]) || ('\n' == str[len])) {
-            str[len] = 0;
-            len--;
-        } else
-            return;
-    }
+	unsigned int len = strlen(str);
+	for (unsigned int i=0; i < len; i++) {
+		if (('\r' == str[i]) || ('\n' == str[i])) {
+			str[i] = 0;
+		}
+	}
 }
 
 
@@ -470,7 +467,7 @@ static void write_log_file()
 	struct tm *tblock;
 	int num;
 	static char logAirportId[50];
-	static char logAirportName[100];
+	static char logAirportName[256];
 	static char logAircraftTail[50];
 	static char tmbuf[500];
 
@@ -478,9 +475,8 @@ static void write_log_file()
 	tblock=localtime(&touchTime);
 	memset(tmbuf,0,sizeof(tmbuf));
 	strcpy(tmbuf, asctime(tblock));
-    XPLMDebugString(tmbuf);
-    //formattm(tmbuf);
-
+	formattm(tmbuf);
+	XPLMDebugString(tmbuf);
 
 	float lat = XPLMGetDataf(latRef);
 	float lon = XPLMGetDataf(longRef);
@@ -494,17 +490,17 @@ static void write_log_file()
 		logAirportName[0] = 0;
 	}
 
-	num = XPLMGetDatab(tailRef, logAircraftTail, 0, 50);
+	num = XPLMGetDatab(tailRef, logAircraftTail, 0, 49);
 	logAircraftTail[num] = 0;
 
 	ofile = fopen("XTouchDownRecorderLog.txt", "a");
 	if (ofile) {
 		fwrite(tmbuf,20,1, ofile);
-		fprintf(ofile, "[%s] %s %s %s\n", logAircraftTail, logAirportId, logAirportName, landingString);
+		fprintf(ofile, "%s [%s] %s %s %s\n", tmbuf, logAircraftTail, logAirportId, logAirportName, landingString);
 		fclose(ofile);
-    } else {
-        XPLMDebugString("XTouchDownRecorderLog.txt open error");
-    }
+	} else {
+		XPLMDebugString("XTouchDownRecorderLog.txt open error");
+	}
 	IsLogWritten = TRUE;
 }
 static float secondcb(float inElapsedSinceLastCall,
