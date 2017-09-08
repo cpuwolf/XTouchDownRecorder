@@ -30,10 +30,12 @@ IF(APPLE OR WIN32)
     SET(XPWIDGETS_LIBRARY "${XPWIDGETS_LIBRARY}" PARENT_SCOPE)
 ENDIF()
 
+IF(NOT UNIX)
 # For some reason this doesn't work. It's not worth wasting more time on fixing it, so
 # I'll manually include the directories below
 SET_PROPERTY(TARGET xplm APPEND PROPERTY INTERFACE_INCLUDE_DIRECTORIES "${CMAKE_CURRENT_SOURCE_DIR}/sdk/CHeaders/XPLM" "${CMAKE_CURRENT_SOURCE_DIR}/sdk/CHeaders/Wrappers")
 SET_PROPERTY(TARGET xpwidgets APPEND PROPERTY INTERFACE_INCLUDE_DIRECTORIES "${CMAKE_CURRENT_SOURCE_DIR}/sdk/CHeaders/XPLM" "${CMAKE_CURRENT_SOURCE_DIR}/sdk/CHeaders/Widgets" "${CMAKE_CURRENT_SOURCE_DIR}/sdk/CHeaders/Wrappers")
+ENDIF()
 
 FUNCTION(add_xplane_sdk_definitions library_name) 
     IF(APPLE)

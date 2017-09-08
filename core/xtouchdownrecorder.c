@@ -22,7 +22,7 @@
 #include <time.h>
 #include <stdio.h>
 
-#ifdef __APPLE__
+#if defined(__APPLE__) || defined(__unix__)
 #ifndef BOOL
 #define BOOL unsigned char
 #define TRUE 1
@@ -451,8 +451,9 @@ flightclean:
 
 static void formattm(char *str)
 {
+	unsigned int i;
 	unsigned int len = strlen(str);
-	for (unsigned int i=0; i < len; i++) {
+	for (i=0; i < len; i++) {
 		if (('\r' == str[i]) || ('\n' == str[i])) {
 			str[i] = 0;
 		}
