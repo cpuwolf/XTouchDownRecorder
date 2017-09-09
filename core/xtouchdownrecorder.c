@@ -125,20 +125,16 @@ static XPLMMenuID tdr_menu = NULL;
 static BOOL collect_touchdown_data = TRUE;
 static unsigned int show_touchdown_counter = 3;
 
-
+static time_t touchTime;
 static char landingString[128];
 static BOOL IsLogWritten = TRUE;
 static BOOL IsTouchDown = FALSE;
 
 static BOOL check_ground(float n)
 {
-	if ( 0.0 != n ) {
+	if ( n != 0.0f ) {
 		return TRUE;
-		/*-- LAND */
-	}
-
-	return FALSE;
-	/*-- AIR*/
+	} else return FALSE;
 }
 
 static BOOL is_on_ground()
@@ -184,7 +180,7 @@ void collect_flight_data()
 	lastElev = XPLMGetDataf(elevatorRef);
 	lastAgl = XPLMGetDataf(aglRef);
 	lastTm = XPLMGetDataf(tmRef);
-	XPLMGetDatavf(engRef,engtb,0,4);
+	XPLMGetDatavf(engRef,engtb,0,3);
 	lastEng = engtb[0];
 
 	/*-- fill the table */
@@ -340,7 +336,7 @@ static void drawcb(XPLMWindowID inWindowID, void *inRefcon)
 	color[0] = 1.0;
 	color[1] = 1.0;
 	color[2] = 1.0;
-	XPLMDrawString(color, x + 5, y + _TD_CHART_HEIGHT - 15, "XTouchDownRecorder V4a by cpuwolf", NULL, xplmFont_Basic);
+	XPLMDrawString(color, x + 5, y + _TD_CHART_HEIGHT - 15, "XTouchDownRecorder V4 by cpuwolf", NULL, xplmFont_Basic);
 
 	int x_text = x + 5;
 	int y_text = y + 8;
@@ -381,7 +377,7 @@ static void drawcb(XPLMWindowID inWindowID, void *inRefcon)
 	x_text = draw_curve(touchdown_vs_table, 0.0f,1.0f,0.0f, text_buf, x_text, y_text, x, y, x, y + (_TD_CHART_HEIGHT / 2), max_vs_axis, max_vs_recorded);
 
 	/*-- now draw the chart line red*/
-	float max_g_axis = 2.0;
+	float max_g_axis = 1.8f;
 	float max_g_recorded = get_max_val(touchdown_g_table);
 	sprintf(text_buf, "Max %.02fG ", max_g_recorded);
 	x_text = draw_curve(touchdown_g_table, 1,0.68f,0.78f, text_buf, x_text, y_text, x, y, x, y, max_g_axis, max_g_recorded);
@@ -399,7 +395,7 @@ static void drawcb(XPLMWindowID inWindowID, void *inRefcon)
 	x_text = draw_curve(touchdown_elev_table, 1.0f,0.49f,0.15f, text_buf, x_text, y_text, x, y, x, y + (_TD_CHART_HEIGHT / 2), max_elev_axis, max_elev_recorded);
 
 	/*-- now draw the chart line yellow*/
-	float max_eng_axis = 2.0;
+	float max_eng_axis = 1.0;
 	float max_eng_recorded = get_max_val(touchdown_eng_table);
 	sprintf(text_buf, "Max eng %.02f%% ", max_eng_recorded*100.0f);
 	x_text = draw_curve(touchdown_eng_table, 1.0f,1.0f,0.0f, text_buf, x_text, y_text, x, y, x, y + (_TD_CHART_HEIGHT / 2), max_eng_axis, max_eng_recorded);
@@ -462,7 +458,6 @@ static void formattm(char *str)
 static void write_log_file()
 {
 	FILE *ofile;
-	time_t touchTime;
 	struct tm *tblock;
 	int num;
 	static char logAirportId[50];
@@ -470,12 +465,10 @@ static void write_log_file()
 	static char logAircraftTail[50];
 	static char tmbuf[500];
 
-	time(&touchTime);
 	tblock=localtime(&touchTime);
 	memset(tmbuf,0,sizeof(tmbuf));
 	strcpy(tmbuf, asctime(tblock));
 	formattm(tmbuf);
-	XPLMDebugString(tmbuf);
 
 	float lat = XPLMGetDataf(latRef);
 	float lon = XPLMGetDataf(longRef);
@@ -497,7 +490,7 @@ static void write_log_file()
 		fprintf(ofile, "%s [%s] %s %s %s\n", tmbuf, logAircraftTail, logAirportId, logAirportName, landingString);
 		fclose(ofile);
 	} else {
-		XPLMDebugString("XTouchDownRecorderLog.txt open error");
+		XPLMDebugString("XTouchDownRecorder: XTouchDownRecorderLog.txt open error");
 	}
 	IsLogWritten = TRUE;
 }
@@ -507,27 +500,32 @@ static float secondcb(float inElapsedSinceLastCall,
 {
 	static unsigned int ground_counter = 10;
 	static unsigned int taxi_counter = 0;
-	BOOL is_gnd = is_on_ground();
-	if (is_gnd) {
+	char tmpbuf[100];
+
+	if (is_on_ground()) {
 		if(is_taxing()) {
 			taxi_counter++;
 			/*-- ignore debounce takeoff*/
 			if (taxi_counter == 6) {
 				show_touchdown_counter = 4;
+			} else if (taxi_counter == 7) {
+				if (IsTouchDown) {
+					IsLogWritten = FALSE;
+				}
+			} else if (taxi_counter == 8) {
+				sprintf(tmpbuf, "XTouchDownRecorder: on ground %ds\n", ground_counter);
+				XPLMDebugString(tmpbuf);
+				if (!IsLogWritten) {
+					write_log_file();
+				}
 			}
 		}
 		ground_counter = ground_counter + 1;
 		if (ground_counter == 3) {
+			time(&touchTime);
 			/*-- stop data collection*/
 			collect_touchdown_data = FALSE;
-			if (IsTouchDown) {
-				IsLogWritten = FALSE;
-			}
-		} else if (ground_counter == 5) {
-			if (!IsLogWritten) {
-				write_log_file();
-			}
-		}
+		} 
 	} else {
 		/*-- in the air*/
 		ground_counter = 0;
@@ -571,7 +569,7 @@ PLUGIN_API int XPluginStart(char * outName, char * outSig, char * outDesc)
 	int menuidx;
 
 	/* Plugin details */
-	sprintf(outName, "XTouchDownRecorder V4a %s %s", __DATE__ , __TIME__);
+	sprintf(outName, "XTouchDownRecorder V4 %s %s", __DATE__ , __TIME__);
 	strcpy(outSig, "cpuwolf.xtouchdownrecorder");
 	strcpy(outDesc, "More information https://github.com/cpuwolf");
 
@@ -607,7 +605,7 @@ PLUGIN_API int XPluginStart(char * outName, char * outSig, char * outDesc)
 	XPLMEnableFeature("XPLM_USE_NATIVE_PATHS", 1);
 
 	/* register loopback starting at 10s */
-	XPLMRegisterFlightLoopCallback(flightcb, 10.0f, NULL);
+	XPLMRegisterFlightLoopCallback(flightcb, -1, NULL);
 
 	/* register loopback in 1s */
 	XPLMRegisterFlightLoopCallback(secondcb, 1.0f, NULL);
