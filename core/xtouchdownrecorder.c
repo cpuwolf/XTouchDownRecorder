@@ -124,8 +124,6 @@ static XPLMMenuID tdr_menu = NULL;
 
 static BOOL collect_touchdown_data = TRUE;
 static unsigned int show_touchdown_counter = 3;
-static unsigned int ground_counter = 10;
-static unsigned int taxi_counter = 0;
 
 
 static char landingString[128];
@@ -507,6 +505,8 @@ static float secondcb(float inElapsedSinceLastCall,
 	float inElapsedTimeSinceLastFlightLoop, int inCounter,
 	void *inRefcon)
 {
+	static unsigned int ground_counter = 10;
+	static unsigned int taxi_counter = 0;
 	BOOL is_gnd = is_on_ground();
 	if (is_gnd) {
 		if(is_taxing()) {
