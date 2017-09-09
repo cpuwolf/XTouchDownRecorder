@@ -369,7 +369,7 @@ static void drawcb(XPLMWindowID inWindowID, void *inRefcon)
 				float landingPitch = touchdown_pch_table[k];
 				float landingGs = touchdown_gs_table[k];
 				char *text_to_print = text_buf;
-				sprintf(text_to_print,"%.02ffpm %.02fG %.02fDegree %.02fmps| ", landingVS, landingG, landingPitch, landingGs);
+				sprintf(text_to_print,"%.02ffpm %.02fG %.02fDegree %.02fknots| ", landingVS, landingG, landingPitch, landingGs*1.943844f);
 				strcat(landingString,text_to_print);
 				int width_text_to_print = (int)floor(XPLMMeasureString(xplmFont_Basic, text_to_print, strlen(text_to_print)));
 				XPLMDrawString(color, x_text, y_text, text_to_print, NULL, xplmFont_Basic);
@@ -417,11 +417,11 @@ static void drawcb(XPLMWindowID inWindowID, void *inRefcon)
 	sprintf(text_buf, "Max AGL %.02fM ", max_agl_recorded);
 	x_text = draw_curve(touchdown_agl_table, 1.0f,0.1f,0.1f, text_buf, x_text, y_text, x, y, x, y + (_TD_CHART_HEIGHT / 2), max_agl_axis, max_agl_recorded);
 
-	/*-- now draw the chart line red*/
+	/*-- now draw the chart line blue*/
 	float max_gs_axis = 180.0f;
 	float max_gs_recorded = get_max_val(touchdown_gs_table);
-	sprintf(text_buf, "Max %.02fmps ", max_gs_recorded);
-	x_text = draw_curve(touchdown_gs_table, 1,0.68f,0.18f, text_buf, x_text, y_text, x, y, x, y, max_gs_axis, max_gs_recorded);
+	sprintf(text_buf, "Max %.02fknots ", max_gs_recorded*1.943844f);
+	x_text = draw_curve(touchdown_gs_table, 0.24f,0.35f,0.8f, text_buf, x_text, y_text, x, y, x, y, max_gs_axis, max_gs_recorded);
 
 	/*-- draw close button on top-right*/
 	glDisable(GL_TEXTURE_2D);
