@@ -52,7 +52,7 @@
 
 static XPLMCommandRef ToggleCommand = NULL;
 
-static XPLMDataRef gearFRef,gForceRef,vertSpeedRef,pitchRef,elevatorRef,engRef,aglRef,tmRef,gndSpeedRef,latRef,longRef,tailRef;
+static XPLMDataRef gearFRef,gForceRef,vertSpeedRef,pitchRef,elevatorRef,engRef,aglRef,tmRef,gndSpeedRef,latRef,longRef,tailRef,icaoRef;
 
 static float * g_pbuffer = NULL;
 static unsigned int g_start = 0;
@@ -467,6 +467,7 @@ static void write_log_file()
 	static char logAirportId[50];
 	static char logAirportName[256];
 	static char logAircraftTail[50];
+	static char logAircraftIcao[40];
 	static char tmbuf[500];
 
 	tblock=localtime(&touchTime);
@@ -489,9 +490,12 @@ static void write_log_file()
 	num = XPLMGetDatab(tailRef, logAircraftTail, 0, 49);
 	logAircraftTail[num] = 0;
 
+	num = XPLMGetDatab(icaoRef, logAircraftIcao, 0, 39);
+	logAircraftIcao[num] = 0;
+
 	ofile = fopen("XTouchDownRecorderLog.txt", "a");
 	if (ofile) {
-		fprintf(ofile, "%s [%s] %s %s %s\n", tmbuf, logAircraftTail, logAirportId, logAirportName, landingString);
+		fprintf(ofile, "%s [%s][%s] %s %s %s\n", tmbuf, logAircraftIcao, logAircraftTail, logAirportId, logAirportName, landingString);
 		fclose(ofile);
 	} else {
 		XPLMDebugString("XTouchDownRecorder: XTouchDownRecorderLog.txt open error");
@@ -602,6 +606,7 @@ PLUGIN_API int XPluginStart(char * outName, char * outSig, char * outDesc)
 	latRef = XPLMFindDataRef("sim/flightmodel/position/latitude");
 	longRef = XPLMFindDataRef("sim/flightmodel/position/longitude");
 	tailRef = XPLMFindDataRef("sim/aircraft/view/acf_tailnum");
+	icaoRef = XPLMFindDataRef("sim/aircraft/view/acf_ICAO");
 
 	/* MAC OS */
 	XPLMEnableFeature("XPLM_USE_NATIVE_PATHS", 1);
