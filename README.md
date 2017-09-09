@@ -37,6 +37,10 @@ assign button/key to cpuwolf/XTouchDownRecorder/Toggle TouchDownRecorder Chart
 ![TouchDownRecorder](TouchDownRecorder_xp10.jpg)
 ![TouchDownRecorder](TouchDownRecorder_xp10_menu.jpg)
 
+## How to Look into it ##
+
+![TouchDownRecorder](TouchDownRecorder_manual.jpg)
+
 ## Thanks to leecbaker ##
 
 this project starts with
