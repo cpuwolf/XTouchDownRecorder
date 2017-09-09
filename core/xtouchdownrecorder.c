@@ -148,8 +148,9 @@ static BOOL is_on_ground()
 
 static BOOL is_taxing()
 {
+	/*push back ground speed is < 1.5ms*/
 	float speed = XPLMGetDataf(gndSpeedRef);
-	if((speed > 1.0f) && (speed < 10.0f)) {
+	if((speed > 2.0f) && (speed < 10.0f)) {
 		return TRUE;
 	}
 	return FALSE;
