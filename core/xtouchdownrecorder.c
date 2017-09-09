@@ -59,6 +59,8 @@ static unsigned int g_start = 0;
 static unsigned int g_end = 0;
 static unsigned int g_size = 0;
 
+#define BUFFER_DELETE() g_size=0;g_start = 0;g_end = 0;
+
 #define BUFFER_EMPTY() (g_size==0)
 
 /* set value firstly, then increase index */
@@ -117,8 +119,8 @@ static float lastTm = 0.0;
 #define _TD_CHART_HEIGHT 200
 #define _TD_CHART_WIDTH (MAX_TABLE_ELEMENTS*CURVE_LEN)
 static XPLMWindowID g_win = NULL;
-static int g_winposx = 0;
-static int g_winposy = 500;
+static int g_winposx = 10;
+static int g_winposy = 900;
 
 static XPLMMenuID tdr_menu = NULL;
 
@@ -129,6 +131,8 @@ static time_t touchTime;
 static char landingString[128];
 static BOOL IsLogWritten = TRUE;
 static BOOL IsTouchDown = FALSE;
+static unsigned int ground_counter = 10;
+static unsigned int taxi_counter = 0;
 
 static BOOL check_ground(float n)
 {
@@ -145,7 +149,7 @@ static BOOL is_on_ground()
 static BOOL is_taxing()
 {
 	float speed = XPLMGetDataf(gndSpeedRef);
-	if((speed > 0.0f) && (speed <10.0f)) {
+	if((speed > 1.0f) && (speed < 10.0f)) {
 		return TRUE;
 	}
 	return FALSE;
@@ -422,6 +426,7 @@ static float flightcb(float inElapsedSinceLastCall,
 	float inElapsedTimeSinceLastFlightLoop, int inCounter,
 	void *inRefcon)
 {
+	float ret = -1.0f;
 	if (!g_win)
 		g_win = XPLMCreateWindow(g_winposx, g_winposy,
 			g_winposx + _TD_CHART_WIDTH, g_winposy - _TD_CHART_HEIGHT,
@@ -430,17 +435,15 @@ static float flightcb(float inElapsedSinceLastCall,
 
 	if(collect_touchdown_data) {
 		collect_flight_data();
-	}
+	} else ret = 1.0f;
 	/*-- dont draw when the function isn't wanted*/
 	if(show_touchdown_counter <= 0) {
 		XPLMSetWindowIsVisible(g_win, 0);
-		goto flightclean;
 	} else {
 		XPLMSetWindowIsVisible(g_win, 1);
 	}
 
-flightclean:
-	return -1;
+	return ret;
 }
 
 static void formattm(char *str)
@@ -498,8 +501,6 @@ static float secondcb(float inElapsedSinceLastCall,
 	float inElapsedTimeSinceLastFlightLoop, int inCounter,
 	void *inRefcon)
 {
-	static unsigned int ground_counter = 10;
-	static unsigned int taxi_counter = 0;
 	char tmpbuf[100];
 
 	if (is_on_ground()) {
@@ -507,7 +508,7 @@ static float secondcb(float inElapsedSinceLastCall,
 			taxi_counter++;
 			/*-- ignore debounce takeoff*/
 			if (taxi_counter == 6) {
-				show_touchdown_counter = 4;
+				show_touchdown_counter = 10;
 			} else if (taxi_counter == 7) {
 				if (IsTouchDown) {
 					IsLogWritten = FALSE;
@@ -552,7 +553,7 @@ static int ToggleCommandHandler(XPLMCommandRef       inCommand,
 								XPLMCommandPhase     inPhase,
 								void *               inRefcon)
 {
-	if (inPhase == xplm_CommandEnd) {
+	if (inPhase == xplm_CommandBegin) {
 		toggle_touchdown();
 	}
 	return 0;
@@ -643,5 +644,16 @@ PLUGIN_API int XPluginEnable(void) {
 	return 1;
 }
 
-PLUGIN_API void XPluginReceiveMessage(XPLMPluginID inForm, int inMessage, void * inParam) {
+PLUGIN_API void XPluginReceiveMessage(XPLMPluginID inForm, int inMessage, void * inParam) 
+{
+	if (inForm == XPLM_PLUGIN_XPLANE)
+	{
+		switch(inMessage) {
+		case XPLM_MSG_PLANE_LOADED:
+			if ((int)inParam == 0) {
+				BUFFER_DELETE();
+			}
+			break;
+		}
+	}
 }
