@@ -95,6 +95,7 @@ enum
 	TOUCHDOWN_ENG_IDX,
 	TOUCHDOWN_AGL_IDX,
 	TOUCHDOWN_TM_IDX,
+	TOUCHDOWN_GS_IDX,
 	MAX_TOUCHDOWN_IDX
 };
 
@@ -106,6 +107,7 @@ static float *touchdown_elev_table;
 static float *touchdown_eng_table;
 static float *touchdown_agl_table;
 static float *touchdown_tm_table;
+static float *touchdown_gs_table;
 
 static float lastVS = 1.0;
 static float lastG = 1.0;
@@ -115,6 +117,7 @@ static float lastElev = 0.0;
 static float lastEng = 0.0;
 static float lastAgl = 0.0;
 static float lastTm = 0.0;
+static float lastGs = 0.0;
 
 #define _TD_CHART_HEIGHT 200
 #define _TD_CHART_WIDTH (MAX_TABLE_ELEMENTS*CURVE_LEN)
@@ -187,6 +190,7 @@ void collect_flight_data()
 	lastTm = XPLMGetDataf(tmRef);
 	XPLMGetDatavf(engRef,engtb,0,3);
 	lastEng = engtb[0];
+	lastGs = XPLMGetDataf(gndSpeedRef);
 
 	/*-- fill the table */
 	touchdown_vs_table[iw] = lastVS;
@@ -197,6 +201,7 @@ void collect_flight_data()
 	touchdown_eng_table[iw] = lastEng;
 	touchdown_agl_table[iw] = lastAgl;
 	touchdown_tm_table[iw] = lastTm;
+	touchdown_gs_table[iw] = lastGs;
 	BUFFER_INSERT_BACK();
 
 }
@@ -362,8 +367,9 @@ static void drawcb(XPLMWindowID inWindowID, void *inRefcon)
 				float landingVS = touchdown_vs_table[k];
 				float landingG = touchdown_g_table[k];
 				float landingPitch = touchdown_pch_table[k];
+				float landingGs = touchdown_gs_table[k];
 				char *text_to_print = text_buf;
-				sprintf(text_to_print,"%.02ffpm %.02fG %.02fDegree | ", landingVS, landingG, landingPitch);
+				sprintf(text_to_print,"%.02ffpm %.02fG %.02fDegree %.02fmps| ", landingVS, landingG, landingPitch, landingGs);
 				strcat(landingString,text_to_print);
 				int width_text_to_print = (int)floor(XPLMMeasureString(xplmFont_Basic, text_to_print, strlen(text_to_print)));
 				XPLMDrawString(color, x_text, y_text, text_to_print, NULL, xplmFont_Basic);
@@ -410,6 +416,12 @@ static void drawcb(XPLMWindowID inWindowID, void *inRefcon)
 	float max_agl_recorded = get_max_val(touchdown_agl_table);
 	sprintf(text_buf, "Max AGL %.02fM ", max_agl_recorded);
 	x_text = draw_curve(touchdown_agl_table, 1.0f,0.1f,0.1f, text_buf, x_text, y_text, x, y, x, y + (_TD_CHART_HEIGHT / 2), max_agl_axis, max_agl_recorded);
+
+	/*-- now draw the chart line red*/
+	float max_gs_axis = 180.0f;
+	float max_gs_recorded = get_max_val(touchdown_gs_table);
+	sprintf(text_buf, "Max %.02fmps ", max_gs_recorded);
+	x_text = draw_curve(touchdown_gs_table, 1,0.68f,0.18f, text_buf, x_text, y_text, x, y, x, y, max_gs_axis, max_gs_recorded);
 
 	/*-- draw close button on top-right*/
 	glDisable(GL_TEXTURE_2D);
@@ -592,6 +604,7 @@ PLUGIN_API int XPluginStart(char * outName, char * outSig, char * outDesc)
 	touchdown_eng_table = g_pbuffer + (TOUCHDOWN_ENG_IDX * MAX_TABLE_ELEMENTS);
 	touchdown_agl_table = g_pbuffer + (TOUCHDOWN_AGL_IDX * MAX_TABLE_ELEMENTS);
 	touchdown_tm_table = g_pbuffer + (TOUCHDOWN_TM_IDX * MAX_TABLE_ELEMENTS);
+	touchdown_gs_table = g_pbuffer + (TOUCHDOWN_GS_IDX * MAX_TABLE_ELEMENTS);
 
 	gearFRef = XPLMFindDataRef("sim/flightmodel/forces/fnrml_gear");
 	gForceRef = XPLMFindDataRef("sim/flightmodel2/misc/gforce_normal");
