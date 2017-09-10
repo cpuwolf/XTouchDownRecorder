@@ -316,6 +316,7 @@ static void drawcb(XPLMWindowID inWindowID, void *inRefcon)
 	int left, top, right, bottom;
 	float color[] = { 1.0, 1.0, 1.0 };
 	char text_buf[100];
+	float max_agl_recorded = 0.0f;
 
 	XPLMGetWindowGeometry(inWindowID, &left, &top, &right, &bottom);
 	XPLMDrawTranslucentDarkBox(left, top, right, bottom);
@@ -362,7 +363,9 @@ static void drawcb(XPLMWindowID inWindowID, void *inRefcon)
 		b = touchdown_air_table[k];
 		if(b != last_air_recorded) {
 			if(b) {
-				IsTouchDown = TRUE;
+				if(max_agl_recorded > 0.5f) {
+					IsTouchDown = TRUE;
+				}
 				/*-- draw vertical line*/
 				draw_line(1,1,1,1,3,x_tmp, y + (_TD_CHART_HEIGHT/4), x_tmp, y + (_TD_CHART_HEIGHT*3/4));
 				/*-- print text*/
@@ -415,7 +418,7 @@ static void drawcb(XPLMWindowID inWindowID, void *inRefcon)
 
 	/*-- now draw the chart line red*/
 	float max_agl_axis = 6.0;
-	float max_agl_recorded = get_max_val(touchdown_agl_table);
+	max_agl_recorded = get_max_val(touchdown_agl_table);
 	sprintf(text_buf, "Max AGL %.02fM ", max_agl_recorded);
 	x_text = draw_curve(touchdown_agl_table, 1.0f,0.1f,0.1f, text_buf, x_text, y_text, x, y, x, y + (_TD_CHART_HEIGHT / 2), max_agl_axis, max_agl_recorded);
 
