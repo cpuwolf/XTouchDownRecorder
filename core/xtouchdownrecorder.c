@@ -63,6 +63,8 @@ static unsigned int g_size = 0;
 
 #define BUFFER_EMPTY() (g_size==0)
 
+#define BUFFER_FULL() (g_size==MAX_TABLE_ELEMENTS)
+
 /* set value firstly, then increase index */
 #define BUFFER_INSERT_BACK() if(g_end < MAX_TABLE_ELEMENTS) {\
 								g_end++;} if(g_end==MAX_TABLE_ELEMENTS) {\
@@ -128,7 +130,7 @@ static int g_winposy = 900;
 static XPLMMenuID tdr_menu = NULL;
 
 static BOOL collect_touchdown_data = TRUE;
-static unsigned int show_touchdown_counter = 3;
+static unsigned int show_touchdown_counter = 0;
 
 static time_t touchTime;
 static char landingString[128];
@@ -346,7 +348,7 @@ static void drawcb(XPLMWindowID inWindowID, void *inRefcon)
 	color[0] = 1.0;
 	color[1] = 1.0;
 	color[2] = 1.0;
-	XPLMDrawString(color, x + 5, y + _TD_CHART_HEIGHT - 15, "XTouchDownRecorder V4 by cpuwolf", NULL, xplmFont_Basic);
+	XPLMDrawString(color, x + 5, y + _TD_CHART_HEIGHT - 15, "XTouchDownRecorder V5 by cpuwolf", NULL, xplmFont_Basic);
 
 	int x_text = x + 5;
 	int y_text = y + 8;
@@ -443,7 +445,7 @@ static float flightcb(float inElapsedSinceLastCall,
 	if (!g_win)
 		g_win = XPLMCreateWindow(g_winposx, g_winposy,
 			g_winposx + _TD_CHART_WIDTH, g_winposy - _TD_CHART_HEIGHT,
-			1, drawcb, keycb,
+			0, drawcb, keycb,
 			mousecb, NULL);
 
 	if(collect_touchdown_data) {
@@ -525,7 +527,9 @@ static float secondcb(float inElapsedSinceLastCall,
 			taxi_counter++;
 			/*-- ignore debounce takeoff*/
 			if (taxi_counter == 6) {
-				show_touchdown_counter = 10;
+				if(BUFFER_FULL()) {
+					show_touchdown_counter = 10;
+				}
 			} else if (taxi_counter == 7) {
 				if (IsTouchDown) {
 					IsLogWritten = FALSE;
@@ -587,7 +591,7 @@ PLUGIN_API int XPluginStart(char * outName, char * outSig, char * outDesc)
 	int menuidx;
 
 	/* Plugin details */
-	sprintf(outName, "XTouchDownRecorder V4 %s %s", __DATE__ , __TIME__);
+	sprintf(outName, "XTouchDownRecorder V5 %s %s", __DATE__ , __TIME__);
 	strcpy(outSig, "cpuwolf.xtouchdownrecorder");
 	strcpy(outDesc, "More information https://github.com/cpuwolf");
 
