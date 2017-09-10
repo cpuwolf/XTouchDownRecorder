@@ -364,6 +364,7 @@ static void drawcb(XPLMWindowID inWindowID, void *inRefcon)
 		if(b != last_air_recorded) {
 			if(b) {
 				if(max_agl_recorded > 0.5f) {
+					/* touchdown at least from AGL 0.5 meter to Ground: ignore annoying plane load touch down */
 					IsTouchDown = TRUE;
 				}
 				/*-- draw vertical line*/
