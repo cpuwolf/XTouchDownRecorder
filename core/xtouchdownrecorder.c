@@ -316,7 +316,7 @@ static void drawcb(XPLMWindowID inWindowID, void *inRefcon)
 	int left, top, right, bottom;
 	float color[] = { 1.0, 1.0, 1.0 };
 	char text_buf[100];
-	float max_agl_recorded = 0.0f;
+	static float max_agl_recorded = 0.0f;
 
 	XPLMGetWindowGeometry(inWindowID, &left, &top, &right, &bottom);
 	XPLMDrawTranslucentDarkBox(left, top, right, bottom);
@@ -359,6 +359,7 @@ static void drawcb(XPLMWindowID inWindowID, void *inRefcon)
 	BUFFER_GO_START(k,tmpc);
 	BOOL last_air_recorded = touchdown_air_table[k];
 	BOOL b;
+	max_agl_recorded = get_max_val(touchdown_agl_table);
 	while(!BUFFER_GO_IS_END(k,tmpc)) {
 		b = touchdown_air_table[k];
 		if(b != last_air_recorded) {
@@ -419,7 +420,6 @@ static void drawcb(XPLMWindowID inWindowID, void *inRefcon)
 
 	/*-- now draw the chart line red*/
 	float max_agl_axis = 6.0;
-	max_agl_recorded = get_max_val(touchdown_agl_table);
 	sprintf(text_buf, "Max AGL %.02fM ", max_agl_recorded);
 	x_text = draw_curve(touchdown_agl_table, 1.0f,0.1f,0.1f, text_buf, x_text, y_text, x, y, x, y + (_TD_CHART_HEIGHT / 2), max_agl_axis, max_agl_recorded);
 
@@ -454,7 +454,7 @@ static float flightcb(float inElapsedSinceLastCall,
 
 	if(collect_touchdown_data) {
 		collect_flight_data();
-	} else ret = 1.0f;
+	} else ret = 0.3f;
 	/*-- dont draw when the function isn't wanted*/
 	if(show_touchdown_counter <= 0) {
 		XPLMSetWindowIsVisible(g_win, 0);
@@ -529,16 +529,15 @@ static float secondcb(float inElapsedSinceLastCall,
 	if (is_on_ground()) {
 		if(is_taxing()) {
 			taxi_counter++;
-			/*-- ignore debounce takeoff*/
 			if (taxi_counter == 6) {
 				if(BUFFER_FULL()) {
 					show_touchdown_counter = 10;
 				}
-			} else if (taxi_counter == 7) {
+			} else if (taxi_counter == 10) {
 				if (IsTouchDown) {
 					IsLogWritten = FALSE;
 				}
-			} else if (taxi_counter == 8) {
+			} else if (taxi_counter == 11) {
 				sprintf(tmpbuf, "XTouchDownRecorder: on ground %ds\n", ground_counter);
 				XPLMDebugString(tmpbuf);
 				if (!IsLogWritten) {
