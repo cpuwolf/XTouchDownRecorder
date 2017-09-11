@@ -352,7 +352,7 @@ static void drawcb(XPLMWindowID inWindowID, void *inRefcon)
 	XPLMDrawString(color, x + 5, y + _TD_CHART_HEIGHT - 15, "XTouchDownRecorder V5 by cpuwolf", NULL, xplmFont_Basic);
 
 	int x_text = x + 5;
-	int y_text = y + 8;
+	int y_text = y + 4;
 	/*-- draw touch point vertical lines*/
 	x_tmp = x;
 	memset(landingString,0,sizeof(landingString));
@@ -388,6 +388,9 @@ static void drawcb(XPLMWindowID inWindowID, void *inRefcon)
 		BUFFER_GO_NEXT(k,tmpc);
 	}
 
+	/*start a new line*/
+	x_text = x + 5;
+	y_text = y + 16;
 	/*-- now draw the chart line green*/
 	float max_vs_axis = 1000.0f;
 	float max_vs_recorded = get_max_val(touchdown_vs_table);
@@ -533,11 +536,11 @@ static float secondcb(float inElapsedSinceLastCall,
 				if(BUFFER_FULL()) {
 					show_touchdown_counter = 10;
 				}
-			} else if (taxi_counter == 10) {
+			} else if (taxi_counter == 8) {
 				if (IsTouchDown) {
 					IsLogWritten = FALSE;
 				}
-			} else if (taxi_counter == 11) {
+			} else if (taxi_counter == 9) {
 				sprintf(tmpbuf, "XTouchDownRecorder: on ground %ds\n", ground_counter);
 				XPLMDebugString(tmpbuf);
 				if (!IsLogWritten) {
