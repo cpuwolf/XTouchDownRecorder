@@ -512,10 +512,11 @@ static void formattm(char *str)
 	}
 }
 
-static int write_csv_file_bool(FILE *ofile,BOOL mytable[])
+static int write_csv_file_bool(FILE *ofile,BOOL mytable[], const char * title)
 {
 	int ret;
 	int k,tmpc;
+	fprintf(ofile, "%s,", title);
 	BUFFER_GO_START(k,tmpc);
 	while(!BUFFER_GO_IS_END(k,tmpc)) {
 		ret=fprintf(ofile, "%d,", mytable[k]);
@@ -525,10 +526,11 @@ static int write_csv_file_bool(FILE *ofile,BOOL mytable[])
 	ret=fprintf(ofile, "\r\n");
 	return ret;
 }
-static int write_csv_file(FILE *ofile,float mytable[])
+static int write_csv_file(FILE *ofile,float mytable[], const char * title)
 {
 	int ret;
 	int k,tmpc;
+	fprintf(ofile, "%s,", title);
 	BUFFER_GO_START(k,tmpc);
 	while(!BUFFER_GO_IS_END(k,tmpc)) {
 		ret=fprintf(ofile, "%.02f,", mytable[k]);
@@ -584,15 +586,15 @@ static void write_log_file()
 	strcat(tmbuf, ".csv");
 	ofile = fopen(tmbuf, "a");
 	if (ofile) {
-		write_csv_file(ofile, touchdown_tm_table);
-		write_csv_file_bool(ofile, touchdown_air_table);
-		write_csv_file(ofile, touchdown_vs_table);
-		write_csv_file(ofile, touchdown_g_table);
-		write_csv_file(ofile, touchdown_pch_table);
-		write_csv_file(ofile, touchdown_elev_table);
-		write_csv_file(ofile, touchdown_eng_table);
-		write_csv_file(ofile, touchdown_agl_table);
-		write_csv_file(ofile, touchdown_gs_table);
+		write_csv_file(ofile, touchdown_tm_table,"\"time(s)\"");
+		write_csv_file_bool(ofile, touchdown_air_table,"\"is air\"");
+		write_csv_file(ofile, touchdown_vs_table,"\"(fpm)\"");
+		write_csv_file(ofile, touchdown_g_table,"\"G force(G)\"");
+		write_csv_file(ofile, touchdown_pch_table,"\"pitch(degree)\"");
+		write_csv_file(ofile, touchdown_elev_table,"\"elevator(%)\"");
+		write_csv_file(ofile, touchdown_eng_table,"\"engin(%)\"");
+		write_csv_file(ofile, touchdown_agl_table,"\"above ground level(meter)\"");
+		write_csv_file(ofile, touchdown_gs_table,"\"ground speed(meter/s)\"");
 		fclose(ofile);
 	} else {
 		XPLMDebugString("XTouchDownRecorder: data exporting error");
