@@ -405,7 +405,9 @@ static void drawcb(XPLMWindowID inWindowID, void *inRefcon)
 				float landingPitch = touchdown_pch_table[k];
 				float landingGs = touchdown_gs_table[k];
 				char *text_to_print = text_buf;
-				sprintf(text_to_print,"%.02fFpm %.02fG %.02fDegree %.02fKnots| ", landingVS, landingG, landingPitch, landingGs*1.943844f);
+				sprintf(text_to_print,"%.01fFpm(%.01f) %.01fG(%.01f) %.01fDegree %.01fKnots| ", landingVS, touchdown_vs_table[k],
+					landingG, touchdown_g_table[k],
+					landingPitch, landingGs*1.943844f);
 				strcat(landingString,text_to_print);
 				int width_text_to_print = (int)floor(XPLMMeasureString(xplmFont_Basic, text_to_print, strlen(text_to_print)));
 				XPLMDrawString(color, x_text, y_text, text_to_print, NULL, xplmFont_Basic);
@@ -440,12 +442,12 @@ static void drawcb(XPLMWindowID inWindowID, void *inRefcon)
 	sprintf(text_buf, "Max pitch %.02fDegree ", max_pch_recorded);
 	x_text = draw_curve(touchdown_pch_table, 0.6f,0.85f,0.87f, text_buf, x_text, y_text, x, y, x, y + (_TD_CHART_HEIGHT / 2), max_pch_recorded, max_pch_recorded);
 
-	/*-- now draw the chart line orange*/
+	/*-- now draw the chart line orange
 	float max_elev_axis = 2.0;
 	float max_elev_recorded = get_max_val(touchdown_elev_table);
 	sprintf(text_buf, "Max elevator %.02f%% ", max_elev_recorded*100.0f);
 	x_text = draw_curve(touchdown_elev_table, 1.0f,0.49f,0.15f, text_buf, x_text, y_text, x, y, x, y + (_TD_CHART_HEIGHT / 2), max_elev_recorded, max_elev_recorded);
-
+	*/
 	/*-- now draw the chart line yellow*/
 	float max_eng_axis = 1.0;
 	float max_eng_recorded = get_max_val(touchdown_eng_table);
