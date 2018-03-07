@@ -1,20 +1,31 @@
 /*
-	XTouchDownRecorder
-	Copyright (C) 2017  Wei Shuai <cpuwolf@gmail.com>
+XTouchDownRecorder
 
-	This program is free software; you can redistribute it and/or modify
-	it under the terms of the GNU General Public License as published by
-	the Free Software Foundation; either version 2 of the License, or
-	(at your option) any later version.
+BSD 2-Clause License
 
-	This program is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU General Public License for more details.
+Copyright (c) 2018, Wei Shuai <cpuwolf@gmail.com>
+All rights reserved.
 
-	You should have received a copy of the GNU General Public License along
-	with this program; if not, write to the Free Software Foundation, Inc.,
-	51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+
+* Redistributions of source code must retain the above copyright notice, this
+  list of conditions and the following disclaimer.
+
+* Redistributions in binary form must reproduce the above copyright notice,
+  this list of conditions and the following disclaimer in the documentation
+  and/or other materials provided with the distribution.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include <math.h>
@@ -46,6 +57,8 @@
 #include <stdlib.h>
 #include <GL/gl.h>
 #endif
+
+#define _PRONAMEVER_ "XTouchDownRecorder V6a"
 
 #define MAX_TABLE_ELEMENTS 500
 #define CURVE_LEN 2
@@ -349,7 +362,7 @@ static void drawcb(XPLMWindowID inWindowID, void *inRefcon)
 	color[0] = 1.0;
 	color[1] = 1.0;
 	color[2] = 1.0;
-	XPLMDrawString(color, x + 5, y + _TD_CHART_HEIGHT - 15, "XTouchDownRecorder V5 by cpuwolf", NULL, xplmFont_Basic);
+	XPLMDrawString(color, x + 5, y + _TD_CHART_HEIGHT - 15, _PRONAMEVER_" by cpuwolf", NULL, xplmFont_Basic);
 
 	int x_text = x + 5;
 	int y_text = y + 4;
@@ -358,6 +371,8 @@ static void drawcb(XPLMWindowID inWindowID, void *inRefcon)
 	memset(landingString,0,sizeof(landingString));
 	BUFFER_GO_START(k,tmpc);
 	BOOL last_air_recorded = touchdown_air_table[k];
+	float last_agl_recorded = touchdown_agl_table[k];
+	float last_tm_recorded = touchdown_tm_table[k];
 	BOOL b;
 	max_agl_recorded = get_max_val(touchdown_agl_table);
 	while(!BUFFER_GO_IS_END(k,tmpc)) {
@@ -371,12 +386,13 @@ static void drawcb(XPLMWindowID inWindowID, void *inRefcon)
 				/*-- draw vertical line*/
 				draw_line(1,1,1,1,3,x_tmp, y + (_TD_CHART_HEIGHT/4), x_tmp, y + (_TD_CHART_HEIGHT*3/4));
 				/*-- print text*/
-				float landingVS = touchdown_vs_table[k];
+				/*float landingVS = touchdown_vs_table[k];*/
+				float landingVS = (touchdown_agl_table[k]-last_agl_recorded)*196.850394f/(touchdown_tm_table[k]-last_tm_recorded);
 				float landingG = touchdown_g_table[k];
 				float landingPitch = touchdown_pch_table[k];
 				float landingGs = touchdown_gs_table[k];
 				char *text_to_print = text_buf;
-				sprintf(text_to_print,"%.02ffpm %.02fG %.02fDegree %.02fknots| ", landingVS, landingG, landingPitch, landingGs*1.943844f);
+				sprintf(text_to_print,"%.02fFpm %.02fDegree %.02fKnots| ", landingVS, landingPitch, landingGs*1.943844f);
 				strcat(landingString,text_to_print);
 				int width_text_to_print = (int)floor(XPLMMeasureString(xplmFont_Basic, text_to_print, strlen(text_to_print)));
 				XPLMDrawString(color, x_text, y_text, text_to_print, NULL, xplmFont_Basic);
@@ -385,6 +401,8 @@ static void drawcb(XPLMWindowID inWindowID, void *inRefcon)
 		}
 		x_tmp = x_tmp + 2;
 		last_air_recorded = b;
+		last_agl_recorded = touchdown_agl_table[k];
+		last_tm_recorded = touchdown_tm_table[k];
 		BUFFER_GO_NEXT(k,tmpc);
 	}
 
@@ -597,9 +615,9 @@ PLUGIN_API int XPluginStart(char * outName, char * outSig, char * outDesc)
 	int menuidx;
 
 	/* Plugin details */
-	sprintf(outName, "XTouchDownRecorder V5 %s %s", __DATE__ , __TIME__);
+	sprintf(outName, _PRONAMEVER_" %s %s", __DATE__ , __TIME__);
 	strcpy(outSig, "cpuwolf.xtouchdownrecorder");
-	strcpy(outDesc, "More information https://github.com/cpuwolf");
+	strcpy(outDesc, "More information https://github.com/cpuwolf/");
 
 	g_pbuffer = malloc(MAX_TABLE_ELEMENTS * sizeof(float) * MAX_TOUCHDOWN_IDX);
 	if(!g_pbuffer) {

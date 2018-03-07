@@ -5,6 +5,10 @@ it is used for aircraft landing data analysis
 
 it supports Windows, Mac, Linux x64 only
 
+## Blog on Mar 2018 ##
+
+after almost six months working on X-Plane 11  with different aircraft, I realize that X-Plane dataref output G force value and Fpm value is appliabe only to in-flight, not for touching down. then I decide to re-calucate Fpm value by my own, and skip G force value in the next release.
+
 
 ## feature ##
 
