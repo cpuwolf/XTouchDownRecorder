@@ -512,6 +512,32 @@ static void formattm(char *str)
 	}
 }
 
+static int write_csv_file_bool(FILE *ofile,BOOL mytable[])
+{
+	int ret;
+	int k,tmpc;
+	BUFFER_GO_START(k,tmpc);
+	while(!BUFFER_GO_IS_END(k,tmpc)) {
+		ret=fprintf(ofile, "%d,", mytable[k]);
+		if(ret <= 0) return ret;
+		BUFFER_GO_NEXT(k,tmpc);
+	}
+	ret=fprintf(ofile, "\r\n");
+	return ret;
+}
+static int write_csv_file(FILE *ofile,float mytable[])
+{
+	int ret;
+	int k,tmpc;
+	BUFFER_GO_START(k,tmpc);
+	while(!BUFFER_GO_IS_END(k,tmpc)) {
+		ret=fprintf(ofile, "%.02f,", mytable[k]);
+		if(ret <= 0) return ret;
+		BUFFER_GO_NEXT(k,tmpc);
+	}
+	ret=fprintf(ofile, "\r\n");
+	return ret;
+}
 
 static void write_log_file()
 {
@@ -553,6 +579,23 @@ static void write_log_file()
 		fclose(ofile);
 	} else {
 		XPLMDebugString("XTouchDownRecorder: XTouchDownRecorderLog.txt open error");
+	}
+	/*reuse tmbuf, generating file name*/
+	strcat(tmbuf, ".csv");
+	ofile = fopen(tmbuf, "a");
+	if (ofile) {
+		write_csv_file(ofile, touchdown_tm_table);
+		write_csv_file_bool(ofile, touchdown_air_table);
+		write_csv_file(ofile, touchdown_vs_table);
+		write_csv_file(ofile, touchdown_g_table);
+		write_csv_file(ofile, touchdown_pch_table);
+		write_csv_file(ofile, touchdown_elev_table);
+		write_csv_file(ofile, touchdown_eng_table);
+		write_csv_file(ofile, touchdown_agl_table);
+		write_csv_file(ofile, touchdown_gs_table);
+		fclose(ofile);
+	} else {
+		XPLMDebugString("XTouchDownRecorder: data exporting error");
 	}
 	IsLogWritten = TRUE;
 }
