@@ -386,13 +386,15 @@ static void drawcb(XPLMWindowID inWindowID, void *inRefcon)
 				/*-- draw vertical line*/
 				draw_line(1,1,1,1,3,x_tmp, y + (_TD_CHART_HEIGHT/4), x_tmp, y + (_TD_CHART_HEIGHT*3/4));
 				/*-- print text*/
+				float delta_tm = touchdown_tm_table[k]-last_tm_recorded;
 				/*float landingVS = touchdown_vs_table[k];*/
-				float landingVS = (touchdown_agl_table[k]-last_agl_recorded)*196.850394f/(touchdown_tm_table[k]-last_tm_recorded);
-				float landingG = touchdown_g_table[k];
+				float landingVS = (touchdown_agl_table[k]-last_agl_recorded)*196.850394f/delta_tm;
+				/*float landingG = touchdown_g_table[k];*/
+				float landingG = (touchdown_agl_table[k]-last_agl_recorded)*105.557902f/(delta_tm*deltatm);
 				float landingPitch = touchdown_pch_table[k];
 				float landingGs = touchdown_gs_table[k];
 				char *text_to_print = text_buf;
-				sprintf(text_to_print,"%.02fFpm %.02fDegree %.02fKnots| ", landingVS, landingPitch, landingGs*1.943844f);
+				sprintf(text_to_print,"%.02fFpm %.02fG %.02fDegree %.02fKnots| ", landingVS, landingG, landingPitch, landingGs*1.943844f);
 				strcat(landingString,text_to_print);
 				int width_text_to_print = (int)floor(XPLMMeasureString(xplmFont_Basic, text_to_print, strlen(text_to_print)));
 				XPLMDrawString(color, x_text, y_text, text_to_print, NULL, xplmFont_Basic);
