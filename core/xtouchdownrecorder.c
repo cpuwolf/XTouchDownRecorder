@@ -328,7 +328,7 @@ static int draw_curve(float mytable[], float cr, float cg, float cb,
 	return x_text;
 }
 
-static int gettouchdown(int idx, float * pfpm)
+static int gettouchdown(int idx, float * pfpm, float * pg)
 {
 	int k,tmpc;
 	int iter_times=0;
@@ -341,6 +341,7 @@ static int gettouchdown(int idx, float * pfpm)
 	float interval = floor(zero_tm - touchdown_tm_table[k]);
 	float s = interval;
 	float last_fpm=99999.f,fpm;
+	float last_g = 999999.f, g;
 	float delta_tm_expect;
 
 	while(!BUFFER_GO_IS_END(k,tmpc)) {
@@ -363,11 +364,16 @@ static int gettouchdown(int idx, float * pfpm)
 				delta_tm_expect= delta_tm/2.0f;
 				iter_times++;
 			}
+			g=(touchdown_agl_table[k] - zero_agl) / (delta_tm*delta_tm*9.80665f);
+			if (g < last_g) {
+				last_g = g;
+			}
 		}
 		BUFFER_GO_NEXT(k,tmpc);
 	}
 
 	*pfpm =  last_fpm;
+	*pg = last_g;
 
 	return last_k;
 }
@@ -496,11 +502,11 @@ static void drawcb(XPLMWindowID inWindowID, void *inRefcon)
 	}
 
 	/*write landing data */
-	float landingVS;
+	float landingVS, landingG;
 	if(touch_idx >= 0) {
-		gettouchdown(touch_idx, &landingVS);
+		gettouchdown(touch_idx, &landingVS, &landingG);
 		char *text_to_print = text_buf;
-		sprintf(text_to_print,"[%.01fFpm]", landingVS);
+		sprintf(text_to_print,"[%.01fFpm][%.01fG]", landingVS, landingG);
 		int width_text_to_print = (int)floor(XPLMMeasureString(xplmFont_Basic, text_to_print, strlen(text_to_print)));
 		XPLMDrawString(color, x_text, y_text, text_to_print, NULL, xplmFont_Basic);
 		x_text = x_text + width_text_to_print;
@@ -622,7 +628,7 @@ static int write_csv_file(FILE *ofile,float mytable[], const char * title)
 		if(ret <= 0) return ret;
 		BUFFER_GO_NEXT(k,tmpc);
 	}
-	ret=fprintf(ofile, "\r\n");
+	ret=fprintf(ofile, "\n");
 	return ret;
 }
 
@@ -668,7 +674,8 @@ static void write_log_file()
 		XPLMDebugString("XTouchDownRecorder: XTouchDownRecorderLog.txt open error");
 	}
 	/*reuse tmbuf, generating file name*/
-	strcat(tmbuf, ".csv");
+	strftime(tmbuf, sizeof(tmbuf), "%F%H%M%S.csv", tblock);
+	//strcat(tmbuf, ".csv");
 	ofile = fopen(tmbuf, "a");
 	if (ofile) {
 		write_csv_file(ofile, touchdown_tm_table,"\"time(s)\"");
