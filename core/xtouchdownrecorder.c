@@ -378,7 +378,6 @@ static int getfirsttouchdownpointidx()
 	BUFFER_GO_START(k,tmpc);
 	BOOL last_air_recorded = touchdown_air_table[k];
 	float last_agl_recorded = touchdown_agl_table[k];
-	//float last_tm_recorded = touchdown_tm_table[k];
 	BOOL b;
 	float max_agl_recorded = get_max_val(touchdown_agl_table);
 	while(!BUFFER_GO_IS_END(k,tmpc)) {
@@ -394,7 +393,6 @@ static int getfirsttouchdownpointidx()
 		}
 		last_air_recorded = b;
 		last_agl_recorded = touchdown_agl_table[k];
-		//last_tm_recorded = touchdown_tm_table[k];
 		BUFFER_GO_NEXT(k,tmpc);
 	}
 	return -1;
@@ -418,6 +416,10 @@ static void drawcb(XPLMWindowID inWindowID, void *inRefcon)
 	/*-- draw center line*/
 	draw_line(0, 0, 0, 1, 3,x, y + (_TD_CHART_HEIGHT / 2), x + (MAX_TABLE_ELEMENTS * 2), y + (_TD_CHART_HEIGHT / 2));
 
+	int touch_idx = getfirsttouchdownpointidx();
+	if(touch_idx >= 0) {
+
+	}
 	/*-- draw horizontal axis*/
 	int k,tmpc;
 	x_tmp = x;
@@ -491,6 +493,17 @@ static void drawcb(XPLMWindowID inWindowID, void *inRefcon)
 		last_agl_recorded = touchdown_agl_table[k];
 		last_tm_recorded = touchdown_tm_table[k];
 		BUFFER_GO_NEXT(k,tmpc);
+	}
+
+	/*write landing data */
+	float landingVS;
+	if(touch_idx >= 0) {
+		gettouchdown(touch_idx, &landingVS);
+		char *text_to_print = text_buf;
+		sprintf(text_to_print,"[%.01fFpm]", landingVS);
+		int width_text_to_print = (int)floor(XPLMMeasureString(xplmFont_Basic, text_to_print, strlen(text_to_print)));
+		XPLMDrawString(color, x_text, y_text, text_to_print, NULL, xplmFont_Basic);
+		x_text = x_text + width_text_to_print;
 	}
 
 	/*start a new line*/
