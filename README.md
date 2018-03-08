@@ -35,6 +35,7 @@ assign button/key to cpuwolf/XTouchDownRecorder/Toggle TouchDownRecorder Chart
 
 ![TouchDownRecorder](TouchDownRecorder.jpg)
 ![TouchDownRecorder](TouchDownRecorder_replay.jpg)
+![TouchDownRecorder](TouchDownRecorder_xp11_v6a.jpg)
 
 ## Screenshot on X-Plane 10 ##
 
