@@ -328,6 +328,78 @@ static int draw_curve(float mytable[], float cr, float cg, float cb,
 	return x_text;
 }
 
+static int gettouchdown(int idx, float * pfpm)
+{
+	int k,tmpc;
+	int iter_times=0;
+	BOOL iter_start=FALSE;
+	BUFFER_GO_START(k,tmpc);
+	/*get interval seconds*/
+	int last_k = k;
+	float zero_tm = touchdown_tm_table[idx];
+	float zero_agl = touchdown_agl_table[idx];
+	float interval = floor(zero_tm - touchdown_tm_table[k]);
+	float s = interval;
+	float last_fpm=99999.f,fpm;
+	float delta_tm_expect;
+
+	while(!BUFFER_GO_IS_END(k,tmpc)) {
+		float delta_tm = zero_tm - touchdown_tm_table[k];
+		if((delta_tm - s) <= 0.0f) {
+			/*align with second*/
+			if(s - 1.0f < 0.0001f) {
+				/*1sec before touch*/
+				iter_start = TRUE;
+				delta_tm_expect = delta_tm;
+				last_k = k;
+			}
+			s-=1.0f;
+		}
+
+		if((iter_start) && (iter_times < 4) && (delta_tm-delta_tm_expect<=0.0f)) {
+			fpm=(touchdown_agl_table[k]-zero_agl)*196.850394f/delta_tm;
+			if(fpm < last_fpm) {
+				last_fpm = fpm;
+				delta_tm_expect= delta_tm/2.0f;
+				iter_times++;
+			}
+		}
+		BUFFER_GO_NEXT(k,tmpc);
+	}
+
+	*pfpm =  last_fpm;
+
+	return last_k;
+}
+
+static int getfirsttouchdownpointidx()
+{
+	int k,tmpc;
+	BUFFER_GO_START(k,tmpc);
+	BOOL last_air_recorded = touchdown_air_table[k];
+	float last_agl_recorded = touchdown_agl_table[k];
+	//float last_tm_recorded = touchdown_tm_table[k];
+	BOOL b;
+	float max_agl_recorded = get_max_val(touchdown_agl_table);
+	while(!BUFFER_GO_IS_END(k,tmpc)) {
+		b = touchdown_air_table[k];
+		if(b != last_air_recorded) {
+			if(b) {
+				if(max_agl_recorded > 0.5f) {
+					/* touchdown at least from AGL 0.5 meter to Ground: ignore annoying plane load touch down */
+					IsTouchDown = TRUE;
+					return k;
+				}
+			}
+		}
+		last_air_recorded = b;
+		last_agl_recorded = touchdown_agl_table[k];
+		//last_tm_recorded = touchdown_tm_table[k];
+		BUFFER_GO_NEXT(k,tmpc);
+	}
+	return -1;
+}
+
 static void drawcb(XPLMWindowID inWindowID, void *inRefcon)
 {
 	/*-- draw background first*/
