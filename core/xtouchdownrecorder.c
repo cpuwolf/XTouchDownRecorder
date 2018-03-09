@@ -328,7 +328,7 @@ static int draw_curve(float mytable[], float cr, float cg, float cb,
 	return x_text;
 }
 
-static int gettouchdown(int idx, float * pfpm, float * pg)
+static int gettouchdown(int idx, float * pfpm, float pg[])
 {
 	int k,tmpc;
 	int iter_times=0;
@@ -341,7 +341,7 @@ static int gettouchdown(int idx, float * pfpm, float * pg)
 	float interval = floor(zero_tm - touchdown_tm_table[k]);
 	float s = interval;
 	float last_fpm=99999.f,fpm;
-	float last_g = 999999.f, g;
+	float max_g=0.f,min_g=9999.f;
 	float delta_tm_expect;
 
 	while(!BUFFER_GO_IS_END(k,tmpc)) {
@@ -354,9 +354,10 @@ static int gettouchdown(int idx, float * pfpm, float * pg)
 				delta_tm_expect = delta_tm;
 				last_k = k;
 			}
+			/*goto next second*/
 			s-=1.0f;
 		}
-
+		/*caculate descent rate*/
 		if((iter_start) && (iter_times < 4) && (delta_tm-delta_tm_expect<=0.0f)) {
 			fpm=(touchdown_agl_table[k]-zero_agl)*196.850394f/delta_tm;
 			if(fpm < last_fpm) {
@@ -364,16 +365,22 @@ static int gettouchdown(int idx, float * pfpm, float * pg)
 				delta_tm_expect= delta_tm/2.0f;
 				iter_times++;
 			}
-			g=(touchdown_agl_table[k] - zero_agl) / (delta_tm*delta_tm*9.80665f);
-			if (g < last_g) {
-				last_g = g;
+		}
+		/*caculate G force*/
+		if((delta_tm >= 0.5f)&&(delta_tm <= 3.0f)) {
+			if(touchdown_g_table[k] > max_g) {
+				max_g = touchdown_agl_table[k];
+			}
+			if(touchdown_g_table[k] < min_g) {
+				min_g = touchdown_agl_table[k];
 			}
 		}
 		BUFFER_GO_NEXT(k,tmpc);
 	}
 
 	*pfpm =  last_fpm;
-	*pg = last_g;
+	pg[0] = max_g;
+	pg[1] = min_g;
 
 	return last_k;
 }
@@ -472,21 +479,11 @@ static void drawcb(XPLMWindowID inWindowID, void *inRefcon)
 				/*-- draw vertical line*/
 				draw_line(1,1,1,1,3,x_tmp, y + (_TD_CHART_HEIGHT/4), x_tmp, y + (_TD_CHART_HEIGHT*3/4));
 				/*-- print text*/
-				float delta_tm = touchdown_tm_table[k]-last_tm_recorded;
-				float landingVS,landingG;
-				if (delta_tm < 0.000001f) {
-					/*avoid division 0 exception*/
-					landingVS = 0.0f;
-					landingG = 0.0f;
-				} else {
-					landingVS = (touchdown_agl_table[k]-last_agl_recorded)*196.850394f/delta_tm;
-					landingG = (touchdown_agl_table[k]-last_agl_recorded)/(delta_tm*delta_tm*9.80665f);
-				}
 				float landingPitch = touchdown_pch_table[k];
 				float landingGs = touchdown_gs_table[k];
 				char *text_to_print = text_buf;
-				sprintf(text_to_print,"%.01fFpm(%.01f) %.01fG(%.01f) %.01fDegree %.01fKnots| ", landingVS, touchdown_vs_table[k],
-					landingG, touchdown_g_table[k],
+				sprintf(text_to_print,"%.01fFpm %.01fG %.01fDegree %.01fKnots| ",  touchdown_vs_table[k],
+					touchdown_g_table[k],
 					landingPitch, landingGs*1.943844f);
 				strcat(landingString,text_to_print);
 				int width_text_to_print = (int)floor(XPLMMeasureString(xplmFont_Basic, text_to_print, strlen(text_to_print)));
@@ -502,11 +499,11 @@ static void drawcb(XPLMWindowID inWindowID, void *inRefcon)
 	}
 
 	/*write landing data */
-	float landingVS, landingG;
+	float landingVS, landingG[2];
 	if(touch_idx >= 0) {
-		gettouchdown(touch_idx, &landingVS, &landingG);
+		gettouchdown(touch_idx, &landingVS, landingG);
 		char *text_to_print = text_buf;
-		sprintf(text_to_print,"[%.01fFpm][%.01fG]", landingVS, landingG);
+		sprintf(text_to_print,"[%.01fFpm][Max%.01fG][Min%.01fG]", landingVS, landingG[0], landingG[1]);
 		int width_text_to_print = (int)floor(XPLMMeasureString(xplmFont_Basic, text_to_print, strlen(text_to_print)));
 		XPLMDrawString(color, x_text, y_text, text_to_print, NULL, xplmFont_Basic);
 		x_text = x_text + width_text_to_print;
@@ -684,8 +681,8 @@ static void write_log_file()
 		write_csv_file(ofile, touchdown_g_table,"\"G force(G)\"");
 		write_csv_file(ofile, touchdown_pch_table,"\"pitch(degree)\"");
 		write_csv_file(ofile, touchdown_elev_table,"\"elevator(%)\"");
-		write_csv_file(ofile, touchdown_eng_table,"\"engin(%)\"");
-		write_csv_file(ofile, touchdown_agl_table,"\"above ground level(meter)\"");
+		write_csv_file(ofile, touchdown_eng_table,"\"engine(%)\"");
+		write_csv_file(ofile, touchdown_agl_table,"\"AGL(meter)\"");
 		write_csv_file(ofile, touchdown_gs_table,"\"ground speed(meter/s)\"");
 		fclose(ofile);
 	} else {
@@ -849,7 +846,7 @@ PLUGIN_API void XPluginReceiveMessage(XPLMPluginID inForm, int inMessage, void *
 	{
 		switch(inMessage) {
 		case XPLM_MSG_PLANE_LOADED:
-			if ((int)inParam == 0) {
+			if (*(int *)inParam == 0) {
 				BUFFER_DELETE();
 			}
 			break;
