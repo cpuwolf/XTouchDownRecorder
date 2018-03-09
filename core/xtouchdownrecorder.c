@@ -370,12 +370,12 @@ static int gettouchdownanddraw(int idx, float * pfpm, float pg[],int x, int y)
 			}
 		}
 		/*caculate G force*/
-		if((delta_tm >= 0.5f)&&(delta_tm <= 3.0f)) {
+		if((delta_tm >= 0.1f)&&(delta_tm <= 3.0f)) {
 			if(touchdown_g_table[k] > max_g) {
-				max_g = touchdown_agl_table[k];
+				max_g = touchdown_g_table[k];
 			}
 			if(touchdown_g_table[k] < min_g) {
-				min_g = touchdown_agl_table[k];
+				min_g = touchdown_g_table[k];
 			}
 		}
 		x_tmp = x_tmp + 2;
@@ -393,11 +393,10 @@ static void drawtouchdownpoints(int x, int y)
 	int k,tmpc;
 	/*-- draw touch point vertical lines*/
 	int x_tmp = x;
-	memset(landingString,0,sizeof(landingString));
+	
 	BUFFER_GO_START(k,tmpc);
 	BOOL last_air_recorded = touchdown_air_table[k];
 	BOOL b;
-	float max_agl_recorded = get_max_val(touchdown_agl_table);
 	while(!BUFFER_GO_IS_END(k,tmpc)) {
 		b = touchdown_air_table[k];
 		if(b != last_air_recorded) {
@@ -445,7 +444,6 @@ static void drawcb(XPLMWindowID inWindowID, void *inRefcon)
 	int left, top, right, bottom;
 	float color[] = { 1.0, 1.0, 1.0 };
 	char text_buf[100];
-	static float max_agl_recorded = 0.0f;
 
 	XPLMGetWindowGeometry(inWindowID, &left, &top, &right, &bottom);
 	XPLMDrawTranslucentDarkBox(left, top, right, bottom);
@@ -457,8 +455,6 @@ static void drawcb(XPLMWindowID inWindowID, void *inRefcon)
 	draw_line(0, 0, 0, 1, 3,x, y + (_TD_CHART_HEIGHT / 2), x + (MAX_TABLE_ELEMENTS * 2), y + (_TD_CHART_HEIGHT / 2));
 
 	int touch_idx = getfirsttouchdownpointidx();
-	/*-- draw touch point vertical lines*/
-	drawtouchdownpoints(x, y);
 
 	/*-- title*/
 	color[0] = 1.0;
@@ -471,35 +467,39 @@ static void drawcb(XPLMWindowID inWindowID, void *inRefcon)
 
 	/* print landing load data */
 	float landingVS, landingG[2];
+	memset(landingString, 0, sizeof(landingString));
 	if(touch_idx >= 0) {
 		float landingPitch = touchdown_pch_table[touch_idx];
 		float landingGs = touchdown_gs_table[touch_idx];
 		gettouchdownanddraw(touch_idx, &landingVS, landingG, x, y);
 		char *text_to_print = text_buf;
-		sprintf(text_to_print,"%.01fFpm Max %.01fG Min %.01fG %.01fDegree %.01fKnots", landingVS, landingG[0], landingG[1],
+		sprintf(text_to_print,"%.01fFpm Max %.02fG Min %.02fG %.02fDegree %.01fKnots", landingVS, landingG[0], landingG[1],
 			landingPitch, landingGs*1.943844f);
 		int width_text_to_print = (int)floor(XPLMMeasureString(xplmFont_Basic, text_to_print, strlen(text_to_print)));
 		XPLMDrawString(color, x_text, y_text, text_to_print, NULL, xplmFont_Basic);
 		x_text = x_text + width_text_to_print;
 		/*update content for file output*/
 		strcat(landingString,text_to_print);
+
+		/*-- draw touch point vertical lines*/
+		drawtouchdownpoints(x, y);
 	}
 
 	/*start a new line*/
 	x_text = x + 5;
 	y_text = y + 16;
-	/*-- now draw the chart line green
+	/*-- now draw the chart line green */
 	float max_vs_axis = 1000.0f;
 	float max_vs_recorded = get_max_val(touchdown_vs_table);
 	sprintf(text_buf, "Max %.02ffpm ", max_vs_recorded);
 	x_text = draw_curve(touchdown_vs_table, 0.0f,1.0f,0.0f, text_buf, x_text, y_text, x, y, x, y + (_TD_CHART_HEIGHT / 2), max_vs_recorded*2.0f, max_vs_recorded);
-	*/
-	/*-- now draw the chart line red
+
+	/*-- now draw the chart line red */
 	float max_g_axis = 1.8f;
 	float max_g_recorded = get_max_val(touchdown_g_table);
 	sprintf(text_buf, "Max %.02fG ", max_g_recorded);
 	x_text = draw_curve(touchdown_g_table, 1,0.68f,0.78f, text_buf, x_text, y_text, x, y, x, y, max_g_axis, max_g_recorded);
-	*/
+
 	/*-- now draw the chart line light blue*/
 	float max_pch_recorded = get_max_val(touchdown_pch_table);
 	sprintf(text_buf, "Max pitch %.02fDegree ", max_pch_recorded);
@@ -517,6 +517,7 @@ static void drawcb(XPLMWindowID inWindowID, void *inRefcon)
 	x_text = draw_curve(touchdown_eng_table, 1.0f,1.0f,0.0f, text_buf, x_text, y_text, x, y, x, y + (_TD_CHART_HEIGHT / 2), max_eng_recorded*2.0f, max_eng_recorded);
 
 	/*-- now draw the chart line red*/
+	float max_agl_recorded = get_max_val(touchdown_agl_table);
 	sprintf(text_buf, "Max AGL %.02fM ", max_agl_recorded);
 	x_text = draw_curve(touchdown_agl_table, 1.0f,0.1f,0.1f, text_buf, x_text, y_text, x, y, x, y + (_TD_CHART_HEIGHT / 2), max_agl_recorded*2.0f, max_agl_recorded);
 
@@ -583,7 +584,7 @@ static int write_csv_file_bool(FILE *ofile,BOOL mytable[], const char * title)
 		if(ret <= 0) return ret;
 		BUFFER_GO_NEXT(k,tmpc);
 	}
-	ret=fprintf(ofile, "\r\n");
+	ret=fprintf(ofile, "\n");
 	return ret;
 }
 static int write_csv_file(FILE *ofile,float mytable[], const char * title)
@@ -818,7 +819,7 @@ PLUGIN_API void XPluginReceiveMessage(XPLMPluginID inForm, int inMessage, void *
 	{
 		switch(inMessage) {
 		case XPLM_MSG_PLANE_LOADED:
-			if (*(int *)inParam == 0) {
+			if (inParam == NULL) {
 				BUFFER_DELETE();
 			}
 			break;
