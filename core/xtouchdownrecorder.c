@@ -499,7 +499,6 @@ static void drawcb(XPLMWindowID inWindowID, void *inRefcon)
 	x_text = x + 5;
 	y_text = y + 16;
 	/*-- now draw the chart line green */
-	float max_vs_axis = 1000.0f;
 	float max_vs_recorded = get_max_val(touchdown_vs_table);
 	sprintf(text_buf, "Max %.02ffpm ", max_vs_recorded);
 	x_text = draw_curve(touchdown_vs_table, 0.0f,1.0f,0.0f, text_buf, x_text, y_text, x, y, x, y + (_TD_CHART_HEIGHT / 2), max_vs_recorded*2.0f, max_vs_recorded);
