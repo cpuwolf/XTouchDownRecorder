@@ -371,7 +371,7 @@ static int gettouchdownanddraw(int idx, float * pfpm, float pg[],int x, int y)
 			}
 		}
 		/*caculate G force*/
-		if((delta_tm >= 0.1f)&&(delta_tm <= 3.0f)) {
+		if((delta_tm >= 0.05f)&&(delta_tm <= 3.0f)) {
 			if(touchdown_g_table[k] > max_g) {
 				max_g = touchdown_g_table[k];
 			}
