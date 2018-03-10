@@ -280,7 +280,7 @@ static int draw_curve(float mytable[], float cr, float cg, float cb,
 	/*-- print text*/
 	int x_text = x_text_start;
 	int y_text = y_text_start;
-	int width_text_to_print = (int)(floor(XPLMMeasureString(xplmFont_Basic, text_to_print, strlen(text_to_print))));
+	int width_text_to_print = (int)(floor(XPLMMeasureString(xplmFont_Basic, text_to_print, (int)strlen(text_to_print))));
 	XPLMDrawString(color, x_text, y_text, text_to_print, NULL, xplmFont_Basic);
 	x_text = x_text + width_text_to_print;
 	/*-- draw line*/
@@ -295,7 +295,7 @@ static int draw_curve(float mytable[], float cr, float cg, float cb,
 	float p;
 	int y_height,y1,ymax=y_orig + _TD_CHART_HEIGHT;
 	int draw_max_counter = 0;
-	float max_axis_plus=fabs(max_axis);
+	float max_axis_plus=(float)fabs(max_axis);
 	while(!BUFFER_GO_IS_END(k,tmpc)) {
 		p = mytable[k];
 		if(max_axis_plus<0.000001f) {
@@ -340,7 +340,7 @@ static int gettouchdownanddraw(int idx, float * pfpm, float pg[],int x, int y)
 	int last_k = k;
 	float zero_tm = touchdown_tm_table[idx];
 	float zero_agl = touchdown_agl_table[idx];
-	float interval = floor(zero_tm - touchdown_tm_table[k]);
+	float interval = (float)floor(zero_tm - touchdown_tm_table[k]);
 	float s = interval;
 	float last_fpm=99999.f,fpm;
 	float max_g=0.f,min_g=9999.f;
@@ -486,7 +486,7 @@ static void drawcb(XPLMWindowID inWindowID, void *inRefcon)
 		char *text_to_print = text_buf;
 		sprintf(text_to_print,"%.01fFpm Max%.02fG Min%.02fG %.02fDegree %.01fKnots %s", landingVS, landingG[0], landingG[1],
 			landingPitch, landingGs*1.943844f, (bouncedtimes>1?"Bounced":""));
-		int width_text_to_print = (int)floor(XPLMMeasureString(xplmFont_Basic, text_to_print, strlen(text_to_print)));
+		int width_text_to_print = (int)floor(XPLMMeasureString(xplmFont_Basic, text_to_print, (int)strlen(text_to_print)));
 		XPLMDrawString(color, x_text, y_text, text_to_print, NULL, xplmFont_Basic);
 		x_text = x_text + width_text_to_print;
 		/*update content for file output*/
@@ -575,7 +575,7 @@ static float flightcb(float inElapsedSinceLastCall,
 static void formattm(char *str)
 {
 	unsigned int i;
-	unsigned int len = strlen(str);
+	size_t len = strlen(str);
 	for (i=0; i < len; i++) {
 		if (('\r' == str[i]) || ('\n' == str[i])) {
 			str[i] = 0;
@@ -611,7 +611,36 @@ static int write_csv_file(FILE *ofile,float mytable[], const char * title)
 	ret=fprintf(ofile, "\n");
 	return ret;
 }
+static int movefile(char * srcfile, char * dstfile)
+{
+	size_t len = 0;
+	char buffer[512];
+	FILE* in = fopen(srcfile, "rb");
+	FILE* out = fopen(dstfile, "wb");
+	if (in == NULL || out == NULL)
+	{
+		XPLMDebugString("XTouchDownRecorder: movefile error");
+		in = out = 0;
+	}
+	else {
+		while ((len = fread(buffer, 512, 1, in)) > 0)
+		{
+			fwrite(buffer, 512, 1, out);
+		}
 
+		fclose(in);
+		fclose(out);
+
+		if (remove(srcfile))
+		{
+			XPLMDebugString("XTouchDownRecorder: movefile done");
+		}
+		else {
+			XPLMDebugString("XTouchDownRecorder: movefile:delete error");
+		}
+	}
+	return 0;
+}
 static void write_log_file()
 {
 	FILE *ofile;
@@ -647,6 +676,9 @@ static void write_log_file()
 	logAircraftIcao[num] = 0;
 
 	sprintf(path, "%sXTouchDownRecorderLog.txt", g_xppath);
+
+	/*back compatible */
+	movefile("XTouchDownRecorderLog.txt", path);
 	ofile = fopen(path, "a");
 	if (ofile) {
 		fprintf(ofile, "%s [%s][%s] %s %s %s\n", tmbuf, logAircraftIcao, logAircraftTail, logAirportId, logAirportName, landingString);
@@ -674,6 +706,9 @@ static void write_log_file()
 	}
 	IsLogWritten = TRUE;
 }
+
+
+
 static float secondcb(float inElapsedSinceLastCall,
 	float inElapsedTimeSinceLastFlightLoop, int inCounter,
 	void *inRefcon)
@@ -746,7 +781,8 @@ PLUGIN_API int XPluginStart(char * outName, char * outSig, char * outDesc)
 {
 	XPLMMenuID plugins_menu;
 	int menuidx;
-	char path[600],*prefpath,*csep;
+	char path[600], *prefpath;
+	const char *csep;
 
 	/* Plugin details */
 	sprintf(outName, _PRONAMEVER_" %s %s", __DATE__ , __TIME__);
@@ -757,7 +793,7 @@ PLUGIN_API int XPluginStart(char * outName, char * outSig, char * outDesc)
 	XPLMGetPrefsPath(path);
 	csep=XPLMGetDirectorySeparator();
 	prefpath = XPLMExtractFileAndPath(path);
-	int len = strlen(path);
+	size_t len = strlen(path);
 	sprintf(path+len,"%c..%c",*csep,*csep);
 	g_xppath = malloc(512);
 	if (!g_xppath) {
