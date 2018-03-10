@@ -71,6 +71,7 @@ static float * g_pbuffer = NULL;
 static unsigned int g_start = 0;
 static unsigned int g_end = 0;
 static unsigned int g_size = 0;
+static char * g_xppath = NULL;
 
 #define BUFFER_DELETE() g_size=0;g_start = 0;g_end = 0;
 
@@ -388,27 +389,35 @@ static int gettouchdownanddraw(int idx, float * pfpm, float pg[],int x, int y)
 
 	return last_k;
 }
-static void drawtouchdownpoints(int x, int y)
+static int drawtouchdownpoints(int x, int y)
 {
 	int k,tmpc;
+	int touchtimes = 0;
 	/*-- draw touch point vertical lines*/
 	int x_tmp = x;
 	
 	BUFFER_GO_START(k,tmpc);
 	BOOL last_air_recorded = touchdown_air_table[k];
+	float last_air_tm = touchdown_tm_table[k];
 	BOOL b;
 	while(!BUFFER_GO_IS_END(k,tmpc)) {
 		b = touchdown_air_table[k];
 		if(b != last_air_recorded) {
 			if(b) {
-				/*-- draw vertical line*/
-				draw_line(1,1,1,1,3,x_tmp, y + (_TD_CHART_HEIGHT/4), x_tmp, y + (_TD_CHART_HEIGHT*3/4));
+				/*-- draw vertical line, skip small debounce*/
+				if (touchdown_tm_table[k] - last_air_tm > 0.5f) {
+					draw_line(1, 1, 1, 1, 3, x_tmp, y + (_TD_CHART_HEIGHT / 4), x_tmp, y + (_TD_CHART_HEIGHT * 3 / 4));
+					touchtimes++;
+				}
+			} else {
+				last_air_tm = touchdown_tm_table[k];
 			}
 		}
 		x_tmp = x_tmp + 2;
 		last_air_recorded = b;
 		BUFFER_GO_NEXT(k,tmpc);
 	}
+	return touchtimes;
 }
 
 static int getfirsttouchdownpointidx()
@@ -472,17 +481,18 @@ static void drawcb(XPLMWindowID inWindowID, void *inRefcon)
 		float landingPitch = touchdown_pch_table[touch_idx];
 		float landingGs = touchdown_gs_table[touch_idx];
 		gettouchdownanddraw(touch_idx, &landingVS, landingG, x, y);
+		/*-- draw touch point vertical lines*/
+		int bouncedtimes = drawtouchdownpoints(x, y);
 		char *text_to_print = text_buf;
-		sprintf(text_to_print,"%.01fFpm Max %.02fG Min %.02fG %.02fDegree %.01fKnots", landingVS, landingG[0], landingG[1],
-			landingPitch, landingGs*1.943844f);
+		sprintf(text_to_print,"%.01fFpm Max%.02fG Min%.02fG %.02fDegree %.01fKnots %s", landingVS, landingG[0], landingG[1],
+			landingPitch, landingGs*1.943844f, (bouncedtimes>1?"Bounced":""));
 		int width_text_to_print = (int)floor(XPLMMeasureString(xplmFont_Basic, text_to_print, strlen(text_to_print)));
 		XPLMDrawString(color, x_text, y_text, text_to_print, NULL, xplmFont_Basic);
 		x_text = x_text + width_text_to_print;
 		/*update content for file output*/
 		strcat(landingString,text_to_print);
 
-		/*-- draw touch point vertical lines*/
-		drawtouchdownpoints(x, y);
+
 	}
 
 	/*start a new line*/
@@ -611,7 +621,7 @@ static void write_log_file()
 	static char logAirportName[256];
 	static char logAircraftTail[50];
 	static char logAircraftIcao[40];
-	static char tmbuf[500];
+	static char tmbuf[500], path[512];
 
 	tblock=localtime(&touchTime);
 	memset(tmbuf,0,sizeof(tmbuf));
@@ -636,7 +646,8 @@ static void write_log_file()
 	num = XPLMGetDatab(icaoRef, logAircraftIcao, 0, 39);
 	logAircraftIcao[num] = 0;
 
-	ofile = fopen("XTouchDownRecorderLog.txt", "a");
+	sprintf(path, "%sXTouchDownRecorderLog.txt", g_xppath);
+	ofile = fopen(path, "a");
 	if (ofile) {
 		fprintf(ofile, "%s [%s][%s] %s %s %s\n", tmbuf, logAircraftIcao, logAircraftTail, logAirportId, logAirportName, landingString);
 		fclose(ofile);
@@ -644,9 +655,9 @@ static void write_log_file()
 		XPLMDebugString("XTouchDownRecorder: XTouchDownRecorderLog.txt open error");
 	}
 	/*reuse tmbuf, generating file name*/
-	strftime(tmbuf, sizeof(tmbuf), "%F%H%M%S.csv", tblock);
-	//strcat(tmbuf, ".csv");
-	ofile = fopen(tmbuf, "a");
+	strftime(tmbuf, sizeof(tmbuf), "XTD-%F%H%M%S.csv", tblock);
+	sprintf(path, "%s%s", g_xppath, tmbuf);
+	ofile = fopen(path, "a");
 	if (ofile) {
 		write_csv_file(ofile, touchdown_tm_table,"\"time(s)\"");
 		write_csv_file_bool(ofile, touchdown_air_table,"\"is air\"");
@@ -735,15 +746,31 @@ PLUGIN_API int XPluginStart(char * outName, char * outSig, char * outDesc)
 {
 	XPLMMenuID plugins_menu;
 	int menuidx;
+	char path[600],*prefpath,*csep;
 
 	/* Plugin details */
 	sprintf(outName, _PRONAMEVER_" %s %s", __DATE__ , __TIME__);
 	strcpy(outSig, "cpuwolf.xtouchdownrecorder");
 	strcpy(outDesc, "More information https://github.com/cpuwolf/");
 
+	/* get path*/
+	XPLMGetPrefsPath(path);
+	csep=XPLMGetDirectorySeparator();
+	prefpath = XPLMExtractFileAndPath(path);
+	int len = strlen(path);
+	sprintf(path+len,"%c..%c",*csep,*csep);
+	g_xppath = malloc(512);
+	if (!g_xppath) {
+		XPLMDebugString("XTouchDownRecorder:malloc g_xppath error!");
+		return 0;
+	}
+	strcpy(g_xppath, path);
+	sprintf(path, "XTouchDownRecorder: xp path %s\n", g_xppath);
+	XPLMDebugString(path);
+
 	g_pbuffer = malloc(MAX_TABLE_ELEMENTS * sizeof(float) * MAX_TOUCHDOWN_IDX);
 	if(!g_pbuffer) {
-		XPLMDebugString("malloc error!");
+		XPLMDebugString("XTouchDownRecorder:malloc g_pbuffer error!");
 		return 0;
 	}
 	touchdown_vs_table = g_pbuffer + (TOUCHDOWN_VS_IDX * MAX_TABLE_ELEMENTS);
@@ -803,6 +830,9 @@ PLUGIN_API void	XPluginStop(void) {
 	if(g_pbuffer) {
 		free(g_pbuffer);
 		//g_pbuffer = NULL;
+	}
+	if (!g_xppath) {
+		free(g_xppath);
 	}
 }
 
