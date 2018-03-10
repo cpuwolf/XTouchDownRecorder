@@ -615,25 +615,27 @@ static int movefile(char * srcfile, char * dstfile)
 	size_t len = 0;
 	char buffer[512];
 	FILE* in = fopen(srcfile, "rb");
-	FILE* out = fopen(dstfile, "wb");
-	if (in == NULL || out == NULL)
+	if (in == NULL)
 	{
-		XPLMDebugString("XTouchDownRecorder: movefile skip");
-		in = out = 0;
+		XPLMDebugString("XTouchDownRecorder: movefile skip\n");
+		in = NULL;
 	} else {
-		while ((len = fread(buffer, 512, 1, in)) > 0)
-		{
-			fwrite(buffer, 512, 1, out);
+		FILE* out = fopen(dstfile, "a+b");
+		if (out) {
+			while ((len = fread(buffer, 512, 1, in)) > 0)
+			{
+				fwrite(buffer, 512, 1, out);
+			}
+			fclose(out);
 		}
-
 		fclose(in);
-		fclose(out);
+
 
 		if (remove(srcfile))
 		{
-			XPLMDebugString("XTouchDownRecorder: movefile done");
+			XPLMDebugString("XTouchDownRecorder: movefile done\n");
 		} else {
-			XPLMDebugString("XTouchDownRecorder: movefile:delete error");
+			XPLMDebugString("XTouchDownRecorder: movefile:delete error\n");
 		}
 	}
 	return 0;
@@ -681,7 +683,7 @@ static void write_log_file()
 		fprintf(ofile, "%s [%s][%s] %s %s %s\n", tmbuf, logAircraftIcao, logAircraftTail, logAirportId, logAirportName, landingString);
 		fclose(ofile);
 	} else {
-		XPLMDebugString("XTouchDownRecorder: XTouchDownRecorderLog.txt open error");
+		XPLMDebugString("XTouchDownRecorder: XTouchDownRecorderLog.txt open error\n");
 	}
 	/*reuse tmbuf, generating file name*/
 	strftime(tmbuf, sizeof(tmbuf), "XTD-%F%H%M%S.csv", tblock);
@@ -699,7 +701,7 @@ static void write_log_file()
 		write_csv_file(ofile, touchdown_gs_table,"\"ground speed(meter/s)\"");
 		fclose(ofile);
 	} else {
-		XPLMDebugString("XTouchDownRecorder: data exporting error");
+		XPLMDebugString("XTouchDownRecorder: data exporting error\n");
 	}
 	IsLogWritten = TRUE;
 }
@@ -794,7 +796,7 @@ PLUGIN_API int XPluginStart(char * outName, char * outSig, char * outDesc)
 	sprintf(path+len,"%c..%c",*csep,*csep);
 	g_xppath = malloc(512);
 	if (!g_xppath) {
-		XPLMDebugString("XTouchDownRecorder:malloc g_xppath error!");
+		XPLMDebugString("XTouchDownRecorder:malloc g_xppath error!\n");
 		return 0;
 	}
 	strcpy(g_xppath, path);
@@ -803,7 +805,7 @@ PLUGIN_API int XPluginStart(char * outName, char * outSig, char * outDesc)
 
 	g_pbuffer = malloc(MAX_TABLE_ELEMENTS * sizeof(float) * MAX_TOUCHDOWN_IDX);
 	if(!g_pbuffer) {
-		XPLMDebugString("XTouchDownRecorder:malloc g_pbuffer error!");
+		XPLMDebugString("XTouchDownRecorder:malloc g_pbuffer error!\n");
 		return 0;
 	}
 	touchdown_vs_table = g_pbuffer + (TOUCHDOWN_VS_IDX * MAX_TABLE_ELEMENTS);
