@@ -619,10 +619,9 @@ static int movefile(char * srcfile, char * dstfile)
 	FILE* out = fopen(dstfile, "wb");
 	if (in == NULL || out == NULL)
 	{
-		XPLMDebugString("XTouchDownRecorder: movefile error");
+		XPLMDebugString("XTouchDownRecorder: movefile skip");
 		in = out = 0;
-	}
-	else {
+	} else {
 		while ((len = fread(buffer, 512, 1, in)) > 0)
 		{
 			fwrite(buffer, 512, 1, out);
@@ -634,8 +633,7 @@ static int movefile(char * srcfile, char * dstfile)
 		if (remove(srcfile))
 		{
 			XPLMDebugString("XTouchDownRecorder: movefile done");
-		}
-		else {
+		} else {
 			XPLMDebugString("XTouchDownRecorder: movefile:delete error");
 		}
 	}
