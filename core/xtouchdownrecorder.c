@@ -498,16 +498,18 @@ static void drawcb(XPLMWindowID inWindowID, void *inRefcon)
 	/*start a new line*/
 	x_text = x + 5;
 	y_text = y + 16;
-	/*-- now draw the chart line green */
+	/*-- now draw the chart line green
 	float max_vs_recorded = get_max_val(touchdown_vs_table);
 	sprintf(text_buf, "Max %.02ffpm ", max_vs_recorded);
 	x_text = draw_curve(touchdown_vs_table, 0.0f,1.0f,0.0f, text_buf, x_text, y_text, x, y, x, y + (_TD_CHART_HEIGHT / 2), max_vs_recorded*2.0f, max_vs_recorded);
+	*/
 
-	/*-- now draw the chart line red */
+	/*-- now draw the chart line red
 	float max_g_axis = 1.8f;
 	float max_g_recorded = get_max_val(touchdown_g_table);
 	sprintf(text_buf, "Max %.02fG ", max_g_recorded);
 	x_text = draw_curve(touchdown_g_table, 1,0.68f,0.78f, text_buf, x_text, y_text, x, y, x, y, max_g_axis, max_g_recorded);
+	*/
 
 	/*-- now draw the chart line light blue*/
 	float max_pch_recorded = get_max_val(touchdown_pch_table);
