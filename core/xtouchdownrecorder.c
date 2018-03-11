@@ -64,7 +64,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <GL/gl.h>
 #endif
 
-#define _PRONAMEVER_ "XTouchDownRecorder V6a " __DATE__
+#define _PRONAMEVER_ "XTouchDownRecorder V6a (" __DATE__ ")"
 
 #define MAX_TABLE_ELEMENTS 500
 #define CURVE_LEN 2
@@ -144,9 +144,15 @@ static float lastGs = 0.0;
 #define _TD_CHART_HEIGHT 200
 #define _TD_CHART_WIDTH (MAX_TABLE_ELEMENTS*CURVE_LEN)
 static XPLMWindowID g_win = NULL;
-static int g_winposx = 10;
-static int g_winposy = 900;
-
+typedef struct
+{
+	int winposx;
+	int winposy;
+	int linkposx;
+	int linkposy;
+	int linkwidth;
+	int linkheight;
+}XTDWin;
 static XPLMMenuID tdr_menu = NULL;
 
 static BOOL collect_touchdown_data = TRUE;
@@ -239,10 +245,11 @@ static int mousecb(XPLMWindowID inWindowID, int x, int y,
 				   XPLMMouseStatus inMouse, void *inRefcon)
 {
 	static int lastMouseX, lastMouseY;
+	XTDWin * ref = (XTDWin *)inRefcon;
 	switch (inMouse) {
 	case xplm_MouseDown:
-		if ((x >= g_winposx + _TD_CHART_WIDTH - 10) && (x <= g_winposx + _TD_CHART_WIDTH) &&
-					(y <= g_winposy) && (y >= g_winposy - 10)) {
+		if ((x >= ref->winposx + _TD_CHART_WIDTH - 10) && (x <= ref->winposx + _TD_CHART_WIDTH) &&
+					(y <= ref->winposy) && (y >= ref->winposy - 10)) {
 			show_touchdown_counter = 0;
 		}
 
@@ -252,10 +259,10 @@ static int mousecb(XPLMWindowID inWindowID, int x, int y,
 		break;
 
 	case xplm_MouseDrag:
-		g_winposx += x - lastMouseX;
-		g_winposy += y - lastMouseY;
-		XPLMSetWindowGeometry(inWindowID, g_winposx, g_winposy,
-				g_winposx + _TD_CHART_WIDTH, g_winposy - _TD_CHART_HEIGHT);
+		ref->winposx += x - lastMouseX;
+		ref->winposy += y - lastMouseY;
+		XPLMSetWindowGeometry(inWindowID, ref->winposx, ref->winposy,
+				ref->winposx + _TD_CHART_WIDTH, ref->winposy - _TD_CHART_HEIGHT);
 		lastMouseX = x;
 		lastMouseY = y;
 		break;
@@ -563,11 +570,15 @@ static float flightcb(float inElapsedSinceLastCall,
 	void *inRefcon)
 {
 	float ret = -1.0f;
-	if (!g_win)
-		g_win = XPLMCreateWindow(g_winposx, g_winposy,
-			g_winposx + _TD_CHART_WIDTH, g_winposy - _TD_CHART_HEIGHT,
+	XTDWin * ref = (XTDWin *)inRefcon;
+	if (!g_win) {
+		ref->winposx = 10;
+		ref->winposy = 900;
+		g_win = XPLMCreateWindow(ref->winposx, ref->winposy,
+			ref->winposx + _TD_CHART_WIDTH, ref->winposy - _TD_CHART_HEIGHT,
 			0, drawcb, keycb,
-			mousecb, NULL);
+			mousecb, inRefcon);
+	}
 
 	if(collect_touchdown_data) {
 		collect_flight_data();
@@ -885,8 +896,13 @@ PLUGIN_API int XPluginStart(char * outName, char * outSig, char * outDesc)
 	/* MAC OS */
 	XPLMEnableFeature("XPLM_USE_NATIVE_PATHS", 1);
 
+	XTDWin * ref = malloc(sizeof(XTDWin));
+	if (!ref) {
+		XPLMDebugString("XTouchDownRecorder: win malloc error\n");
+		return 0;
+	}
 	/* register loopback starting at 10s */
-	XPLMRegisterFlightLoopCallback(flightcb, -1, NULL);
+	XPLMRegisterFlightLoopCallback(flightcb, -1, ref);
 
 	/* register loopback in 1s */
 	XPLMRegisterFlightLoopCallback(secondcb, 1.0f, NULL);
@@ -908,6 +924,10 @@ PLUGIN_API void	XPluginStop(void) {
 	XPLMUnregisterFlightLoopCallback(secondcb, NULL);
 	XPLMUnregisterFlightLoopCallback(flightcb, NULL);
 	if (g_win) {
+		XTDWin *ref=XPLMGetWindowRefCon(g_win);
+		if (ref) {
+			free(ref);
+		}
 		XPLMDestroyWindow(g_win);
 		//g_win = NULL;
 	}
