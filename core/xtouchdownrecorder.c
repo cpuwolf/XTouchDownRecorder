@@ -740,7 +740,7 @@ static void getnetinfo()
  
  	curl = curl_easy_init();
  	if(curl) {
-		curl_easy_setopt(curl, CURLOPT_URL, "https://raw.githubusercontent.com/cpuwolf/XTouchDownRecorder/master/README.md");
+		curl_easy_setopt(curl, CURLOPT_URL, "https://raw.githubusercontent.com/cpuwolf/XTouchDownRecorder/net/news.txt");
 		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, httpcb);
     	res = curl_easy_perform(curl);
     	if(res != CURLE_OK)
