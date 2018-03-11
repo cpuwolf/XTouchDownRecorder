@@ -167,6 +167,7 @@ static unsigned int ground_counter = 10;
 static unsigned int taxi_counter = 0;
 
 static char g_NewsString[128];
+static char g_NewsLink[128];
 
 static BOOL check_ground(float n)
 {
@@ -775,11 +776,25 @@ static BOOL getnetinfodone()
 static size_t httpcb(char *ptr, size_t size, size_t nmemb, void *userdata)
 {
     size_t len = size*nmemb;
+	char *p_n;
     if(len < sizeof g_NewsString) {
+
     	memcpy(g_NewsString, ptr, len);
     } else {
     	memcpy(g_NewsString, ptr, sizeof g_NewsString - 2);
     }
+	/*new string terminal*/
+	if (p_n = strchr(g_NewsString, '\n')) {
+		if (p_n < g_NewsString + len) {
+			*p_n = 0;
+		}
+	}
+	if (p_n = strchr(g_NewsString, '|')) {
+		if (p_n + 1 < g_NewsString + len) {
+			*p_n = 0;
+			strcpy(g_NewsLink, p_n + 1);
+		}
+	}
     return size*nmemb;
 }
 static void getnetinfo()
@@ -887,6 +902,7 @@ PLUGIN_API int XPluginStart(char * outName, char * outSig, char * outDesc)
 	strcpy(outDesc, "More information https://github.com/cpuwolf/");
 
 	memset(g_NewsString, 0, sizeof(g_NewsString));
+	memset(g_NewsLink, 0, sizeof(g_NewsLink));
 
 	/* get path*/
 	XPLMGetPrefsPath(path);
