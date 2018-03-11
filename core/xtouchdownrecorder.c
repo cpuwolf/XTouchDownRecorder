@@ -473,13 +473,6 @@ static void drawcb(XPLMWindowID inWindowID, void *inRefcon)
 
 	int touch_idx = getfirsttouchdownpointidx();
 
-	/*-- title*/
-	color[0] = 1.0;
-	color[1] = 1.0;
-	color[2] = 1.0;
-	sprintf(text_buf,_PRONAMEVER_" by cpuwolf %s", g_NewsString);
-	XPLMDrawString(color, x + 5, y + _TD_CHART_HEIGHT - 15, text_buf, NULL, xplmFont_Basic);
-
 	int x_text = x + 5;
 	int y_text = y + 4;
 
@@ -545,6 +538,13 @@ static void drawcb(XPLMWindowID inWindowID, void *inRefcon)
 	float max_gs_recorded = get_max_val(touchdown_gs_table);
 	sprintf(text_buf, "Max %.02fknots ", max_gs_recorded*1.943844f);
 	x_text = draw_curve(touchdown_gs_table, 0.24f,0.35f,0.8f, text_buf, x_text, y_text, x, y, x, y, max_gs_recorded, max_gs_recorded);
+
+	/*-- title*/
+	color[0] = 1.0;
+	color[1] = 1.0;
+	color[2] = 1.0;
+	sprintf(text_buf, _PRONAMEVER_" by cpuwolf %s", g_NewsString);
+	XPLMDrawString(color, x + 5, y + _TD_CHART_HEIGHT - 15, text_buf, NULL, xplmFont_Basic);
 
 	/*-- draw close button on top-right*/
 	glDisable(GL_TEXTURE_2D);
