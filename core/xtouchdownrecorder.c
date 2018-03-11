@@ -152,6 +152,7 @@ typedef struct
 	int linkposy;
 	int linkwidth;
 	int linkheight;
+	BOOL linkin;
 }XTDWin;
 static XPLMMenuID tdr_menu = NULL;
 
@@ -241,6 +242,18 @@ static void keycb(XPLMWindowID inWindowID, char inKey, XPLMKeyFlags inFlags,
 {
 
 }
+
+static XPLMCursorStatus cursorcb(XPLMWindowID inWindowID,int x,int y,void * inRefcon)
+{
+	XTDWin * ref = inRefcon;
+	if ((x >= ref->linkposx) && (x <= ref->linkposx + ref->linkwidth) &&
+		(y <= ref->linkposy+ ref->linkheight) && (y >= ref->linkposy )) {
+		ref->linkin = TRUE;
+		return xplm_CursorHidden;
+	} else ref->linkin = FALSE;
+	return xplm_CursorDefault;
+}
+
 static int mousecb(XPLMWindowID inWindowID, int x, int y,
 				   XPLMMouseStatus inMouse, void *inRefcon)
 {
@@ -468,6 +481,7 @@ static void drawcb(XPLMWindowID inWindowID, void *inRefcon)
 	int left, top, right, bottom;
 	float color[] = { 1.0, 1.0, 1.0 };
 	char text_buf[256];
+	XTDWin * ref = inRefcon;
 
 	XPLMGetWindowGeometry(inWindowID, &left, &top, &right, &bottom);
 	XPLMDrawTranslucentDarkBox(left, top, right, bottom);
@@ -550,8 +564,23 @@ static void drawcb(XPLMWindowID inWindowID, void *inRefcon)
 	color[0] = 1.0;
 	color[1] = 1.0;
 	color[2] = 1.0;
-	sprintf(text_buf, _PRONAMEVER_" by cpuwolf %s", g_NewsString);
-	XPLMDrawString(color, x + 5, y + _TD_CHART_HEIGHT - 15, text_buf, NULL, xplmFont_Basic);
+	strcpy(text_buf, _PRONAMEVER_" by cpuwolf ");
+	x_text = x + 5;
+	y_text = y + _TD_CHART_HEIGHT - 15;
+	XPLMDrawString(color, x_text, y_text, text_buf, NULL, xplmFont_Basic);
+	int width_text_to_print = (int)floor(XPLMMeasureString(xplmFont_Basic, text_buf, (int)strlen(text_buf)));
+	x_text = x_text + width_text_to_print;
+
+	/* draw link*/
+	ref->linkposx = x_text;
+	ref->linkposy = y_text;
+	strcpy(text_buf, g_NewsString);
+	if (ref->linkin) {
+		color[0] = 0.0;
+	}
+	ref->linkwidth = (int)floor(XPLMMeasureString(xplmFont_Basic, text_buf, (int)strlen(text_buf)));
+	ref->linkheight = 15;
+	XPLMDrawString(color, x_text, y_text, text_buf, NULL, xplmFont_Basic);
 
 	/*-- draw close button on top-right*/
 	glDisable(GL_TEXTURE_2D);
@@ -574,10 +603,21 @@ static float flightcb(float inElapsedSinceLastCall,
 	if (!g_win) {
 		ref->winposx = 10;
 		ref->winposy = 900;
-		g_win = XPLMCreateWindow(ref->winposx, ref->winposy,
-			ref->winposx + _TD_CHART_WIDTH, ref->winposy - _TD_CHART_HEIGHT,
-			0, drawcb, keycb,
-			mousecb, inRefcon);
+		XPLMCreateWindow_t win;
+		memset(&win, 0, sizeof(win));
+		win.structSize = sizeof(win);
+		win.left = ref->winposx;
+		win.top = ref->winposy;
+		win.right = ref->winposx + _TD_CHART_WIDTH;
+		win.bottom = ref->winposy - _TD_CHART_HEIGHT;
+		win.visible = 1;
+		win.drawWindowFunc = drawcb;
+		win.handleKeyFunc = keycb;
+		win.handleMouseClickFunc = mousecb;
+		win.handleCursorFunc = cursorcb;
+		win.handleMouseWheelFunc = NULL;
+		win.refcon = inRefcon;
+		g_win = XPLMCreateWindowEx(&win);
 	}
 
 	if(collect_touchdown_data) {
