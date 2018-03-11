@@ -33,6 +33,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <time.h>
 #include <stdio.h>
 
+#pragma comment(lib, "wldap32.lib" )
+#pragma comment(lib, "crypt32.lib" )
+#pragma comment(lib, "Ws2_32.lib")
+#define CURL_STATICLIB 
+#include <curl/curl.h>
+
 #if defined(__APPLE__) || defined(__unix__)
 #ifndef BOOL
 #define BOOL unsigned char
@@ -152,6 +158,8 @@ static BOOL IsLogWritten = TRUE;
 static BOOL IsTouchDown = FALSE;
 static unsigned int ground_counter = 10;
 static unsigned int taxi_counter = 0;
+
+static char g_NewsString[128];
 
 static BOOL check_ground(float n)
 {
@@ -452,7 +460,7 @@ static void drawcb(XPLMWindowID inWindowID, void *inRefcon)
 	int x, y;
 	int left, top, right, bottom;
 	float color[] = { 1.0, 1.0, 1.0 };
-	char text_buf[100];
+	char text_buf[256];
 
 	XPLMGetWindowGeometry(inWindowID, &left, &top, &right, &bottom);
 	XPLMDrawTranslucentDarkBox(left, top, right, bottom);
@@ -469,7 +477,8 @@ static void drawcb(XPLMWindowID inWindowID, void *inRefcon)
 	color[0] = 1.0;
 	color[1] = 1.0;
 	color[2] = 1.0;
-	XPLMDrawString(color, x + 5, y + _TD_CHART_HEIGHT - 15, _PRONAMEVER_" by cpuwolf", NULL, xplmFont_Basic);
+	sprintf(text_buf,_PRONAMEVER_" by cpuwolf %s", g_NewsString);
+	XPLMDrawString(color, x + 5, y + _TD_CHART_HEIGHT - 15, text_buf, NULL, xplmFont_Basic);
 
 	int x_text = x + 5;
 	int y_text = y + 4;
@@ -708,7 +717,40 @@ static void write_log_file()
 	IsLogWritten = TRUE;
 }
 
-
+static BOOL getnetinfodone()
+{
+	return (strlen(g_NewsString) > 1)?TRUE:FALSE;
+}
+static size_t httpcb(char *ptr, size_t size, size_t nmemb, void *userdata)
+{
+    size_t len = size*nmemb;
+    if(len < sizeof g_NewsString) {
+    	memcpy(g_NewsString, ptr, len);
+    } else {
+    	memcpy(g_NewsString, ptr, sizeof g_NewsString - 2);
+    }
+    return size*nmemb;
+}
+static void getnetinfo()
+{
+	CURL *curl;
+ 	CURLcode res;
+ 
+ 	curl_global_init(CURL_GLOBAL_DEFAULT);
+ 
+ 	curl = curl_easy_init();
+ 	if(curl) {
+		curl_easy_setopt(curl, CURLOPT_URL, "https://raw.githubusercontent.com/cpuwolf/XTouchDownRecorder/master/README.md");
+		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, httpcb);
+    	res = curl_easy_perform(curl);
+    	if(res != CURLE_OK)
+    		XPLMDebugString("XTouchDownRecorder: getnetinfo error\n");
+ 
+		curl_easy_cleanup(curl);
+	}
+ 
+	curl_global_cleanup();
+}
 
 static float secondcb(float inElapsedSinceLastCall,
 	float inElapsedTimeSinceLastFlightLoop, int inCounter,
@@ -752,6 +794,9 @@ static float secondcb(float inElapsedSinceLastCall,
 	if (show_touchdown_counter > 0) {
 		show_touchdown_counter = show_touchdown_counter - 1;
 	}
+	if(!getnetinfodone()) {
+		getnetinfo();
+	}
 	return 1.0f;
 }
 
@@ -789,6 +834,8 @@ PLUGIN_API int XPluginStart(char * outName, char * outSig, char * outDesc)
 	sprintf(outName, _PRONAMEVER_" %s %s", __DATE__ , __TIME__);
 	strcpy(outSig, "cpuwolf.xtouchdownrecorder");
 	strcpy(outDesc, "More information https://github.com/cpuwolf/");
+
+	memset(g_NewsString, 0, sizeof(g_NewsString));
 
 	/* get path*/
 	XPLMGetPrefsPath(path);
