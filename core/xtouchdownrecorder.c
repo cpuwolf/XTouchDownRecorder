@@ -36,7 +36,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma comment(lib, "wldap32.lib" )
 #pragma comment(lib, "crypt32.lib" )
 #pragma comment(lib, "Ws2_32.lib")
-#define CURL_STATICLIB 
+//#define CURL_STATICLIB
 #include <curl/curl.h>
 
 #if defined(__APPLE__) || defined(__unix__)

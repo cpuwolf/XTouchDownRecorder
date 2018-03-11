@@ -15,6 +15,7 @@ find_package(CURL)
 if (CURL_FOUND)
 	include_directories(${CURL_INCLUDE_DIRS})
 	target_link_libraries(xtouchdownrecorder PUBLIC ${CURL_LIBRARIES})
+	add_definitions(-DCURL_STATICLIB)
 endif (CURL_FOUND)
 
 
