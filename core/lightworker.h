@@ -51,7 +51,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 typedef unsigned int(*lightworker_job_t)(void *);
 
-
 struct lightworker
 {
 	lightworker_mutex_t mutex;

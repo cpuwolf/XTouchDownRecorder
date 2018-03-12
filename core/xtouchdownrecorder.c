@@ -169,17 +169,17 @@ typedef struct
 
 	BOOL collect_touchdown_data;
 	unsigned int show_touchdown_counter;
-
+	BOOL IsLogWritten;
+	BOOL IsTouchDown;
+	unsigned int ground_counter;
+	unsigned int taxi_counter;
 	time_t touchTime;
+
 	char logAirportId[50];
 	char logAirportName[256];
 	char logAircraftTail[50];
 	char logAircraftIcao[40];
 	char landingString[128];
-	BOOL IsLogWritten;
-	BOOL IsTouchDown;
-	unsigned int ground_counter;
-	unsigned int taxi_counter;
 
 	char g_NewsString[128];
 	char g_NewsLink[128];
