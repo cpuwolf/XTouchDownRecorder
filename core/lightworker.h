@@ -58,4 +58,6 @@ struct lightworker
 	lightworker_job_t func;
 };
 
+struct lightworker* lightworker_create(lightworker_job_t func, void *arg);
+
 #endif //LIGHTWORKER_H
