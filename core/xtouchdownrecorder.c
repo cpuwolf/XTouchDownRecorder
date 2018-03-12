@@ -157,6 +157,10 @@ typedef struct
 
 typedef struct
 {
+	int xpVer;
+	int xplmVer;
+	XPLMHostApplicationID hostID;
+
 	XPLMWindowID g_win;
 	XPLMMenuID tdr_menu;
 
@@ -1018,6 +1022,10 @@ PLUGIN_API void	XPluginStop(void)
 		}
 		XPLMDestroyWindow(g_info->g_win);
 		//g_win = NULL;
+	}
+	if (g_info->tdr_menu) {
+		XPLMClearAllMenuItems(g_info->tdr_menu);
+		XPLMDestroyMenu(g_info->tdr_menu);
 	}
 	if(g_pbuffer) {
 		free(g_pbuffer);
