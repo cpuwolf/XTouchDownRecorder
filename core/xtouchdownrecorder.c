@@ -36,7 +36,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma comment(lib, "wldap32.lib" )
 #pragma comment(lib, "crypt32.lib" )
 #pragma comment(lib, "Ws2_32.lib")
-//#define CURL_STATICLIB
 #include <curl/curl.h>
 
 #if defined(__APPLE__) || defined(__unix__)
@@ -146,13 +145,17 @@ static float lastGs = 0.0;
 static XPLMWindowID g_win = NULL;
 typedef struct
 {
-	int winposx;
-	int winposy;
-	int linkposx;
-	int linkposy;
-	int linkwidth;
-	int linkheight;
-	BOOL linkin;
+	int posx;
+	int posy;
+	int width;
+	int height;
+	BOOL in;
+}XTDWinBox;
+typedef struct
+{
+	XTDWinBox win;
+	XTDWinBox close;
+	XTDWinBox link;
 }XTDWin;
 static XPLMMenuID tdr_menu = NULL;
 
@@ -243,15 +246,22 @@ static void keycb(XPLMWindowID inWindowID, char inKey, XPLMKeyFlags inFlags,
 {
 
 }
+static BOOL InBox(XTDWinBox * box, int x, int y)
+{
+	if ((x >= box->posx) && (x <= box->posx + box->width) &&
+		(y <= box->posy ) && (y >= box->posy - box->height)) {
+		box->in = TRUE;
+	}
+	else box->in = FALSE;
+	return box->in;
+}
 
 static XPLMCursorStatus cursorcb(XPLMWindowID inWindowID,int x,int y,void * inRefcon)
 {
 	XTDWin * ref = inRefcon;
-	if ((x >= ref->linkposx) && (x <= ref->linkposx + ref->linkwidth) &&
-		(y <= ref->linkposy+ ref->linkheight) && (y >= ref->linkposy )) {
-		ref->linkin = TRUE;
+	if (InBox(&(ref->link), x, y)) {
 		return xplm_CursorHidden;
-	} else ref->linkin = FALSE;
+	}
 	return xplm_CursorDefault;
 }
 
@@ -262,25 +272,24 @@ static int mousecb(XPLMWindowID inWindowID, int x, int y,
 	XTDWin * ref = (XTDWin *)inRefcon;
 	switch (inMouse) {
 	case xplm_MouseDown:
-		if ((x >= ref->winposx + _TD_CHART_WIDTH - 10) && (x <= ref->winposx + _TD_CHART_WIDTH) &&
-					(y <= ref->winposy) && (y >= ref->winposy - 10)) {
+		if (InBox(&(ref->close), x, y)) {
 			show_touchdown_counter = 0;
 		}
-
 		lastMouseX = x;
 		lastMouseY = y;
-
 		break;
 
 	case xplm_MouseDrag:
-		ref->winposx += x - lastMouseX;
-		ref->winposy += y - lastMouseY;
-		XPLMSetWindowGeometry(inWindowID, ref->winposx, ref->winposy,
-				ref->winposx + _TD_CHART_WIDTH, ref->winposy - _TD_CHART_HEIGHT);
+		ref->win.posx += x - lastMouseX;
+		ref->win.posy += y - lastMouseY;
+		XPLMSetWindowGeometry(inWindowID, ref->win.posx, ref->win.posy,
+				ref->win.posx + _TD_CHART_WIDTH, ref->win.posy - _TD_CHART_HEIGHT);
 		lastMouseX = x;
 		lastMouseY = y;
+		/* update close button*/
+		ref->close.posx = ref->win.posx + ref->win.width - ref->close.width;
+		ref->close.posy = ref->win.posy;
 		break;
-
 	}
 	return 1;
 }
@@ -515,8 +524,6 @@ static void drawcb(XPLMWindowID inWindowID, void *inRefcon)
 		x_text = x_text + width_text_to_print;
 		/*update content for file output*/
 		strcat(landingString,text_to_print);
-
-
 	}
 
 	/*start a new line*/
@@ -573,14 +580,14 @@ static void drawcb(XPLMWindowID inWindowID, void *inRefcon)
 	x_text = x_text + width_text_to_print;
 
 	/* draw link*/
-	ref->linkposx = x_text;
-	ref->linkposy = y_text;
+	ref->link.posx = x_text;
+	ref->link.posy = y_text + 15;
 	strcpy(text_buf, g_NewsString);
-	if (ref->linkin) {
+	if (ref->link.in) {
 		color[0] = 0.0;
 	}
-	ref->linkwidth = (int)floor(XPLMMeasureString(xplmFont_Basic, text_buf, (int)strlen(text_buf)));
-	ref->linkheight = 15;
+	ref->link.width = (int)floor(XPLMMeasureString(xplmFont_Basic, text_buf, (int)strlen(text_buf)));
+	ref->link.height = 15;
 	XPLMDrawString(color, x_text, y_text, text_buf, NULL, xplmFont_Basic);
 
 	/*-- draw close button on top-right*/
@@ -602,15 +609,20 @@ static float flightcb(float inElapsedSinceLastCall,
 	float ret = -1.0f;
 	XTDWin * ref = (XTDWin *)inRefcon;
 	if (!g_win) {
-		ref->winposx = 10;
-		ref->winposy = 900;
+		ref->win.posx = 10;
+		ref->win.posy = 900;
+		ref->win.width = _TD_CHART_WIDTH;
+		ref->win.height = _TD_CHART_HEIGHT;
+		/*close button*/
+		ref->close.width = 10;
+		ref->close.height = 10;
 		XPLMCreateWindow_t win;
 		memset(&win, 0, sizeof(win));
 		win.structSize = sizeof(win);
-		win.left = ref->winposx;
-		win.top = ref->winposy;
-		win.right = ref->winposx + _TD_CHART_WIDTH;
-		win.bottom = ref->winposy - _TD_CHART_HEIGHT;
+		win.left = ref->win.posx;
+		win.top = ref->win.posy;
+		win.right = ref->win.posx + ref->win.width;
+		win.bottom = ref->win.posy - ref->win.height;
 		win.visible = 1;
 		win.drawWindowFunc = drawcb;
 		win.handleKeyFunc = keycb;
@@ -692,7 +704,6 @@ static int movefile(char * srcfile, char * dstfile)
 			fclose(out);
 		}
 		fclose(in);
-
 
 		if (remove(srcfile))
 		{
@@ -975,7 +986,8 @@ PLUGIN_API int XPluginStart(char * outName, char * outSig, char * outDesc)
 	return 1;
 }
 
-PLUGIN_API void	XPluginStop(void) {
+PLUGIN_API void	XPluginStop(void)
+{
 	XPLMUnregisterCommandHandler(ToggleCommand, ToggleCommandHandler, 0, 0);
 	XPLMUnregisterFlightLoopCallback(secondcb, NULL);
 	XPLMUnregisterFlightLoopCallback(flightcb, NULL);
@@ -996,17 +1008,18 @@ PLUGIN_API void	XPluginStop(void) {
 	}
 }
 
-PLUGIN_API void XPluginDisable(void) {
+PLUGIN_API void XPluginDisable(void)
+{
 }
 
-PLUGIN_API int XPluginEnable(void) {
+PLUGIN_API int XPluginEnable(void)
+{
 	return 1;
 }
 
 PLUGIN_API void XPluginReceiveMessage(XPLMPluginID inForm, int inMessage, void * inParam) 
 {
-	if (inForm == XPLM_PLUGIN_XPLANE)
-	{
+	if (inForm == XPLM_PLUGIN_XPLANE) {
 		switch(inMessage) {
 		case XPLM_MSG_PLANE_LOADED:
 			if (inParam == NULL) {
