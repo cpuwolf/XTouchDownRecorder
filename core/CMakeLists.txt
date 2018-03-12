@@ -8,7 +8,7 @@ cmake_minimum_required(VERSION 2.8)
 add_subdirectory(../ bin/)
 
 # Set up the plugin
-add_xplane_plugin(xtouchdownrecorder xtouchdownrecorder.c)
+add_xplane_plugin(xtouchdownrecorder xtouchdownrecorder.c lightworker.c)
 
 
 find_package(CURL)
