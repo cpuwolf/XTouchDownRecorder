@@ -293,6 +293,11 @@ static int mousecb(XPLMWindowID inWindowID, int x, int y,
 	case xplm_MouseDown:
 		if (InBox(&(ref->close), x, y)) {
 			g_info->show_touchdown_counter = 0;
+		} else if (InBox(&(ref->link), x, y)) {
+#if defined(_WIN32)
+			char tmp[512];
+			system(tmp);
+#endif
 		}
 		lastMouseX = x;
 		lastMouseY = y;
