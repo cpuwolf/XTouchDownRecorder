@@ -932,7 +932,7 @@ PLUGIN_API int XPluginStart(char * outName, char * outSig, char * outDesc)
 	/*get XP version info*/
 	GetXPVer();
 
-	XTDInfo * g_info = malloc(sizeof(XTDInfo));
+	g_info = malloc(sizeof(XTDInfo));
 	if (!g_info) {
 		XPLMDebugString("XTouchDownRecorder:malloc info error!\n");
 		return 0;
