@@ -929,8 +929,7 @@ PLUGIN_API int XPluginStart(char * outName, char * outSig, char * outDesc)
 	sprintf(outName, _PRONAMEVER_" %s %s", __DATE__ , __TIME__);
 	strcpy(outSig, "cpuwolf.xtouchdownrecorder");
 	strcpy(outDesc, "More information https://github.com/cpuwolf/");
-	/*get XP version info*/
-	GetXPVer();
+
 
 	g_info = malloc(sizeof(XTDInfo));
 	if (!g_info) {
@@ -942,6 +941,8 @@ PLUGIN_API int XPluginStart(char * outName, char * outSig, char * outDesc)
 	g_info->ground_counter = 10;
 	g_info->IsLogWritten = TRUE;
 
+	/*get XP version info*/
+	GetXPVer();
 	/* get path*/
 	XPLMGetPrefsPath(path);
 	csep=XPLMGetDirectorySeparator();
