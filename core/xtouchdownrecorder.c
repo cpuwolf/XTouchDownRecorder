@@ -296,6 +296,7 @@ static int mousecb(XPLMWindowID inWindowID, int x, int y,
 		} else if (InBox(&(ref->link), x, y)) {
 #if defined(_WIN32)
 			char tmp[512];
+			sprintf(tmp, "cmd /c start %s", g_info->g_NewsLink);
 			system(tmp);
 #endif
 		}
