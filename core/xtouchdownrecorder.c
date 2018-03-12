@@ -63,6 +63,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <GL/gl.h>
 #endif
 
+#include "lightworker.h"
+
 #define _PRONAMEVER_ "XTouchDownRecorder V6a (" __DATE__ ")"
 
 #define MAX_TABLE_ELEMENTS 500
@@ -183,6 +185,8 @@ typedef struct
 
 	char g_NewsString[128];
 	char g_NewsLink[128];
+
+	struct lightworker* worker;
 }XTDInfo;
 
 XTDInfo * g_info;
@@ -842,6 +846,7 @@ static void getnetinfo()
 	curl_global_cleanup();
 }
 
+
 static float secondcb(float inElapsedSinceLastCall,
 	float inElapsedTimeSinceLastFlightLoop, int inCounter,
 	void *inRefcon)
@@ -884,9 +889,7 @@ static float secondcb(float inElapsedSinceLastCall,
 	if (g_info->show_touchdown_counter > 0) {
 		g_info->show_touchdown_counter = g_info->show_touchdown_counter - 1;
 	}
-	if(!getnetinfodone()) {
-		getnetinfo();
-	}
+
 	return 1.0f;
 }
 
@@ -918,6 +921,15 @@ static void GetXPVer()
 	XPLMGetVersions(&g_info->xpVer, &g_info->xplmVer, &g_info->hostID);
 }
 
+static unsigned int lightworker_job_helper(void *arg)
+{
+	if (!getnetinfodone()) {
+		getnetinfo();
+	}
+	free(arg);
+	return 0;
+}
+
 PLUGIN_API int XPluginStart(char * outName, char * outSig, char * outDesc)
 {
 	XPLMMenuID plugins_menu;
@@ -943,6 +955,8 @@ PLUGIN_API int XPluginStart(char * outName, char * outSig, char * outDesc)
 
 	/*get XP version info*/
 	GetXPVer();
+
+	g_info->worker = lightworker_create(lightworker_job_helper, g_info);
 	/* get path*/
 	XPLMGetPrefsPath(path);
 	csep=XPLMGetDirectorySeparator();
