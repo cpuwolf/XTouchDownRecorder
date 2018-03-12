@@ -68,15 +68,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define MAX_TABLE_ELEMENTS 500
 #define CURVE_LEN 2
 
-static XPLMCommandRef ToggleCommand = NULL;
-
 static XPLMDataRef gearFRef,gForceRef,vertSpeedRef,pitchRef,elevatorRef,engRef,aglRef,tmRef,gndSpeedRef,latRef,longRef,tailRef,icaoRef;
 
 static float * g_pbuffer = NULL;
 static unsigned int g_start = 0;
 static unsigned int g_end = 0;
 static unsigned int g_size = 0;
-static char * g_xppath = NULL;
 
 #define BUFFER_DELETE() g_size=0;g_start = 0;g_end = 0;
 
@@ -142,7 +139,7 @@ static float lastGs = 0.0;
 
 #define _TD_CHART_HEIGHT 200
 #define _TD_CHART_WIDTH (MAX_TABLE_ELEMENTS*CURVE_LEN)
-static XPLMWindowID g_win = NULL;
+
 typedef struct
 {
 	int posx;
@@ -157,20 +154,34 @@ typedef struct
 	XTDWinBox close;
 	XTDWinBox link;
 }XTDWin;
-static XPLMMenuID tdr_menu = NULL;
 
-static BOOL collect_touchdown_data = TRUE;
-static unsigned int show_touchdown_counter = 0;
+typedef struct
+{
+	XPLMWindowID g_win;
+	XPLMMenuID tdr_menu;
 
-static time_t touchTime;
-static char landingString[128];
-static BOOL IsLogWritten = TRUE;
-static BOOL IsTouchDown = FALSE;
-static unsigned int ground_counter = 10;
-static unsigned int taxi_counter = 0;
+	XPLMCommandRef ToggleCommand;
+	char g_xppath[512];
 
-static char g_NewsString[128];
-static char g_NewsLink[128];
+	BOOL collect_touchdown_data;
+	unsigned int show_touchdown_counter;
+
+	time_t touchTime;
+	char logAirportId[50];
+	char logAirportName[256];
+	char logAircraftTail[50];
+	char logAircraftIcao[40];
+	char landingString[128];
+	BOOL IsLogWritten;
+	BOOL IsTouchDown;
+	unsigned int ground_counter;
+	unsigned int taxi_counter;
+
+	char g_NewsString[128];
+	char g_NewsLink[128];
+}XTDInfo;
+
+XTDInfo * g_info;
 
 static BOOL check_ground(float n)
 {
@@ -273,7 +284,7 @@ static int mousecb(XPLMWindowID inWindowID, int x, int y,
 	switch (inMouse) {
 	case xplm_MouseDown:
 		if (InBox(&(ref->close), x, y)) {
-			show_touchdown_counter = 0;
+			g_info->show_touchdown_counter = 0;
 		}
 		lastMouseX = x;
 		lastMouseY = y;
@@ -472,7 +483,7 @@ static int getfirsttouchdownpointidx()
 			if(b) {
 				if(max_agl_recorded > 0.5f) {
 					/* touchdown at least from AGL 0.5 meter to Ground: ignore annoying plane load touch down */
-					IsTouchDown = TRUE;
+					g_info->IsTouchDown = TRUE;
 					return k;
 				}
 			}
@@ -509,7 +520,7 @@ static void drawcb(XPLMWindowID inWindowID, void *inRefcon)
 
 	/* print landing load data */
 	float landingVS, landingG[2];
-	memset(landingString, 0, sizeof(landingString));
+	memset(g_info->landingString, 0, sizeof(g_info->landingString));
 	if(touch_idx >= 0) {
 		float landingPitch = touchdown_pch_table[touch_idx];
 		float landingGs = touchdown_gs_table[touch_idx];
@@ -523,7 +534,7 @@ static void drawcb(XPLMWindowID inWindowID, void *inRefcon)
 		XPLMDrawString(color, x_text, y_text, text_to_print, NULL, xplmFont_Basic);
 		x_text = x_text + width_text_to_print;
 		/*update content for file output*/
-		strcat(landingString,text_to_print);
+		strcat(g_info->landingString,text_to_print);
 	}
 
 	/*start a new line*/
@@ -582,7 +593,7 @@ static void drawcb(XPLMWindowID inWindowID, void *inRefcon)
 	/* draw link*/
 	ref->link.posx = x_text;
 	ref->link.posy = y_text + 15;
-	strcpy(text_buf, g_NewsString);
+	strcpy(text_buf, g_info->g_NewsString);
 	if (ref->link.in) {
 		color[0] = 0.0;
 	}
@@ -608,7 +619,7 @@ static float flightcb(float inElapsedSinceLastCall,
 {
 	float ret = -1.0f;
 	XTDWin * ref = (XTDWin *)inRefcon;
-	if (!g_win) {
+	if (!g_info->g_win) {
 		ref->win.posx = 10;
 		ref->win.posy = 900;
 		ref->win.width = _TD_CHART_WIDTH;
@@ -630,17 +641,17 @@ static float flightcb(float inElapsedSinceLastCall,
 		win.handleCursorFunc = cursorcb;
 		win.handleMouseWheelFunc = NULL;
 		win.refcon = inRefcon;
-		g_win = XPLMCreateWindowEx(&win);
+		g_info->g_win = XPLMCreateWindowEx(&win);
 	}
 
-	if(collect_touchdown_data) {
+	if(g_info->collect_touchdown_data) {
 		collect_flight_data();
 	} else ret = 0.3f;
 	/*-- dont draw when the function isn't wanted*/
-	if(show_touchdown_counter <= 0) {
-		XPLMSetWindowIsVisible(g_win, 0);
+	if(g_info->show_touchdown_counter <= 0) {
+		XPLMSetWindowIsVisible(g_info->g_win, 0);
 	} else {
-		XPLMSetWindowIsVisible(g_win, 1);
+		XPLMSetWindowIsVisible(g_info->g_win, 1);
 	}
 
 	return ret;
@@ -719,13 +730,9 @@ static void write_log_file()
 	FILE *ofile;
 	struct tm *tblock;
 	int num;
-	static char logAirportId[50];
-	static char logAirportName[256];
-	static char logAircraftTail[50];
-	static char logAircraftIcao[40];
 	static char tmbuf[500], path[512];
 
-	tblock=localtime(&touchTime);
+	tblock=localtime(&g_info->touchTime);
 	memset(tmbuf,0,sizeof(tmbuf));
 	strcpy(tmbuf, asctime(tblock));
 	formattm(tmbuf);
@@ -735,33 +742,35 @@ static void write_log_file()
 	XPLMNavRef navref = XPLMFindNavAid(NULL, NULL, &lat, &lon, NULL, xplm_Nav_Airport);
 
 	if (XPLM_NAV_NOT_FOUND != navref)
-		XPLMGetNavAidInfo(navref, NULL, &lat, &lon, NULL, NULL, NULL, logAirportId,
-				logAirportName, NULL);
+		XPLMGetNavAidInfo(navref, NULL, &lat, &lon, NULL, NULL, NULL, g_info->logAirportId,
+			g_info->logAirportName, NULL);
 	else {
-		logAirportId[0] = 0;
-		logAirportName[0] = 0;
+		g_info->logAirportId[0] = 0;
+		g_info->logAirportName[0] = 0;
 	}
 
-	num = XPLMGetDatab(tailRef, logAircraftTail, 0, 49);
-	logAircraftTail[num] = 0;
+	num = XPLMGetDatab(tailRef, g_info->logAircraftTail, 0, 49);
+	g_info->logAircraftTail[num] = 0;
 
-	num = XPLMGetDatab(icaoRef, logAircraftIcao, 0, 39);
-	logAircraftIcao[num] = 0;
+	num = XPLMGetDatab(icaoRef, g_info->logAircraftIcao, 0, 39);
+	g_info->logAircraftIcao[num] = 0;
 
-	sprintf(path, "%sXTouchDownRecorderLog.txt", g_xppath);
+	sprintf(path, "%sXTouchDownRecorderLog.txt", g_info->g_xppath);
 
 	/*back compatible */
 	movefile("XTouchDownRecorderLog.txt", path);
 	ofile = fopen(path, "a");
 	if (ofile) {
-		fprintf(ofile, "%s [%s][%s] %s %s %s\n", tmbuf, logAircraftIcao, logAircraftTail, logAirportId, logAirportName, landingString);
+		fprintf(ofile, "%s [%s][%s] %s %s %s\n", tmbuf, g_info->logAircraftIcao, 
+			g_info->logAircraftTail, g_info->logAirportId, g_info->logAirportName,
+			g_info->landingString);
 		fclose(ofile);
 	} else {
 		XPLMDebugString("XTouchDownRecorder: XTouchDownRecorderLog.txt open error\n");
 	}
 	/*reuse tmbuf, generating file name*/
 	strftime(tmbuf, sizeof(tmbuf), "XTD-%F%H%M%S.csv", tblock);
-	sprintf(path, "%s%s", g_xppath, tmbuf);
+	sprintf(path, "%s%s", g_info->g_xppath, tmbuf);
 	ofile = fopen(path, "a");
 	if (ofile) {
 		write_csv_file(ofile, touchdown_tm_table,"\"time(s)\"");
@@ -777,33 +786,32 @@ static void write_log_file()
 	} else {
 		XPLMDebugString("XTouchDownRecorder: data exporting error\n");
 	}
-	IsLogWritten = TRUE;
+	g_info->IsLogWritten = TRUE;
 }
 
 static BOOL getnetinfodone()
 {
-	return (strlen(g_NewsString) > 1)?TRUE:FALSE;
+	return (strlen(g_info->g_NewsString) > 1)?TRUE:FALSE;
 }
 static size_t httpcb(char *ptr, size_t size, size_t nmemb, void *userdata)
 {
     size_t len = size*nmemb;
 	char *p_n;
-    if(len < sizeof g_NewsString) {
-
-    	memcpy(g_NewsString, ptr, len);
+    if(len < sizeof(g_info->g_NewsString)) {
+		memcpy(g_info->g_NewsString, ptr, len);
     } else {
-    	memcpy(g_NewsString, ptr, sizeof g_NewsString - 2);
+		memcpy(g_info->g_NewsString, ptr, sizeof(g_info->g_NewsString) - 2);
     }
 	/*new string terminal*/
-	if (p_n = strchr(g_NewsString, '\n')) {
-		if (p_n < g_NewsString + len) {
+	if (p_n = strchr(g_info->g_NewsString, '\n')) {
+		if (p_n < g_info->g_NewsString + len) {
 			*p_n = 0;
 		}
 	}
-	if (p_n = strchr(g_NewsString, '|')) {
-		if (p_n + 1 < g_NewsString + len) {
+	if (p_n = strchr(g_info->g_NewsString, '|')) {
+		if (p_n + 1 < g_info->g_NewsString + len) {
 			*p_n = 0;
-			strcpy(g_NewsLink, p_n + 1);
+			strcpy(g_info->g_NewsLink, p_n + 1);
 		}
 	}
     return size*nmemb;
@@ -838,39 +846,39 @@ static float secondcb(float inElapsedSinceLastCall,
 
 	if (is_on_ground()) {
 		if(is_taxing()) {
-			taxi_counter++;
-			if (taxi_counter == 6) {
+			g_info->taxi_counter++;
+			if (g_info->taxi_counter == 6) {
 				if(BUFFER_FULL()) {
-					show_touchdown_counter = 10;
+					g_info->show_touchdown_counter = 10;
 				}
-			} else if (taxi_counter == 8) {
-				if (IsTouchDown) {
-					IsLogWritten = FALSE;
+			} else if (g_info->taxi_counter == 8) {
+				if (g_info->IsTouchDown) {
+					g_info->IsLogWritten = FALSE;
 				}
-			} else if (taxi_counter == 9) {
-				sprintf(tmpbuf, "XTouchDownRecorder: on ground %ds\n", ground_counter);
+			} else if (g_info->taxi_counter == 9) {
+				sprintf(tmpbuf, "XTouchDownRecorder: on ground %ds\n", g_info->ground_counter);
 				XPLMDebugString(tmpbuf);
-				if (!IsLogWritten) {
+				if (!g_info->IsLogWritten) {
 					write_log_file();
 				}
 			}
 		}
-		ground_counter = ground_counter + 1;
-		if (ground_counter == 3) {
-			time(&touchTime);
+		g_info->ground_counter = g_info->ground_counter + 1;
+		if (g_info->ground_counter == 3) {
+			time(&g_info->touchTime);
 			/*-- stop data collection*/
-			collect_touchdown_data = FALSE;
+			g_info->collect_touchdown_data = FALSE;
 		} 
 	} else {
 		/*-- in the air*/
-		ground_counter = 0;
-		collect_touchdown_data = TRUE;
-		IsTouchDown = FALSE;
-		taxi_counter = 0;
+		g_info->ground_counter = 0;
+		g_info->collect_touchdown_data = TRUE;
+		g_info->IsTouchDown = FALSE;
+		g_info->taxi_counter = 0;
 	}
 	/*-- count down*/
-	if (show_touchdown_counter > 0) {
-		show_touchdown_counter = show_touchdown_counter - 1;
+	if (g_info->show_touchdown_counter > 0) {
+		g_info->show_touchdown_counter = g_info->show_touchdown_counter - 1;
 	}
 	if(!getnetinfodone()) {
 		getnetinfo();
@@ -880,10 +888,10 @@ static float secondcb(float inElapsedSinceLastCall,
 
 static void toggle_touchdown()
 {
-	if (show_touchdown_counter > 0) {
-		show_touchdown_counter = 0;
+	if (g_info->show_touchdown_counter > 0) {
+		g_info->show_touchdown_counter = 0;
 	} else {
-		show_touchdown_counter = 60;
+		g_info->show_touchdown_counter = 60;
 	}
 }
 static int ToggleCommandHandler(XPLMCommandRef       inCommand,
@@ -921,8 +929,15 @@ PLUGIN_API int XPluginStart(char * outName, char * outSig, char * outDesc)
 	strcpy(outSig, "cpuwolf.xtouchdownrecorder");
 	strcpy(outDesc, "More information https://github.com/cpuwolf/");
 
-	memset(g_NewsString, 0, sizeof(g_NewsString));
-	memset(g_NewsLink, 0, sizeof(g_NewsLink));
+	XTDInfo * g_info = malloc(sizeof(XTDInfo));
+	if (!g_info) {
+		XPLMDebugString("XTouchDownRecorder:malloc info error!\n");
+		return 0;
+	}
+	memset(g_info, 0, sizeof(XTDInfo));
+	g_info->collect_touchdown_data = TRUE;
+	g_info->ground_counter = 10;
+	g_info->IsLogWritten = TRUE;
 
 	/* get path*/
 	XPLMGetPrefsPath(path);
@@ -930,13 +945,9 @@ PLUGIN_API int XPluginStart(char * outName, char * outSig, char * outDesc)
 	prefpath = XPLMExtractFileAndPath(path);
 	size_t len = strlen(path);
 	sprintf(path+len,"%c..%c",*csep,*csep);
-	g_xppath = malloc(512);
-	if (!g_xppath) {
-		XPLMDebugString("XTouchDownRecorder:malloc g_xppath error!\n");
-		return 0;
-	}
-	strcpy(g_xppath, path);
-	sprintf(path, "XTouchDownRecorder: xp path %s\n", g_xppath);
+
+	strcpy(g_info->g_xppath, path);
+	sprintf(path, "XTouchDownRecorder: xp path %s\n", g_info->g_xppath);
 	XPLMDebugString(path);
 
 	g_pbuffer = malloc(MAX_TABLE_ELEMENTS * sizeof(float) * MAX_TOUCHDOWN_IDX);
@@ -983,37 +994,37 @@ PLUGIN_API int XPluginStart(char * outName, char * outSig, char * outDesc)
 	/* register loopback in 1s */
 	XPLMRegisterFlightLoopCallback(secondcb, 1.0f, NULL);
 
-	ToggleCommand = XPLMCreateCommand("cpuwolf/XTouchDownRecorder/Toggle", "Toggle TouchDownRecorder Chart");
-	XPLMRegisterCommandHandler(ToggleCommand, ToggleCommandHandler, 0, NULL);
+	g_info->ToggleCommand = XPLMCreateCommand("cpuwolf/XTouchDownRecorder/Toggle", "Toggle TouchDownRecorder Chart");
+	XPLMRegisterCommandHandler(g_info->ToggleCommand, ToggleCommandHandler, 0, NULL);
 
 	plugins_menu = XPLMFindPluginsMenu();
 	menuidx = XPLMAppendMenuItem(plugins_menu, "XTouchDownRecorder", NULL, 1);
-	tdr_menu = XPLMCreateMenu("XTouchDownRecorder", plugins_menu, menuidx,
+	g_info->tdr_menu = XPLMCreateMenu("XTouchDownRecorder", plugins_menu, menuidx,
 				menucb, NULL);
-	XPLMAppendMenuItem(tdr_menu, "Show/Hide", NULL, 1);
+	XPLMAppendMenuItem(g_info->tdr_menu, "Show/Hide", NULL, 1);
 
 	return 1;
 }
 
 PLUGIN_API void	XPluginStop(void)
 {
-	XPLMUnregisterCommandHandler(ToggleCommand, ToggleCommandHandler, 0, 0);
+	XPLMUnregisterCommandHandler(g_info->ToggleCommand, ToggleCommandHandler, 0, 0);
 	XPLMUnregisterFlightLoopCallback(secondcb, NULL);
 	XPLMUnregisterFlightLoopCallback(flightcb, NULL);
-	if (g_win) {
-		XTDWin *ref=XPLMGetWindowRefCon(g_win);
+	if (g_info->g_win) {
+		XTDWin *ref=XPLMGetWindowRefCon(g_info->g_win);
 		if (ref) {
 			free(ref);
 		}
-		XPLMDestroyWindow(g_win);
+		XPLMDestroyWindow(g_info->g_win);
 		//g_win = NULL;
 	}
 	if(g_pbuffer) {
 		free(g_pbuffer);
 		//g_pbuffer = NULL;
 	}
-	if (!g_xppath) {
-		free(g_xppath);
+	if (!g_info) {
+		free(g_info);
 	}
 }
 
