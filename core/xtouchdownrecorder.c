@@ -915,10 +915,7 @@ static void menucb(void *menuRef, void *param)
 
 static void GetXPVer()
 {
-	int xpVer;
-	int xplmVer;
-	XPLMHostApplicationID hostID;
-	XPLMGetVersions(&xpVer, &xplmVer, &hostID);
+	XPLMGetVersions(&g_info->xpVer, &g_info->xplmVer, &g_info->hostID);
 }
 
 PLUGIN_API int XPluginStart(char * outName, char * outSig, char * outDesc)
@@ -932,6 +929,8 @@ PLUGIN_API int XPluginStart(char * outName, char * outSig, char * outDesc)
 	sprintf(outName, _PRONAMEVER_" %s %s", __DATE__ , __TIME__);
 	strcpy(outSig, "cpuwolf.xtouchdownrecorder");
 	strcpy(outDesc, "More information https://github.com/cpuwolf/");
+	/*get XP version info*/
+	GetXPVer();
 
 	XTDInfo * g_info = malloc(sizeof(XTDInfo));
 	if (!g_info) {
