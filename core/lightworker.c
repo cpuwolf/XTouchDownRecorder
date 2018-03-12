@@ -37,26 +37,31 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "lightworker.h"
 
 
-static unsigned int _lightworker_job_helper(void *arg)
+static void * _lightworker_job_helper(void *arg)
 {
+    struct lightworker * thread = (struct lightworker *)arg;
+    thread->func(thread->priv);
 	free(arg);
+    return NULL;
 }
 
 struct lightworker* lightworker_create(lightworker_job_t func, void *arg)
 {
 	struct lightworker * thread = malloc(sizeof(struct lightworker));
 	if (!thread) return NULL;
+    thread->func=func;
+    thread->priv=arg;
 
 	lightworker_mutex_init(&thread->mutex);
 #if defined(_WIN32)
 	thread->thread_id = CreateThread(NULL, 0,
-		(LPTHREAD_START_ROUTINE)func, thread, 0, NULL);
+		(LPTHREAD_START_ROUTINE)_lightworker_job_helper, thread, 0, NULL);
 	if (!thread->thread_id) {
 		free(thread);
 		thread = NULL;
 	}
 #else
-	int ret = pthread_create(&thread->thread_id, NULL, func, thread);
+	int ret = pthread_create(&thread->thread_id, NULL, _lightworker_job_helper, thread);
 	if (ret) {
 		free(thread);
 		thread = NULL;

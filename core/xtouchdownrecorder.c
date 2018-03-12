@@ -825,12 +825,14 @@ static size_t httpcb(char *ptr, size_t size, size_t nmemb, void *userdata)
 		memcpy(g_info->g_NewsString, ptr, sizeof(g_info->g_NewsString) - 2);
     }
 	/*new string terminal*/
-	if (p_n = strchr(g_info->g_NewsString, '\n')) {
+    p_n = strchr(g_info->g_NewsString, '\n');
+	if (p_n) {
 		if (p_n < g_info->g_NewsString + len) {
 			*p_n = 0;
 		}
 	}
-	if (p_n = strchr(g_info->g_NewsString, '|')) {
+    p_n = strchr(g_info->g_NewsString, '|');
+	if (p_n) {
 		if (p_n + 1 < g_info->g_NewsString + len) {
 			*p_n = 0;
 			strcpy(g_info->g_NewsLink, p_n + 1);

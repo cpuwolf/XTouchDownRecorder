@@ -56,6 +56,7 @@ struct lightworker
 	lightworker_mutex_t mutex;
 	lightworker_thread_t thread_id;
 	lightworker_job_t func;
+    void * priv;
 };
 
 struct lightworker* lightworker_create(lightworker_job_t func, void *arg);
