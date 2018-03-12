@@ -1,3 +1,5 @@
+#ifndef LIGHTWORKER_H
+#define LIGHTWORKER_H
 /*
 LightWorker
 
@@ -28,49 +30,33 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#include <math.h>
-#include <string.h>
-#include <time.h>
-#include <stdio.h>
 
-#include "lightworker.h"
-
-
-static unsigned int _lightworker_job_helper(void *arg)
-{
-	free(arg);
-}
-
-struct lightworker* lightworker_create(lightworker_job_t func, void *arg)
-{
-	struct lightworker * thread = malloc(sizeof(struct lightworker));
-	if (!thread) return NULL;
-
-	lightworker_mutex_init(&thread->mutex);
 #if defined(_WIN32)
-	thread->thread_id = CreateThread(NULL, 0,
-		(LPTHREAD_START_ROUTINE)func, thread, 0, NULL);
-	if (!thread->thread_id) {
-		free(thread);
-		thread = NULL;
-	}
+#include <windows.h>
+#define lightworker_mutex_t           CRITICAL_SECTION
+#define lightworker_thread_t          HANDLE
+#define lightworker_mutex_init(m)	  InitializeCriticalSection(m)
+#define lightworker_mutex_acquire(m)  EnterCriticalSection(m)
+#define lightworker_mutex_release(m)  LeaveCriticalSection(m)
+#define lightworker_mutex_destroy(m)  DeleteCriticalSection(m)
 #else
-	int ret = pthread_create(&thread->thread_id, NULL, func, thread);
-	if (ret) {
-		free(thread);
-		thread = NULL;
-	}
+#include <pthread.h>
+#define lightworker_mutex_t           pthread_mutex_t
+#define lightworker_thread_t          pthread_t
+#define lightworker_mutex_init(m)     pthread_mutex_init(m, NULL)
+#define lightworker_mutex_acquire(m)  pthread_mutex_lock(m)
+#define lightworker_mutex_release(m)  pthread_mutex_unlock(m)
+#define lightworker_mutex_destroy(m)  pthread_mutex_destroy(m)
 #endif
-	return thread;
-}
 
-void lightworker_destroy(struct lightworker* thread)
+typedef unsigned int(*lightworker_job_t)(void *);
+
+
+struct lightworker
 {
-#if defined(_WIN32)
-	CloseHandle(thread->thread_id);
-#else
-	if (thread->thread_id) {
-		pthread_detach(thread->thread_id);
-	}
-#endif
-}
+	lightworker_mutex_t mutex;
+	lightworker_thread_t thread_id;
+	lightworker_job_t func;
+};
+
+#endif //LIGHTWORKER_H
