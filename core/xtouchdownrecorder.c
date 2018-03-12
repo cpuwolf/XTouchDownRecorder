@@ -819,6 +819,7 @@ static void getnetinfo()
  	if(curl) {
 		curl_easy_setopt(curl, CURLOPT_URL, "https://raw.githubusercontent.com/cpuwolf/XTouchDownRecorder/net/news.txt");
 		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, httpcb);
+		curl_easy_setopt(curl, CURLOPT_USERAGENT, "Dark Secret Ninja/1.0");
     	res = curl_easy_perform(curl);
     	if(res != CURLE_OK)
     		XPLMDebugString("XTouchDownRecorder: getnetinfo error\n");
@@ -898,6 +899,14 @@ static int ToggleCommandHandler(XPLMCommandRef       inCommand,
 static void menucb(void *menuRef, void *param)
 {
 	toggle_touchdown();
+}
+
+static void GetXPVer()
+{
+	int xpVer;
+	int xplmVer;
+	XPLMHostApplicationID hostID;
+	XPLMGetVersions(&xpVer, &xplmVer, &hostID);
 }
 
 PLUGIN_API int XPluginStart(char * outName, char * outSig, char * outDesc)
