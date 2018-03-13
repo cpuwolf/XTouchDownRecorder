@@ -72,7 +72,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 static XPLMDataRef gearFRef,gForceRef,vertSpeedRef,pitchRef,elevatorRef,engRef,aglRef,tmRef,gndSpeedRef,latRef,longRef,tailRef,icaoRef;
 
-static XPLMDataRef aeroForceRef, totalForceRef;
+static XPLMDataRef totalWeightRef, totalForceRef;
 
 static float * g_pbuffer = NULL;
 static unsigned int g_start = 0;
@@ -118,7 +118,7 @@ enum
 	TOUCHDOWN_AGL_IDX,
 	TOUCHDOWN_TM_IDX,
 	TOUCHDOWN_GS_IDX,
-	TOUCHDOWN_AF_IDX,
+	TOUCHDOWN_TW_IDX,
 	TOUCHDOWN_GF_IDX,
 	TOUCHDOWN_TF_IDX,
 	MAX_TOUCHDOWN_IDX
@@ -134,7 +134,7 @@ static float *touchdown_agl_table;
 static float *touchdown_tm_table;
 static float *touchdown_gs_table;
 static float *touchdown_gf_table;
-static float *touchdown_af_table;
+static float *touchdown_tw_table;
 static float *touchdown_tf_table;
 
 
@@ -148,7 +148,7 @@ static float lastAgl = 0.0;
 static float lastTm = 0.0;
 static float lastGs = 0.0;
 
-static float lastAeroN = 0.0;
+static float lastTotalKg = 0.0;
 static float lastGearN = 0.0;
 static float lastTotalN = 0.0;
 
@@ -189,6 +189,7 @@ typedef struct
 	unsigned int ground_counter;
 	unsigned int taxi_counter;
 	float XPTouchDownTM;
+	float XPTouchDownWeight;
 	time_t touchTime;
 
 	char logAirportId[50];
@@ -259,7 +260,7 @@ void collect_flight_data()
 	XPLMGetDatavf(engRef,engtb,0,3);
 	lastEng = engtb[0];
 	lastGs = XPLMGetDataf(gndSpeedRef);
-	lastAeroN = XPLMGetDataf(aeroForceRef);
+	lastTotalKg = XPLMGetDataf(totalWeightRef);
 	lastGearN = XPLMGetDataf(gearFRef);
 	lastTotalN = XPLMGetDataf(totalForceRef);
 
@@ -275,7 +276,7 @@ void collect_flight_data()
 	touchdown_gs_table[iw] = lastGs;
 
 	touchdown_gf_table[iw] = lastGearN;
-	touchdown_af_table[iw] = lastAeroN;
+	touchdown_tw_table[iw] = lastTotalKg;
 	touchdown_tf_table[iw] = lastTotalN;
 	BUFFER_INSERT_BACK();
 
@@ -459,10 +460,17 @@ static int gettouchdownanddraw(int idx, float * pfpm, float pg[],int x, int y)
 			if(touchdown_g_table[k] > max_g) {
 				max_g = touchdown_g_table[k];
 			}
+			/*
 			if(touchdown_g_table[k] < min_g) {
 				min_g = touchdown_g_table[k];
-			}
+			}*/
 		}
+		/*calulate G force persudo min*/
+		float tmp_g = touchdown_gf_table[k] / (9.8f*touchdown_tw_table[k]);
+		if (tmp_g > min_g) {
+			min_g = tmp_g;
+		}
+
 		x_tmp = x_tmp + 2;
 		BUFFER_GO_NEXT(k,tmpc);
 	}
@@ -520,6 +528,7 @@ static int getfirsttouchdownpointidx()
 					/* touchdown at least from AGL 0.5 meter to Ground: ignore annoying plane load touch down */
 					g_info->IsTouchDown = TRUE;
 					g_info->XPTouchDownTM = touchdown_tm_table[k];
+					g_info->XPTouchDownWeight = touchdown_tw_table[k];
 					return k;
 				}
 			}
@@ -904,7 +913,7 @@ static void write_log_file()
 		write_csv_file(ofile, touchdown_agl_table,"\"AGL(meter)\"");
 		write_csv_file(ofile, touchdown_gs_table,"\"ground speed(meter/s)\"");
 
-		write_csv_file(ofile, touchdown_af_table, "\"aero force(N)\"");
+		write_csv_file(ofile, touchdown_tw_table, "\"total weight(Kg)\"");
 		write_csv_file(ofile, touchdown_gf_table, "\"gear force(N)\"");
 		write_csv_file(ofile, touchdown_tf_table, "\"total force(N)\"");
 		fclose(ofile);
@@ -1101,7 +1110,7 @@ PLUGIN_API int XPluginStart(char * outName, char * outSig, char * outDesc)
 	touchdown_tm_table = g_pbuffer + (TOUCHDOWN_TM_IDX * MAX_TABLE_ELEMENTS);
 	touchdown_gs_table = g_pbuffer + (TOUCHDOWN_GS_IDX * MAX_TABLE_ELEMENTS);
 	touchdown_gf_table = g_pbuffer + (TOUCHDOWN_GF_IDX * MAX_TABLE_ELEMENTS);
-	touchdown_af_table = g_pbuffer + (TOUCHDOWN_AF_IDX * MAX_TABLE_ELEMENTS);
+	touchdown_tw_table = g_pbuffer + (TOUCHDOWN_TW_IDX * MAX_TABLE_ELEMENTS);
 	touchdown_tf_table = g_pbuffer + (TOUCHDOWN_TF_IDX * MAX_TABLE_ELEMENTS);
 
 	gearFRef = XPLMFindDataRef("sim/flightmodel/forces/fnrml_gear");
@@ -1119,7 +1128,7 @@ PLUGIN_API int XPluginStart(char * outName, char * outSig, char * outDesc)
 	tailRef = XPLMFindDataRef("sim/aircraft/view/acf_tailnum");
 	icaoRef = XPLMFindDataRef("sim/aircraft/view/acf_ICAO");
 
-	aeroForceRef = XPLMFindDataRef("sim/flightmodel/forces/fnrml_aero");
+	totalWeightRef = XPLMFindDataRef("sim/flightmodel/weight/m_total");
 	totalForceRef = XPLMFindDataRef("sim/flightmodel/forces/fnrml_total");
 
 	/* MAC OS */
