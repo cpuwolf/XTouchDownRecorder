@@ -72,6 +72,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 static XPLMDataRef gearFRef,gForceRef,vertSpeedRef,pitchRef,elevatorRef,engRef,aglRef,tmRef,gndSpeedRef,latRef,longRef,tailRef,icaoRef;
 
+static XPLMDataRef aeroForceRef, totalForceRef;
+
 static float * g_pbuffer = NULL;
 static unsigned int g_start = 0;
 static unsigned int g_end = 0;
@@ -116,6 +118,9 @@ enum
 	TOUCHDOWN_AGL_IDX,
 	TOUCHDOWN_TM_IDX,
 	TOUCHDOWN_GS_IDX,
+	TOUCHDOWN_AF_IDX,
+	TOUCHDOWN_GF_IDX,
+	TOUCHDOWN_TF_IDX,
 	MAX_TOUCHDOWN_IDX
 };
 
@@ -128,6 +133,10 @@ static float *touchdown_eng_table;
 static float *touchdown_agl_table;
 static float *touchdown_tm_table;
 static float *touchdown_gs_table;
+static float *touchdown_gf_table;
+static float *touchdown_af_table;
+static float *touchdown_tf_table;
+
 
 static float lastVS = 1.0;
 static float lastG = 1.0;
@@ -138,6 +147,10 @@ static float lastEng = 0.0;
 static float lastAgl = 0.0;
 static float lastTm = 0.0;
 static float lastGs = 0.0;
+
+static float lastAeroN = 0.0;
+static float lastGearN = 0.0;
+static float lastTotalN = 0.0;
 
 #define _TD_CHART_HEIGHT 200
 #define _TD_CHART_WIDTH (MAX_TABLE_ELEMENTS*CURVE_LEN)
@@ -246,6 +259,9 @@ void collect_flight_data()
 	XPLMGetDatavf(engRef,engtb,0,3);
 	lastEng = engtb[0];
 	lastGs = XPLMGetDataf(gndSpeedRef);
+	lastAeroN = XPLMGetDataf(aeroForceRef);
+	lastGearN = XPLMGetDataf(gearFRef);
+	lastTotalN = XPLMGetDataf(totalForceRef);
 
 	/*-- fill the table */
 	touchdown_vs_table[iw] = lastVS;
@@ -257,6 +273,10 @@ void collect_flight_data()
 	touchdown_agl_table[iw] = lastAgl;
 	touchdown_tm_table[iw] = lastTm;
 	touchdown_gs_table[iw] = lastGs;
+
+	touchdown_gf_table[iw] = lastGearN;
+	touchdown_af_table[iw] = lastAeroN;
+	touchdown_tf_table[iw] = lastTotalN;
 	BUFFER_INSERT_BACK();
 
 }
@@ -733,7 +753,7 @@ static create_json_file(char * path, struct tm *tblock)
 		create_json_str(ofile, "xtd_acf_tail", g_info->logAircraftTail);
 		create_json_str(ofile, "xtd_apt_icao", g_info->logAirportId);
 		create_json_str(ofile, "xtd_apt_name", g_info->logAirportName);
-		strftime(tmbuf, sizeof(tmbuf), "%F%X", tblock);
+		strftime(tmbuf, sizeof(tmbuf), "%F %X", tblock);
 		create_json_str(ofile, "xtd_touch_tm", tmbuf);
 		strftime(tmbuf, sizeof(tmbuf), "%z", tblock);
 		create_json_str(ofile, "xtd_tmzone", tmbuf);
@@ -869,7 +889,7 @@ static void write_log_file()
 		fprintf(ofile, "\"Aircraft tail number\",\"%s\"\n", g_info->logAircraftTail);
 		fprintf(ofile, "\"Airport ICAO\",%s\n", g_info->logAirportId);
 		fprintf(ofile, "\"Airport name\",\"%s\"\n", g_info->logAirportName);
-		strftime(tmbuf, sizeof(tmbuf), "%F%X", tblock);
+		strftime(tmbuf, sizeof(tmbuf), "%F %X", tblock);
 		fprintf(ofile, "\"Touchdown time\",%s\n", tmbuf);
 		strftime(tmbuf, sizeof(tmbuf), "%z", tblock);
 		fprintf(ofile, "\"Timezone\",%s\n", tmbuf);
@@ -883,6 +903,10 @@ static void write_log_file()
 		write_csv_file(ofile, touchdown_eng_table,"\"engine(%)\"");
 		write_csv_file(ofile, touchdown_agl_table,"\"AGL(meter)\"");
 		write_csv_file(ofile, touchdown_gs_table,"\"ground speed(meter/s)\"");
+
+		write_csv_file(ofile, touchdown_af_table, "\"aero force(N)\"");
+		write_csv_file(ofile, touchdown_gf_table, "\"gear force(N)\"");
+		write_csv_file(ofile, touchdown_tf_table, "\"total force(N)\"");
 		fclose(ofile);
 	} else {
 		XPLMDebugString("XTouchDownRecorder: data exporting error\n");
@@ -1076,6 +1100,9 @@ PLUGIN_API int XPluginStart(char * outName, char * outSig, char * outDesc)
 	touchdown_agl_table = g_pbuffer + (TOUCHDOWN_AGL_IDX * MAX_TABLE_ELEMENTS);
 	touchdown_tm_table = g_pbuffer + (TOUCHDOWN_TM_IDX * MAX_TABLE_ELEMENTS);
 	touchdown_gs_table = g_pbuffer + (TOUCHDOWN_GS_IDX * MAX_TABLE_ELEMENTS);
+	touchdown_gf_table = g_pbuffer + (TOUCHDOWN_GF_IDX * MAX_TABLE_ELEMENTS);
+	touchdown_af_table = g_pbuffer + (TOUCHDOWN_AF_IDX * MAX_TABLE_ELEMENTS);
+	touchdown_tf_table = g_pbuffer + (TOUCHDOWN_TF_IDX * MAX_TABLE_ELEMENTS);
 
 	gearFRef = XPLMFindDataRef("sim/flightmodel/forces/fnrml_gear");
 	gForceRef = XPLMFindDataRef("sim/flightmodel2/misc/gforce_normal");
@@ -1091,6 +1118,9 @@ PLUGIN_API int XPluginStart(char * outName, char * outSig, char * outDesc)
 	longRef = XPLMFindDataRef("sim/flightmodel/position/longitude");
 	tailRef = XPLMFindDataRef("sim/aircraft/view/acf_tailnum");
 	icaoRef = XPLMFindDataRef("sim/aircraft/view/acf_ICAO");
+
+	aeroForceRef = XPLMFindDataRef("sim/flightmodel/forces/fnrml_aero");
+	totalForceRef = XPLMFindDataRef("sim/flightmodel/forces/fnrml_total");
 
 	/* MAC OS */
 	XPLMEnableFeature("XPLM_USE_NATIVE_PATHS", 1);
