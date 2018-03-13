@@ -527,7 +527,7 @@ static void drawcb(XPLMWindowID inWindowID, void *inRefcon)
 	y = bottom;
 
 	/*-- draw center line*/
-	draw_line(0, 0, 0, 1, 3,x, y + (_TD_CHART_HEIGHT / 2), x + (MAX_TABLE_ELEMENTS * 2), y + (_TD_CHART_HEIGHT / 2));
+	draw_line(0, 0, 0, 1, 3, x, y + (_TD_CHART_HEIGHT / 2), x + (MAX_TABLE_ELEMENTS * 2), y + (_TD_CHART_HEIGHT / 2));
 
 	int touch_idx = getfirsttouchdownpointidx();
 
@@ -537,20 +537,20 @@ static void drawcb(XPLMWindowID inWindowID, void *inRefcon)
 	/* print landing load data */
 	float landingVS, landingG[2];
 	memset(g_info->landingString, 0, sizeof(g_info->landingString));
-	if(touch_idx >= 0) {
+	if (touch_idx >= 0) {
 		float landingPitch = touchdown_pch_table[touch_idx];
 		float landingGs = touchdown_gs_table[touch_idx];
 		gettouchdownanddraw(touch_idx, &landingVS, landingG, x, y);
 		/*-- draw touch point vertical lines*/
 		int bouncedtimes = drawtouchdownpoints(x, y);
 		char *text_to_print = text_buf;
-		sprintf(text_to_print,"%.01fFpm Max%.02fG Min%.02fG %.02fDegree %.01fKnots %s", landingVS, landingG[0], landingG[1],
-			landingPitch, landingGs*1.943844f, (bouncedtimes>1?"Bounced":""));
+		sprintf(text_to_print, "%.01fFpm Max%.02fG Min%.02fG %.02fDegree %.01fKnots %s", landingVS, landingG[0], landingG[1],
+			landingPitch, landingGs*1.943844f, (bouncedtimes > 1 ? "Bounced" : ""));
 		int width_text_to_print = (int)floor(XPLMMeasureString(xplmFont_Basic, text_to_print, (int)strlen(text_to_print)));
 		XPLMDrawString(color, x_text, y_text, text_to_print, NULL, xplmFont_Basic);
 		x_text = x_text + width_text_to_print;
 		/*update content for file output*/
-		strcat(g_info->landingString,text_to_print);
+		strcat(g_info->landingString, text_to_print);
 	}
 
 	/*start a new line*/
@@ -572,7 +572,7 @@ static void drawcb(XPLMWindowID inWindowID, void *inRefcon)
 	/*-- now draw the chart line light blue*/
 	float max_pch_recorded = get_max_val(touchdown_pch_table);
 	sprintf(text_buf, "Max pitch %.02fDegree ", max_pch_recorded);
-	x_text = draw_curve(touchdown_pch_table, 0.6f,0.85f,0.87f, text_buf, x_text, y_text, x, y, x, y + (_TD_CHART_HEIGHT / 2), max_pch_recorded*2.0f, max_pch_recorded);
+	x_text = draw_curve(touchdown_pch_table, 0.6f, 0.85f, 0.87f, text_buf, x_text, y_text, x, y, x, y + (_TD_CHART_HEIGHT / 2), max_pch_recorded*2.0f, max_pch_recorded);
 
 	/*-- now draw the chart line orange
 	float max_elev_axis = 2.0;
@@ -583,17 +583,17 @@ static void drawcb(XPLMWindowID inWindowID, void *inRefcon)
 	/*-- now draw the chart line yellow*/
 	float max_eng_recorded = get_max_val(touchdown_eng_table);
 	sprintf(text_buf, "Max eng %.02f%% ", max_eng_recorded*100.0f);
-	x_text = draw_curve(touchdown_eng_table, 1.0f,1.0f,0.0f, text_buf, x_text, y_text, x, y, x, y + (_TD_CHART_HEIGHT / 2), max_eng_recorded*2.0f, max_eng_recorded);
+	x_text = draw_curve(touchdown_eng_table, 1.0f, 1.0f, 0.0f, text_buf, x_text, y_text, x, y, x, y + (_TD_CHART_HEIGHT / 2), max_eng_recorded*2.0f, max_eng_recorded);
 
 	/*-- now draw the chart line red*/
 	float max_agl_recorded = get_max_val(touchdown_agl_table);
 	sprintf(text_buf, "Max AGL %.02fM ", max_agl_recorded);
-	x_text = draw_curve(touchdown_agl_table, 1.0f,0.1f,0.1f, text_buf, x_text, y_text, x, y, x, y + (_TD_CHART_HEIGHT / 2), max_agl_recorded*2.0f, max_agl_recorded);
+	x_text = draw_curve(touchdown_agl_table, 1.0f, 0.1f, 0.1f, text_buf, x_text, y_text, x, y, x, y + (_TD_CHART_HEIGHT / 2), max_agl_recorded*2.0f, max_agl_recorded);
 
 	/*-- now draw the chart line blue*/
 	float max_gs_recorded = get_max_val(touchdown_gs_table);
 	sprintf(text_buf, "Max %.02fknots ", max_gs_recorded*1.943844f);
-	x_text = draw_curve(touchdown_gs_table, 0.24f,0.35f,0.8f, text_buf, x_text, y_text, x, y, x, y, max_gs_recorded, max_gs_recorded);
+	x_text = draw_curve(touchdown_gs_table, 0.24f, 0.35f, 0.8f, text_buf, x_text, y_text, x, y, x, y, max_gs_recorded, max_gs_recorded);
 
 	/*-- title*/
 	color[0] = 1.0;
@@ -616,6 +616,7 @@ static void drawcb(XPLMWindowID inWindowID, void *inRefcon)
 	ref->link.width = (int)floor(XPLMMeasureString(xplmFont_Basic, text_buf, (int)strlen(text_buf)));
 	ref->link.height = 15;
 	XPLMDrawString(color, x_text, y_text, text_buf, NULL, xplmFont_Basic);
+
 
 	/*-- draw close button on top-right*/
 	glDisable(GL_TEXTURE_2D);
@@ -1020,7 +1021,6 @@ static unsigned int lightworker_job_helper(void *arg)
 	if (!getnetinfodone()) {
 		getnetinfo();
 	}
-	free(arg);
 	return 0;
 }
 
