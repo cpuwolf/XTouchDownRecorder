@@ -748,7 +748,7 @@ static int create_json_arrayd(FILE *ofile, const char * label, BOOL mytable[])
 {
 	CREATE_JSON_ARRAY(ofile, label, mytable, "%d,", 0);
 }
-static create_json_file(char * path, struct tm *tblock)
+static void create_json_file(char * path, struct tm *tblock)
 {
 	FILE *ofile;
 	char tmbuf[500];
