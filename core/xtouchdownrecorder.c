@@ -789,10 +789,11 @@ static void write_log_file()
 	if (ofile) {
 		/*write header*/
 		fprintf(ofile, "\"XP version\",%d\n", g_info->xpVer);
+		fprintf(ofile, "\"XTD folder\",\"%s\"\n", g_info->g_xppath);
 		fprintf(ofile, "\"Aircraft model\",%s\n", g_info->logAircraftIcao);
-		fprintf(ofile, "\"Aircraft tail number\",%s\n", g_info->logAircraftTail);
+		fprintf(ofile, "\"Aircraft tail number\",\"%s\"\n", g_info->logAircraftTail);
 		fprintf(ofile, "\"Airport ICAO\",%s\n", g_info->logAirportId);
-		fprintf(ofile, "\"Airport name\",%s\n", g_info->logAirportName);
+		fprintf(ofile, "\"Airport name\",\"%s\"\n", g_info->logAirportName);
 		strftime(tmbuf, sizeof(tmbuf), "%F%X", tblock);
 		fprintf(ofile, "\"Touchdown time\",%s\n", tmbuf);
 		strftime(tmbuf, sizeof(tmbuf), "%z", tblock);
