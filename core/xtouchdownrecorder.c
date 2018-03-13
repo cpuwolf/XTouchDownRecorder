@@ -744,7 +744,7 @@ static void write_log_file()
 	FILE *ofile;
 	struct tm *tblock;
 	int num;
-	static char tmbuf[500], path[512],tmppath[512];
+	static char tmbuf[500], path[512];
 
 	tblock=localtime(&g_info->touchTime);
 	memset(tmbuf,0,sizeof(tmbuf));
@@ -783,8 +783,8 @@ static void write_log_file()
 		XPLMDebugString("XTouchDownRecorder: XTouchDownRecorderLog.txt open error\n");
 	}
 	/*reuse tmbuf, generating file name*/
-	strftime(tmppath, sizeof(tmppath), "XTD-%F%H%M%S.csv", tblock);
-	sprintf(path, "%s%s", g_info->g_xppath, tmppath);
+	strftime(tmbuf, sizeof(tmbuf), "XTD-%F%H%M%S.csv", tblock);
+	sprintf(path, "%s%s", g_info->g_xppath, tmbuf);
 	ofile = fopen(path, "a");
 	if (ofile) {
 		/*write header*/
@@ -793,7 +793,10 @@ static void write_log_file()
 		fprintf(ofile, "\"Aircraft tail number\",%s\n", g_info->logAircraftTail);
 		fprintf(ofile, "\"Airport ICAO\",%s\n", g_info->logAirportId);
 		fprintf(ofile, "\"Airport name\",%s\n", g_info->logAirportName);
+		strftime(tmbuf, sizeof(tmbuf), "%F%X", tblock);
 		fprintf(ofile, "\"Touchdown time\",%s\n", tmbuf);
+		strftime(tmbuf, sizeof(tmbuf), "%z", tblock);
+		fprintf(ofile, "\"Timezone\",%s\n", tmbuf);
 		/*write main data*/
 		write_csv_file(ofile, touchdown_tm_table,"\"time(s)\"");
 		write_csv_file_bool(ofile, touchdown_air_table,"\"is air\"");
