@@ -724,6 +724,7 @@ static create_json_file(char * path, struct tm *tblock)
 	char tmbuf[500];
 	ofile = fopen(path, "a");
 	if (ofile) {
+		fprintf(ofile, "{");
 		/*write header*/
 		create_json_int(ofile, "xtd_xp_ver", g_info->xpVer);
 		create_json_str(ofile, "xtd_xp_path", g_info->g_xppath);
@@ -736,7 +737,7 @@ static create_json_file(char * path, struct tm *tblock)
 		strftime(tmbuf, sizeof(tmbuf), "%z", tblock);
 		create_json_str(ofile, "xtd_tmzone", tmbuf);
 		/*write main data*/
-		create_json_arrayfb(ofile, "time(s)", touchdown_tm_table,g_info->XPTouchDownTM);
+		create_json_arrayfb(ofile, "time(s)", touchdown_tm_table, g_info->XPTouchDownTM);
 		create_json_arrayd(ofile, "is ground", touchdown_air_table);
 		create_json_arrayf(ofile, "feet per min", touchdown_vs_table);
 		create_json_arrayf(ofile, "G force(G)", touchdown_g_table);
@@ -745,6 +746,9 @@ static create_json_file(char * path, struct tm *tblock)
 		create_json_arrayf(ofile, "engine(%)", touchdown_eng_table);
 		create_json_arrayf(ofile, "AGL(meter)", touchdown_agl_table);
 		create_json_arrayf(ofile, "ground speed(meter/s)", touchdown_gs_table);
+
+		/*write end*/
+		fprintf(ofile, "}");
 		fclose(ofile);
 	}
 	else {
