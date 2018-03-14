@@ -424,7 +424,7 @@ static int gettouchdownanddraw(int idx, float * pfpm, float pg[],int x, int y)
 	float interval = (float)floor(zero_tm - touchdown_tm_table[k]);
 	float s = interval;
 	float last_fpm=99999.f,fpm;
-	float max_g=0.f,min_g=9999.f;
+	float max_g=0.f,min_g=0.f;
 	float delta_tm_expect;
 
 	while(!BUFFER_GO_IS_END(k,tmpc)) {
@@ -747,10 +747,12 @@ static int create_json_arrayd(FILE *ofile, const char * label, BOOL mytable[])
 static void create_json_file(char * path, struct tm *tblock)
 {
 	FILE *ofile;
-	char tmbuf[500];
+	char tmbuf[50];
 	ofile = fopen(path, "a");
 	if (ofile) {
-		fprintf(ofile, "{");
+#if 0
+		fprintf(ofile, "{\n");
+
 		/*write header*/
 		create_json_int(ofile, "xtd_xp_ver", g_info->xpVer);
 		create_json_str(ofile, "xtd_xp_path", g_info->g_xppath);
@@ -778,10 +780,11 @@ static void create_json_file(char * path, struct tm *tblock)
 		fprintf(ofile, "],\n");
 		/*write end*/
 		fprintf(ofile, "}");
+#endif
 		fclose(ofile);
 	}
 	else {
-		XPLMDebugString("XTouchDownRecorder: data exporting error\n");
+		XPLMDebugString("XTouchDownRecorder: data json exporting error\n");
 	}
 }
 
@@ -845,15 +848,14 @@ static int movefile(char * srcfile, char * dstfile)
 static void write_log_file()
 {
 	FILE *ofile;
-	struct tm *loc_time_tm,*gm_time_tm;
+	struct tm *loc_time_tm,*gm_time_tm,loctime;
 	int num;
-	static char tmbuf[500], path[512];
+	static char tmbuf[100], path[512];
 
 	loc_time_tm=localtime(&g_info->touchTime);
+	memcpy(&loctime, loc_time_tm, sizeof loctime);
+	loc_time_tm = &loctime;
 	gm_time_tm = gmtime(&g_info->touchTime);
-	memset(tmbuf,0,sizeof(tmbuf));
-	strcpy(tmbuf, asctime(loc_time_tm));
-	formattm(tmbuf);
 
 	float lat = XPLMGetDataf(latRef);
 	float lon = XPLMGetDataf(longRef);
@@ -917,13 +919,13 @@ static void write_log_file()
 		write_csv_file(ofile, touchdown_tw_table, "\"total weight(Kg)\"");
 		write_csv_file(ofile, touchdown_gf_table, "\"gear force(N)\"");
 		fclose(ofile);
-		/*reuse tmbuf, generating file name*/
-		strftime(tmbuf, sizeof(tmbuf), "XTD-%F%-H%M%S.json", loc_time_tm);
-		sprintf(path, "%s%s", g_info->g_xppath, tmbuf);
-		create_json_file(path, gm_time_tm);
 	} else {
 		XPLMDebugString("XTouchDownRecorder: data exporting error\n");
 	}
+	/*reuse tmbuf, generating file name*/
+	strftime(tmbuf, sizeof(tmbuf), "XTD-%F%-H%M%S.json", loc_time_tm);
+	sprintf(path, "%s%s", g_info->g_xppath, tmbuf);
+	create_json_file(path, gm_time_tm);
 	g_info->IsLogWritten = TRUE;
 }
 
@@ -991,7 +993,7 @@ static int uploadfile(char * path)
 		return 0;
 
 	/* get file size */
-	if (fstat(_fileno(fd), &file_info) != 0)
+	if (fstat(fileno(fd), &file_info) != 0)
 		goto clean;
 
 	curl_global_init(CURL_GLOBAL_DEFAULT);
