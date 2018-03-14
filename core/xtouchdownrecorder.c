@@ -70,9 +70,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define MAX_TABLE_ELEMENTS 500
 #define CURVE_LEN 2
 
-static XPLMDataRef gearFRef,gForceRef,vertSpeedRef,pitchRef,elevatorRef,engRef,aglRef,tmRef,gndSpeedRef,latRef,longRef,tailRef,icaoRef;
-
-static XPLMDataRef totalWeightRef, totalForceRef;
+static XPLMDataRef gearFRef,gForceRef,vertSpeedRef,pitchRef,elevatorRef,engRef,aglRef,
+tmRef,gndSpeedRef,latRef,longRef,tailRef,icaoRef, totalWeightRef;
 
 static float * g_pbuffer = NULL;
 static unsigned int g_start = 0;
@@ -120,7 +119,6 @@ enum
 	TOUCHDOWN_GS_IDX,
 	TOUCHDOWN_TW_IDX,
 	TOUCHDOWN_GF_IDX,
-	TOUCHDOWN_TF_IDX,
 	MAX_TOUCHDOWN_IDX
 };
 
@@ -135,7 +133,6 @@ static float *touchdown_tm_table;
 static float *touchdown_gs_table;
 static float *touchdown_gf_table;
 static float *touchdown_tw_table;
-static float *touchdown_tf_table;
 
 
 static float lastVS = 1.0;
@@ -150,7 +147,6 @@ static float lastGs = 0.0;
 
 static float lastTotalKg = 0.0;
 static float lastGearN = 0.0;
-static float lastTotalN = 0.0;
 
 #define _TD_CHART_HEIGHT 200
 #define _TD_CHART_WIDTH (MAX_TABLE_ELEMENTS*CURVE_LEN)
@@ -262,7 +258,6 @@ void collect_flight_data()
 	lastGs = XPLMGetDataf(gndSpeedRef);
 	lastTotalKg = XPLMGetDataf(totalWeightRef);
 	lastGearN = XPLMGetDataf(gearFRef);
-	lastTotalN = XPLMGetDataf(totalForceRef);
 
 	/*-- fill the table */
 	touchdown_vs_table[iw] = lastVS;
@@ -277,7 +272,7 @@ void collect_flight_data()
 
 	touchdown_gf_table[iw] = lastGearN;
 	touchdown_tw_table[iw] = lastTotalKg;
-	touchdown_tf_table[iw] = lastTotalN;
+
 	BUFFER_INSERT_BACK();
 
 }
@@ -915,7 +910,6 @@ static void write_log_file()
 
 		write_csv_file(ofile, touchdown_tw_table, "\"total weight(Kg)\"");
 		write_csv_file(ofile, touchdown_gf_table, "\"gear force(N)\"");
-		write_csv_file(ofile, touchdown_tf_table, "\"total force(N)\"");
 		fclose(ofile);
 	} else {
 		XPLMDebugString("XTouchDownRecorder: data exporting error\n");
@@ -1111,7 +1105,6 @@ PLUGIN_API int XPluginStart(char * outName, char * outSig, char * outDesc)
 	touchdown_gs_table = g_pbuffer + (TOUCHDOWN_GS_IDX * MAX_TABLE_ELEMENTS);
 	touchdown_gf_table = g_pbuffer + (TOUCHDOWN_GF_IDX * MAX_TABLE_ELEMENTS);
 	touchdown_tw_table = g_pbuffer + (TOUCHDOWN_TW_IDX * MAX_TABLE_ELEMENTS);
-	touchdown_tf_table = g_pbuffer + (TOUCHDOWN_TF_IDX * MAX_TABLE_ELEMENTS);
 
 	gearFRef = XPLMFindDataRef("sim/flightmodel/forces/fnrml_gear");
 	gForceRef = XPLMFindDataRef("sim/flightmodel2/misc/gforce_normal");
@@ -1127,9 +1120,7 @@ PLUGIN_API int XPluginStart(char * outName, char * outSig, char * outDesc)
 	longRef = XPLMFindDataRef("sim/flightmodel/position/longitude");
 	tailRef = XPLMFindDataRef("sim/aircraft/view/acf_tailnum");
 	icaoRef = XPLMFindDataRef("sim/aircraft/view/acf_ICAO");
-
 	totalWeightRef = XPLMFindDataRef("sim/flightmodel/weight/m_total");
-	totalForceRef = XPLMFindDataRef("sim/flightmodel/forces/fnrml_total");
 
 	/* MAC OS */
 	XPLMEnableFeature("XPLM_USE_NATIVE_PATHS", 1);
