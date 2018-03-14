@@ -761,7 +761,8 @@ static void create_json_file(char * path, struct tm *tblock)
 		create_json_str(ofile, "xtd_touch_tm", tmbuf);
 		strftime(tmbuf, sizeof(tmbuf), "%z", tblock);
 		create_json_str(ofile, "xtd_tmzone", tmbuf);
-		/*write main data*/
+		/*write main data array */
+		fprintf(ofile, "[\n");
 		create_json_arrayfb(ofile, "time(s)", touchdown_tm_table, g_info->XPTouchDownTM);
 		create_json_arrayd(ofile, "is ground", touchdown_air_table);
 		create_json_arrayf(ofile, "feet per min", touchdown_vs_table);
@@ -771,7 +772,9 @@ static void create_json_file(char * path, struct tm *tblock)
 		create_json_arrayf(ofile, "engine(%)", touchdown_eng_table);
 		create_json_arrayf(ofile, "AGL(meter)", touchdown_agl_table);
 		create_json_arrayf(ofile, "ground speed(meter/s)", touchdown_gs_table);
-
+		create_json_arrayf(ofile, "total weight(Kg)", touchdown_tw_table);
+		create_json_arrayf(ofile, "gear force(N)", touchdown_gf_table);
+		fprintf(ofile, "],\n");
 		/*write end*/
 		fprintf(ofile, "}");
 		fclose(ofile);
@@ -907,7 +910,6 @@ static void write_log_file()
 		write_csv_file(ofile, touchdown_eng_table,"\"engine(%)\"");
 		write_csv_file(ofile, touchdown_agl_table,"\"AGL(meter)\"");
 		write_csv_file(ofile, touchdown_gs_table,"\"ground speed(meter/s)\"");
-
 		write_csv_file(ofile, touchdown_tw_table, "\"total weight(Kg)\"");
 		write_csv_file(ofile, touchdown_gf_table, "\"gear force(N)\"");
 		fclose(ofile);
