@@ -460,7 +460,7 @@ static int gettouchdownanddraw(int idx, float * pfpm, float pg[],int x, int y)
 				min_g = touchdown_g_table[k];
 			}*/
 		}
-		/*calulate G force persudo min*/
+		/*calulate G force*/
 		float tmp_g = touchdown_gf_table[k] / (9.8f*touchdown_tw_table[k]);
 		if (tmp_g > min_g) {
 			min_g = tmp_g;
@@ -568,7 +568,7 @@ static void drawcb(XPLMWindowID inWindowID, void *inRefcon)
 		/*-- draw touch point vertical lines*/
 		int bouncedtimes = drawtouchdownpoints(x, y);
 		char *text_to_print = text_buf;
-		sprintf(text_to_print, "%.01fFpm Max%.02fG Min%.02fG %.02fDegree %.01fKnots %s", landingVS, landingG[0], landingG[1],
+		sprintf(text_to_print, "%.01fFpm (%.02fG)%.02fG %.02fDegree %.01fKnots %s", landingVS, landingG[0], landingG[1],
 			landingPitch, landingGs*1.943844f, (bouncedtimes > 1 ? "Bounced" : ""));
 		int width_text_to_print = (int)floor(XPLMMeasureString(xplmFont_Basic, text_to_print, (int)strlen(text_to_print)));
 		XPLMDrawString(color, x_text, y_text, text_to_print, NULL, xplmFont_Basic);
