@@ -1054,6 +1054,7 @@ static void GetXPVer()
 
 static unsigned int lightworker_job_helper(void *arg)
 {
+	getnetinfo();
 	if (!getnetinfodone()) {
 		getnetinfo();
 	}
