@@ -844,13 +844,14 @@ static int movefile(char * srcfile, char * dstfile)
 static void write_log_file()
 {
 	FILE *ofile;
-	struct tm *tblock;
+	struct tm *loc_time_tm,*gm_time_tm;
 	int num;
 	static char tmbuf[500], path[512];
 
-	tblock=localtime(&g_info->touchTime);
+	loc_time_tm=localtime(&g_info->touchTime);
+	gm_time_tm = gmtime(&g_info->touchTime);
 	memset(tmbuf,0,sizeof(tmbuf));
-	strcpy(tmbuf, asctime(tblock));
+	strcpy(tmbuf, asctime(loc_time_tm));
 	formattm(tmbuf);
 
 	float lat = XPLMGetDataf(latRef);
@@ -875,6 +876,8 @@ static void write_log_file()
 
 	/*back compatible */
 	movefile("XTouchDownRecorderLog.txt", path);
+
+	strftime(tmbuf, sizeof(tmbuf), "%c", loc_time_tm);
 	ofile = fopen(path, "a");
 	if (ofile) {
 		fprintf(ofile, "%s [%s][%s] %s %s %s\n", tmbuf, g_info->logAircraftIcao, 
@@ -885,7 +888,7 @@ static void write_log_file()
 		XPLMDebugString("XTouchDownRecorder: XTouchDownRecorderLog.txt open error\n");
 	}
 	/*reuse tmbuf, generating file name*/
-	strftime(tmbuf, sizeof(tmbuf), "XTD-%F%H%M%S.csv", tblock);
+	strftime(tmbuf, sizeof(tmbuf), "XTD-%F-%H%M%S.csv", loc_time_tm);
 	sprintf(path, "%s%s", g_info->g_xppath, tmbuf);
 	ofile = fopen(path, "a");
 	if (ofile) {
@@ -896,9 +899,9 @@ static void write_log_file()
 		fprintf(ofile, "\"Aircraft tail number\",\"%s\"\n", g_info->logAircraftTail);
 		fprintf(ofile, "\"Airport ICAO\",%s\n", g_info->logAirportId);
 		fprintf(ofile, "\"Airport name\",\"%s\"\n", g_info->logAirportName);
-		strftime(tmbuf, sizeof(tmbuf), "%F %X", tblock);
-		fprintf(ofile, "\"Touchdown time\",%s\n", tmbuf);
-		strftime(tmbuf, sizeof(tmbuf), "%z", tblock);
+		strftime(tmbuf, sizeof(tmbuf), "%F %X", gm_time_tm);
+		fprintf(ofile, "\"Touchdown UTC time\",%s\n", tmbuf);
+		strftime(tmbuf, sizeof(tmbuf), "%z", loc_time_tm);
 		fprintf(ofile, "\"Timezone\",%s\n", tmbuf);
 		/*write main data*/
 		write_csv_file(ofile, touchdown_tm_table,"\"time(s)\"");
@@ -913,6 +916,10 @@ static void write_log_file()
 		write_csv_file(ofile, touchdown_tw_table, "\"total weight(Kg)\"");
 		write_csv_file(ofile, touchdown_gf_table, "\"gear force(N)\"");
 		fclose(ofile);
+		/*reuse tmbuf, generating file name*/
+		strftime(tmbuf, sizeof(tmbuf), "XTD-%F%-H%M%S.json", loc_time_tm);
+		sprintf(path, "%s%s", g_info->g_xppath, tmbuf);
+		create_json_file(path, gm_time_tm);
 	} else {
 		XPLMDebugString("XTouchDownRecorder: data exporting error\n");
 	}
