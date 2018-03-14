@@ -32,6 +32,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <string.h>
 #include <time.h>
 #include <stdio.h>
+#include <sys/stat.h>
 
 #pragma comment(lib, "wldap32.lib" )
 #pragma comment(lib, "crypt32.lib" )
@@ -975,6 +976,48 @@ static void getnetinfo()
 	}
  
 	curl_global_cleanup();
+}
+
+static int uploadfile(char * path)
+{
+	CURL *curl;
+	CURLcode res;
+	struct stat file_info;
+	FILE *fd;
+	float speed_upload, total_time;
+
+	fd = fopen(path, "rb");
+	if (!fd)
+		return 0;
+
+	/* get file size */
+	if (fstat(_fileno(fd), &file_info) != 0)
+		goto clean;
+
+	curl_global_init(CURL_GLOBAL_DEFAULT);
+
+	curl = curl_easy_init();
+	if (curl) {
+		curl_easy_setopt(curl, CURLOPT_URL, "https://x-plane.vip/xtd/upload");
+		curl_easy_setopt(curl, CURLOPT_UPLOAD, 1);
+		curl_easy_setopt(curl, CURLOPT_READDATA, fd);
+		curl_easy_setopt(curl, CURLOPT_INFILESIZE_LARGE,
+			(curl_off_t)file_info.st_size);
+		curl_easy_setopt(curl, CURLOPT_USERAGENT, "Dark Secret Ninja/1.0");
+		res = curl_easy_perform(curl);
+		if (res != CURLE_OK)
+			XPLMDebugString("XTouchDownRecorder: getnetinfo error\n");
+		else {
+			curl_easy_getinfo(curl, CURLINFO_SPEED_UPLOAD, &speed_upload);
+			curl_easy_getinfo(curl, CURLINFO_TOTAL_TIME, &total_time);
+		}
+
+		curl_easy_cleanup(curl);
+	}
+
+	curl_global_cleanup();
+clean:
+	fclose(fd);
 }
 
 
