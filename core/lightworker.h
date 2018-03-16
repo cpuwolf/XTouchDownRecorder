@@ -61,4 +61,24 @@ struct lightworker
 
 struct lightworker* lightworker_create(lightworker_job_t func, void *arg);
 
+typedef struct {
+	unsigned int g_max_size;
+	unsigned int g_start;
+	unsigned int g_end;
+
+	unsigned int g_size;
+	lightworker_mutex_t lock;
+}lightworker_q;
+
+
+typedef struct {
+	int msg;
+	lightworker_job_t func;
+	void * priv;
+}lightworker_queue_task;
+
+void lightworker_queue_init_single();
+void lightworker_queue_put_single(int msg, lightworker_job_t func, void *arg);
+lightworker_queue_task* lightworker_queue_get_single();
+
 #endif //LIGHTWORKER_H
