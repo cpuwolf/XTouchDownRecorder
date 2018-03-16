@@ -198,3 +198,11 @@ lightworker_queue_task* lightworker_queue_get_single()
 	lightworker_queue * cb = &g_wq;
 	return lightworker_queue_get(cb);
 }
+void lightworker_sleep(int ms)
+{
+#if defined(_WIN32)
+	Sleep(ms);
+#else
+	usleep(ms * 1000);
+#endif
+}

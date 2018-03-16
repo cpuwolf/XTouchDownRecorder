@@ -40,6 +40,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define lightworker_mutex_release(m)  LeaveCriticalSection(m)
 #define lightworker_mutex_destroy(m)  DeleteCriticalSection(m)
 #else
+#include <unistd.h>
 #include <pthread.h>
 #define lightworker_mutex_t           pthread_mutex_t
 #define lightworker_thread_t          pthread_t
@@ -80,5 +81,6 @@ typedef struct {
 void lightworker_queue_init_single();
 void lightworker_queue_put_single(int msg, lightworker_job_t func, void *arg);
 lightworker_queue_task* lightworker_queue_get_single();
+void lightworker_sleep(int ms);
 
 #endif //LIGHTWORKER_H

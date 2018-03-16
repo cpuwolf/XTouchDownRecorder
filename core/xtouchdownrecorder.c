@@ -199,6 +199,7 @@ typedef struct
 	char g_NewsLink[128];
 
 	struct lightworker* worker;
+	BOOL lightworkerexit;
 }XTDInfo;
 
 XTDInfo * g_info;
@@ -750,7 +751,6 @@ static void create_json_file(char * path, struct tm *tblock)
 	char tmbuf[50];
 	ofile = fopen(path, "a");
 	if (ofile) {
-#if 0
 		fprintf(ofile, "{\n");
 
 		/*write header*/
@@ -780,7 +780,6 @@ static void create_json_file(char * path, struct tm *tblock)
 		fprintf(ofile, "],\n");
 		/*write end*/
 		fprintf(ofile, "}");
-#endif
 		fclose(ofile);
 	}
 	else {
@@ -1103,6 +1102,20 @@ static unsigned int lightworker_job_helper(void *arg)
 	if (!getnetinfodone()) {
 		getnetinfo();
 	}
+
+	lightworker_queue_task * task;
+	while (!g_info->lightworkerexit) {
+		task = lightworker_queue_get_single();
+		if (task) {
+			switch (task->msg) {
+			case 0:
+				break;
+			}
+		}
+		else {
+			lightworker_sleep(5000);
+		}
+	}
 	return 0;
 }
 
@@ -1132,6 +1145,8 @@ PLUGIN_API int XPluginStart(char * outName, char * outSig, char * outDesc)
 	/*get XP version info*/
 	GetXPVer();
 
+	/*create a worker*/
+	lightworker_queue_init_single();
 	g_info->worker = lightworker_create(lightworker_job_helper, g_info);
 	/* get path*/
 	XPLMGetPrefsPath(path);
@@ -1208,6 +1223,7 @@ PLUGIN_API void	XPluginStop(void)
 	XPLMUnregisterCommandHandler(g_info->ToggleCommand, ToggleCommandHandler, 0, 0);
 	XPLMUnregisterFlightLoopCallback(secondcb, NULL);
 	XPLMUnregisterFlightLoopCallback(flightcb, NULL);
+	g_info->lightworkerexit = TRUE;
 	if (g_info->g_win) {
 		XTDWin *ref=XPLMGetWindowRefCon(g_info->g_win);
 		if (ref) {
