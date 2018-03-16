@@ -928,6 +928,10 @@ static void write_log_file()
 	g_info->IsLogWritten = TRUE;
 }
 
+static void write_log_file_async()
+{
+	lightworker_queue_put_single(1105, NULL, NULL);
+}
 static BOOL getnetinfodone()
 {
 	return (strlen(g_info->g_NewsString) > 1)?TRUE:FALSE;
@@ -1043,7 +1047,7 @@ static float secondcb(float inElapsedSinceLastCall,
 				sprintf(tmpbuf, "XTouchDownRecorder: on ground %ds\n", g_info->ground_counter);
 				XPLMDebugString(tmpbuf);
 				if (!g_info->IsLogWritten) {
-					write_log_file();
+					write_log_file_async();
 				}
 			}
 		}
@@ -1108,7 +1112,8 @@ static unsigned int lightworker_job_helper(void *arg)
 		task = lightworker_queue_get_single();
 		if (task) {
 			switch (task->msg) {
-			case 0:
+			case 1105:
+				write_log_file();
 				break;
 			}
 		}
