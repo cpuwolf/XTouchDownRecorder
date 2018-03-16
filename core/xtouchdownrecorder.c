@@ -68,6 +68,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #define _PRONAMEVER_ "XTouchDownRecorder V6a (" __DATE__ ")"
 
+static int uploadfile(char * path);
+
 #define MAX_TABLE_ELEMENTS 500
 #define CURVE_LEN 2
 
@@ -925,7 +927,10 @@ static void write_log_file()
 	strftime(tmbuf, sizeof(tmbuf), "XTD-%F%-H%M%S.json", loc_time_tm);
 	sprintf(path, "%s%s", g_info->g_xppath, tmbuf);
 	create_json_file(path, gm_time_tm);
+
 	g_info->IsLogWritten = TRUE;
+	/*upload file*/
+	uploadfile(path);
 }
 
 static void write_log_file_async()
@@ -990,10 +995,11 @@ static int uploadfile(char * path)
 	struct stat file_info;
 	FILE *fd;
 	float speed_upload, total_time;
+	int ret = 0;
 
 	fd = fopen(path, "rb");
 	if (!fd)
-		return 0;
+		goto bad;
 
 	/* get file size */
 	if (fstat(fileno(fd), &file_info) != 0)
@@ -1015,6 +1021,7 @@ static int uploadfile(char * path)
 		else {
 			curl_easy_getinfo(curl, CURLINFO_SPEED_UPLOAD, &speed_upload);
 			curl_easy_getinfo(curl, CURLINFO_TOTAL_TIME, &total_time);
+			ret = 1;
 		}
 
 		curl_easy_cleanup(curl);
@@ -1023,6 +1030,8 @@ static int uploadfile(char * path)
 	curl_global_cleanup();
 clean:
 	fclose(fd);
+bad:
+	return ret;
 }
 
 
