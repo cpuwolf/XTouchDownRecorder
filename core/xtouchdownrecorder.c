@@ -316,9 +316,10 @@ static int mousecb(XPLMWindowID inWindowID, int x, int y,
 			g_info->show_touchdown_counter = 0;
 		} else if (InBox(&(ref->link), x, y)) {
 #if defined(_WIN32)
-			char tmp[512];
-			sprintf(tmp, "cmd /c start %s", g_info->g_NewsLink);
-			system(tmp);
+			//char tmp[512];
+			//sprintf(tmp, "cmd /c start %s", g_info->g_NewsLink);
+			//system(tmp);
+			ShellExecute(NULL, "open", g_info->g_NewsLink, NULL, NULL, SW_SHOWNORMAL);
 #endif
 		}
 		lastMouseX = x;
@@ -702,17 +703,6 @@ static float flightcb(float inElapsedSinceLastCall,
 	return ret;
 }
 
-static void formattm(char *str)
-{
-	unsigned int i;
-	size_t len = strlen(str);
-	for (i=0; i < len; i++) {
-		if (('\r' == str[i]) || ('\n' == str[i])) {
-			str[i] = 0;
-		}
-	}
-}
-
 static int create_json_int(FILE *ofile, const char * label, int d)
 {
 	return fprintf(ofile, "%s:%d,\n", label, d);
@@ -1018,7 +1008,7 @@ static int uploadfile(char * path)
 		curl_easy_setopt(curl, CURLOPT_USERAGENT, "Dark Secret Ninja/1.0");
 		res = curl_easy_perform(curl);
 		if (res != CURLE_OK)
-			XPLMDebugString("XTouchDownRecorder: getnetinfo error\n");
+			XPLMDebugString("XTouchDownRecorder: upload error\n");
 		else {
 			curl_easy_getinfo(curl, CURLINFO_SPEED_UPLOAD, &speed_upload);
 			curl_easy_getinfo(curl, CURLINFO_TOTAL_TIME, &total_time);
