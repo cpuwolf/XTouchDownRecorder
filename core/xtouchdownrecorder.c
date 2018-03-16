@@ -996,6 +996,7 @@ static int uploadfile(char * path)
 	FILE *fd;
 	float speed_upload, total_time;
 	int ret = 0;
+	char tmpbuf[90];
 
 	fd = fopen(path, "rb");
 	if (!fd)
@@ -1021,6 +1022,10 @@ static int uploadfile(char * path)
 		else {
 			curl_easy_getinfo(curl, CURLINFO_SPEED_UPLOAD, &speed_upload);
 			curl_easy_getinfo(curl, CURLINFO_TOTAL_TIME, &total_time);
+			sprintf(tmpbuf, "XTouchDownRecorder: Upload speed %.0f bytes/sec\n", speed_upload);
+			XPLMDebugString(tmpbuf);
+			sprintf(tmpbuf, "XTouchDownRecorder: Upload time %.0f sec\n", total_time);
+			XPLMDebugString(tmpbuf);
 			ret = 1;
 		}
 
