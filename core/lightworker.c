@@ -34,6 +34,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <stdio.h>
 #include <stdlib.h> 
 
+#if defined(__APPLE__) || defined(__unix__)
+#ifndef BOOL
+#define BOOL unsigned char
+#define TRUE 1
+#define FALSE 0
+#endif
+#endif
+
 #include "lightworker.h"
 
 
