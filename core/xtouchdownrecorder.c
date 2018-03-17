@@ -839,14 +839,9 @@ static int movefile(char * srcfile, char * dstfile)
 static void write_log_file()
 {
 	FILE *ofile;
-	struct tm *loc_time_tm,*gm_time_tm,loctime;
+	struct tm *loc_time_tm,*gm_time_tm;
 	int num;
 	static char tmbuf[100], path[512];
-
-	loc_time_tm=localtime(&g_info->touchTime);
-	memcpy(&loctime, loc_time_tm, sizeof loctime);
-	loc_time_tm = &loctime;
-	gm_time_tm = gmtime(&g_info->touchTime);
 
 	float lat = XPLMGetDataf(latRef);
 	float lon = XPLMGetDataf(longRef);
@@ -871,6 +866,7 @@ static void write_log_file()
 	/*back compatible */
 	movefile("XTouchDownRecorderLog.txt", path);
 
+	loc_time_tm = localtime(&g_info->touchTime);
 	strftime(tmbuf, sizeof(tmbuf), "%c", loc_time_tm);
 	ofile = fopen(path, "a");
 	if (ofile) {
@@ -893,8 +889,10 @@ static void write_log_file()
 		fprintf(ofile, "\"Aircraft tail number\",\"%s\"\n", g_info->logAircraftTail);
 		fprintf(ofile, "\"Airport ICAO\",%s\n", g_info->logAirportId);
 		fprintf(ofile, "\"Airport name\",\"%s\"\n", g_info->logAirportName);
+		gm_time_tm = gmtime(&g_info->touchTime);
 		strftime(tmbuf, sizeof(tmbuf), "%F %X", gm_time_tm);
 		fprintf(ofile, "\"Touchdown UTC time\",%s\n", tmbuf);
+		loc_time_tm = localtime(&g_info->touchTime);
 		strftime(tmbuf, sizeof(tmbuf), "%z", loc_time_tm);
 		fprintf(ofile, "\"Timezone\",%s\n", tmbuf);
 		/*write main data*/
@@ -913,9 +911,12 @@ static void write_log_file()
 	} else {
 		XPLMDebugString("XTouchDownRecorder: data exporting error\n");
 	}
+	XPLMDebugString("XTouchDownRecorder: writing json\n");
 	/*reuse tmbuf, generating file name*/
-	strftime(tmbuf, sizeof(tmbuf), "XTD-%F%-H%M%S.json", loc_time_tm);
+	loc_time_tm = localtime(&g_info->touchTime);
+	strftime(tmbuf, sizeof(tmbuf), "XTD-%F-%H%M%S.json", loc_time_tm);
 	sprintf(path, "%s%s", g_info->g_xppath, tmbuf);
+	//XPLMDebugString(tmbuf);
 	create_json_file(path, gm_time_tm);
 
 	g_info->IsLogWritten = TRUE;
@@ -984,7 +985,7 @@ static int uploadfileput(char * path)
 	CURLcode res;
 	struct stat file_info;
 	FILE *fd;
-	float speed_upload, total_time;
+	double speed_upload, total_time;
 	int ret = 0;
 	char tmpbuf[90];
 
@@ -1010,7 +1011,7 @@ static int uploadfileput(char * path)
 		if (res != CURLE_OK)
 			XPLMDebugString("XTouchDownRecorder: upload error\n");
 		else {
-			curl_easy_getinfo(curl, CURLINFO_SPEED_UPLOAD, &speed_upload);
+			curl_easy_getinfo(curl, CURLINFO_SPEED_UPLOAD_T, &speed_upload);
 			curl_easy_getinfo(curl, CURLINFO_TOTAL_TIME, &total_time);
 			sprintf(tmpbuf, "XTouchDownRecorder: Upload speed %.0f bytes/sec\n", speed_upload);
 			XPLMDebugString(tmpbuf);

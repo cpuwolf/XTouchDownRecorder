@@ -180,10 +180,12 @@ void lightworker_queue_put(lightworker_queue * cb, int msg, lightworker_job_t fu
 
 lightworker_queue_task* lightworker_queue_get(lightworker_queue * cb)
 {
+	lightworker_queue_task* task;
 	unsigned int idx = lightworker_q_get_pre(&cb->q);
 	if (!lightworker_q_is_empty(&cb->q)) {
-		return cb->task + idx;
+		task = cb->task + idx;
 		lightworker_q_get_post(&cb->q);
+		return task;
 	}
 	else {
 		//sleep
