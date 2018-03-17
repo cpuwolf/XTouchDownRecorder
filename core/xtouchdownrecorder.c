@@ -705,37 +705,42 @@ static float flightcb(float inElapsedSinceLastCall,
 
 static int create_json_int(FILE *ofile, const char * label, int d)
 {
-	return fprintf(ofile, "%s:%d,\n", label, d);
+	return fprintf(ofile, "\"%s\": \"%d\",\n", label, d);
 }
 static int create_json_str(FILE *ofile, const char * label, const char * str)
 {
-	return fprintf(ofile, "%s:'%s',\n", label, str);
+	return fprintf(ofile, "\"%s\": \"%s\",\n", label, str);
 }
 /*function template*/
 #define CREATE_JSON_ARRAY(ofile,_label,mytable,fmt,base) \
 	int ret; \
 	int k, tmpc; \
-	fprintf(ofile, "{label:'%s',\ndata:[", _label); \
+	fprintf(ofile, "{\"label\": \"%s\",\n\"data\": [", _label); \
 	BUFFER_GO_START(k, tmpc); \
 	while (!BUFFER_GO_IS_END(k, tmpc)) { \
 		ret = fprintf(ofile, fmt, mytable[k]-base); \
 		if (ret <= 0) return ret; \
 		BUFFER_GO_NEXT(k, tmpc); \
+		if(!BUFFER_GO_IS_END(k, tmpc)) {fprintf(ofile, ",");} \
 	} \
-	ret = fprintf(ofile, "],\n},\n"); \
+	ret = fprintf(ofile, "]}"); \
 	return ret;
 
+static void create_json_array_join(FILE *ofile)
+{
+	fprintf(ofile, ",\n");
+}
 static int create_json_arrayf(FILE *ofile, const char * label, float mytable[])
 {
-	CREATE_JSON_ARRAY(ofile, label, mytable, "%.02f,", 0.f);
+	CREATE_JSON_ARRAY(ofile, label, mytable, "\"%.02f\"", 0.f);
 }
 static int create_json_arrayfb(FILE *ofile, const char * label, float mytable[],float base)
 {
-	CREATE_JSON_ARRAY(ofile, label, mytable, "%.02f,", base);
+	CREATE_JSON_ARRAY(ofile, label, mytable, "\"%.02f\"", base);
 }
 static int create_json_arrayd(FILE *ofile, const char * label, BOOL mytable[])
 {
-	CREATE_JSON_ARRAY(ofile, label, mytable, "%d,", 0);
+	CREATE_JSON_ARRAY(ofile, label, mytable, "\"%d\"", 0);
 }
 static void create_json_file(char * path, struct tm *tblock)
 {
@@ -747,7 +752,7 @@ static void create_json_file(char * path, struct tm *tblock)
 
 		/*write header*/
 		create_json_int(ofile, "xtd_xp_ver", g_info->xpVer);
-		create_json_str(ofile, "xtd_xp_path", g_info->g_xppath);
+		//create_json_str(ofile, "xtd_xp_path", g_info->g_xppath);
 		create_json_str(ofile, "xtd_acf_icao", g_info->logAircraftIcao);
 		create_json_str(ofile, "xtd_acf_tail", g_info->logAircraftTail);
 		create_json_str(ofile, "xtd_apt_icao", g_info->logAirportId);
@@ -757,19 +762,29 @@ static void create_json_file(char * path, struct tm *tblock)
 		strftime(tmbuf, sizeof(tmbuf), "%z", tblock);
 		create_json_str(ofile, "xtd_tmzone", tmbuf);
 		/*write main data array */
-		fprintf(ofile, "[\n");
+		fprintf(ofile, "\"main\": [\n");
 		create_json_arrayfb(ofile, "time(s)", touchdown_tm_table, g_info->XPTouchDownTM);
+		create_json_array_join(ofile);
 		create_json_arrayd(ofile, "is ground", touchdown_air_table);
+		create_json_array_join(ofile);
 		create_json_arrayf(ofile, "feet per min", touchdown_vs_table);
+		create_json_array_join(ofile);
 		create_json_arrayf(ofile, "G force(G)", touchdown_g_table);
+		create_json_array_join(ofile);
 		create_json_arrayf(ofile, "pitch(degree)", touchdown_pch_table);
+		create_json_array_join(ofile);
 		create_json_arrayf(ofile, "elevator(%)", touchdown_elev_table);
+		create_json_array_join(ofile);
 		create_json_arrayf(ofile, "engine(%)", touchdown_eng_table);
+		create_json_array_join(ofile);
 		create_json_arrayf(ofile, "AGL(meter)", touchdown_agl_table);
+		create_json_array_join(ofile);
 		create_json_arrayf(ofile, "ground speed(meter/s)", touchdown_gs_table);
+		create_json_array_join(ofile);
 		create_json_arrayf(ofile, "total weight(Kg)", touchdown_tw_table);
+		create_json_array_join(ofile);
 		create_json_arrayf(ofile, "gear force(N)", touchdown_gf_table);
-		fprintf(ofile, "],\n");
+		fprintf(ofile, "]\n");
 		/*write end*/
 		fprintf(ofile, "}");
 		fclose(ofile);
@@ -840,8 +855,12 @@ static void write_log_file()
 {
 	FILE *ofile;
 	struct tm *loc_time_tm,*gm_time_tm;
+	struct tm time_tm;
 	int num;
 	static char tmbuf[100], path[512];
+	loc_time_tm = localtime(&g_info->touchTime);
+	memcpy(&time_tm, loc_time_tm, sizeof(time_tm));
+	gm_time_tm = gmtime(&g_info->touchTime);
 
 	float lat = XPLMGetDataf(latRef);
 	float lon = XPLMGetDataf(longRef);
@@ -866,7 +885,7 @@ static void write_log_file()
 	/*back compatible */
 	movefile("XTouchDownRecorderLog.txt", path);
 
-	loc_time_tm = localtime(&g_info->touchTime);
+
 	strftime(tmbuf, sizeof(tmbuf), "%c", loc_time_tm);
 	ofile = fopen(path, "a");
 	if (ofile) {
@@ -889,10 +908,10 @@ static void write_log_file()
 		fprintf(ofile, "\"Aircraft tail number\",\"%s\"\n", g_info->logAircraftTail);
 		fprintf(ofile, "\"Airport ICAO\",%s\n", g_info->logAirportId);
 		fprintf(ofile, "\"Airport name\",\"%s\"\n", g_info->logAirportName);
-		gm_time_tm = gmtime(&g_info->touchTime);
+
 		strftime(tmbuf, sizeof(tmbuf), "%F %X", gm_time_tm);
 		fprintf(ofile, "\"Touchdown UTC time\",%s\n", tmbuf);
-		loc_time_tm = localtime(&g_info->touchTime);
+
 		strftime(tmbuf, sizeof(tmbuf), "%z", loc_time_tm);
 		fprintf(ofile, "\"Timezone\",%s\n", tmbuf);
 		/*write main data*/
@@ -913,7 +932,6 @@ static void write_log_file()
 	}
 	XPLMDebugString("XTouchDownRecorder: writing json\n");
 	/*reuse tmbuf, generating file name*/
-	loc_time_tm = localtime(&g_info->touchTime);
 	strftime(tmbuf, sizeof(tmbuf), "XTD-%F-%H%M%S.json", loc_time_tm);
 	sprintf(path, "%s%s", g_info->g_xppath, tmbuf);
 	//XPLMDebugString(tmbuf);
