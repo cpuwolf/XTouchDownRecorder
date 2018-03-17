@@ -997,56 +997,7 @@ static void getnetinfo()
 	curl_global_cleanup();
 }
 
-static int uploadfileput(char * path)
-{
-	CURL *curl;
-	CURLcode res;
-	struct stat file_info;
-	FILE *fd;
-	double speed_upload, total_time;
-	int ret = 0;
-	char tmpbuf[90];
 
-	fd = fopen(path, "rb");
-	if (!fd)
-		goto bad;
-
-	/* get file size */
-	if (fstat(fileno(fd), &file_info) != 0)
-		goto clean;
-
-	curl_global_init(CURL_GLOBAL_DEFAULT);
-
-	curl = curl_easy_init();
-	if (curl) {
-		curl_easy_setopt(curl, CURLOPT_URL, "https://x-plane.vip/xtd/upload");
-		curl_easy_setopt(curl, CURLOPT_UPLOAD, 1);
-		curl_easy_setopt(curl, CURLOPT_READDATA, fd);
-		curl_easy_setopt(curl, CURLOPT_INFILESIZE_LARGE,
-			(curl_off_t)file_info.st_size);
-		curl_easy_setopt(curl, CURLOPT_USERAGENT, "Dark Secret Ninja/1.0");
-		res = curl_easy_perform(curl);
-		if (res != CURLE_OK)
-			XPLMDebugString("XTouchDownRecorder: upload error\n");
-		else {
-			curl_easy_getinfo(curl, CURLINFO_SPEED_UPLOAD_T, &speed_upload);
-			curl_easy_getinfo(curl, CURLINFO_TOTAL_TIME, &total_time);
-			sprintf(tmpbuf, "XTouchDownRecorder: Upload speed %.0f bytes/sec\n", speed_upload);
-			XPLMDebugString(tmpbuf);
-			sprintf(tmpbuf, "XTouchDownRecorder: Upload time %.0f sec\n", total_time);
-			XPLMDebugString(tmpbuf);
-			ret = 1;
-		}
-
-		curl_easy_cleanup(curl);
-	}
-
-	curl_global_cleanup();
-clean:
-	fclose(fd);
-bad:
-	return ret;
-}
 
 static int uploadfile(char * path)
 {
@@ -1075,6 +1026,7 @@ static int uploadfile(char * path)
 
 		curl_easy_setopt(curl, CURLOPT_URL, "https://x-plane.vip/chat/upload");
 		curl_easy_setopt(curl, CURLOPT_MIMEPOST, form);
+		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, httpcb);
 		curl_easy_setopt(curl, CURLOPT_USERAGENT, "Dark Secret Ninja/1.0");
 		res = curl_easy_perform(curl);
 		if (res != CURLE_OK)
