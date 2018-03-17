@@ -1061,7 +1061,7 @@ static float secondcb(float inElapsedSinceLastCall,
 			g_info->taxi_counter++;
 			if (g_info->taxi_counter == 6) {
 				if(BUFFER_FULL()) {
-					g_info->show_touchdown_counter = 10;
+					g_info->show_touchdown_counter = 20;
 				}
 			} else if (g_info->taxi_counter == 8) {
 				if (g_info->IsTouchDown) {
