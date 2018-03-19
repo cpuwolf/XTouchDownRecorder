@@ -732,15 +732,15 @@ static void create_json_array_join(FILE *ofile)
 }
 static int create_json_arrayf(FILE *ofile, const char * label, float mytable[])
 {
-	CREATE_JSON_ARRAY(ofile, label, mytable, "\"%.02f\"", 0.f);
+	CREATE_JSON_ARRAY(ofile, label, mytable, "%.02f", 0.f);
 }
 static int create_json_arrayfb(FILE *ofile, const char * label, float mytable[],float base)
 {
-	CREATE_JSON_ARRAY(ofile, label, mytable, "\"%.02f\"", base);
+	CREATE_JSON_ARRAY(ofile, label, mytable, "%.02f", base);
 }
 static int create_json_arrayd(FILE *ofile, const char * label, BOOL mytable[])
 {
-	CREATE_JSON_ARRAY(ofile, label, mytable, "\"%d\"", 0);
+	CREATE_JSON_ARRAY(ofile, label, mytable, "%d", 0);
 }
 static void create_json_file(char * path, struct tm *tblock)
 {
