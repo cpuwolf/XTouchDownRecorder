@@ -66,7 +66,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "lightworker.h"
 
-#define _PRONAMEVER_ "XTouchDownRecorder V6a (" __DATE__ ")"
+#define _PROVER_ "V6a"
+#define _PRONAMEVER_ "XTouchDownRecorder " _PROVER_ " (" __DATE__ ")"
 
 static int uploadfile(char * path);
 
@@ -189,6 +190,8 @@ typedef struct
 	unsigned int taxi_counter;
 	float XPTouchDownTM;
 	float XPTouchDownWeight;
+	float XPTouchDownFpm;
+	float XPTouchDownLoad;
 	time_t touchTime;
 
 	char logAirportId[50];
@@ -570,6 +573,8 @@ static void drawcb(XPLMWindowID inWindowID, void *inRefcon)
 		float landingPitch = touchdown_pch_table[touch_idx];
 		float landingGs = touchdown_gs_table[touch_idx];
 		gettouchdownanddraw(touch_idx, &landingVS, landingG, x, y);
+		g_info->XPTouchDownFpm = landingVS;
+		g_info->XPTouchDownLoad = (landingG[0] > landingG[1]? landingG[0]: landingG[1]);
 		/*-- draw touch point vertical lines*/
 		int bouncedtimes = drawtouchdownpoints(x, y);
 		char *text_to_print = text_buf;
@@ -703,9 +708,13 @@ static float flightcb(float inElapsedSinceLastCall,
 	return ret;
 }
 
+static int create_json_f(FILE *ofile, const char * label, float d)
+{
+	return fprintf(ofile, "\"%s\": %.02f,\n", label, d);
+}
 static int create_json_int(FILE *ofile, const char * label, int d)
 {
-	return fprintf(ofile, "\"%s\": \"%d\",\n", label, d);
+	return fprintf(ofile, "\"%s\": %d,\n", label, d);
 }
 static int create_json_str(FILE *ofile, const char * label, const char * str)
 {
@@ -752,11 +761,15 @@ static void create_json_file(char * path, struct tm *tblock)
 
 		/*write header*/
 		create_json_int(ofile, "xtd_xp_ver", g_info->xpVer);
+		create_json_str(ofile, "xtd_ver", _PROVER_);
 		//create_json_str(ofile, "xtd_xp_path", g_info->g_xppath);
 		create_json_str(ofile, "xtd_acf_icao", g_info->logAircraftIcao);
 		create_json_str(ofile, "xtd_acf_tail", g_info->logAircraftTail);
 		create_json_str(ofile, "xtd_apt_icao", g_info->logAirportId);
 		create_json_str(ofile, "xtd_apt_name", g_info->logAirportName);
+		create_json_int(ofile, "xtd_touch_tw", g_info->XPTouchDownWeight);
+		create_json_f(ofile, "xtd_touch_vs", g_info->XPTouchDownFpm);
+		create_json_f(ofile, "xtd_touch_g", g_info->XPTouchDownLoad);
 		strftime(tmbuf, sizeof(tmbuf), "%F %X", tblock);
 		create_json_str(ofile, "xtd_touch_tm", tmbuf);
 		strftime(tmbuf, sizeof(tmbuf), "%z", tblock);
