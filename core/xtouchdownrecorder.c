@@ -712,10 +712,10 @@ static int create_json_str(FILE *ofile, const char * label, const char * str)
 	return fprintf(ofile, "\"%s\": \"%s\",\n", label, str);
 }
 /*function template*/
-#define CREATE_JSON_ARRAY(ofile,_label,mytable,fmt,base) \
+#define CREATE_JSON_ARRAY(ofile,_label,name,mytable,fmt,base) \
 	int ret; \
 	int k, tmpc; \
-	fprintf(ofile, "{\"label\": \"%s\",\n\"data\": [", _label); \
+	fprintf(ofile, "{\"label\": \"%s\",\n\"name\": \"%s\",\n\"data\": [", _label, name); \
 	BUFFER_GO_START(k, tmpc); \
 	while (!BUFFER_GO_IS_END(k, tmpc)) { \
 		ret = fprintf(ofile, fmt, mytable[k]-base); \
@@ -730,17 +730,17 @@ static void create_json_array_join(FILE *ofile)
 {
 	fprintf(ofile, ",\n");
 }
-static int create_json_arrayf(FILE *ofile, const char * label, float mytable[])
+static int create_json_arrayf(FILE *ofile, const char * label, const char * name, float mytable[])
 {
-	CREATE_JSON_ARRAY(ofile, label, mytable, "%.02f", 0.f);
+	CREATE_JSON_ARRAY(ofile, label, name, mytable, "%.02f", 0.f);
 }
-static int create_json_arrayfb(FILE *ofile, const char * label, float mytable[],float base)
+static int create_json_arrayfb(FILE *ofile, const char * label, const char * name, float mytable[],float base)
 {
-	CREATE_JSON_ARRAY(ofile, label, mytable, "%.02f", base);
+	CREATE_JSON_ARRAY(ofile, label, name, mytable, "%.02f", base);
 }
-static int create_json_arrayd(FILE *ofile, const char * label, BOOL mytable[])
+static int create_json_arrayd(FILE *ofile, const char * label, const char * name, BOOL mytable[])
 {
-	CREATE_JSON_ARRAY(ofile, label, mytable, "%d", 0);
+	CREATE_JSON_ARRAY(ofile, label, name, mytable, "%d", 0);
 }
 static void create_json_file(char * path, struct tm *tblock)
 {
@@ -763,27 +763,27 @@ static void create_json_file(char * path, struct tm *tblock)
 		create_json_str(ofile, "xtd_tmzone", tmbuf);
 		/*write main data array */
 		fprintf(ofile, "\"main\": [\n");
-		create_json_arrayfb(ofile, "time(s)", touchdown_tm_table, g_info->XPTouchDownTM);
+		create_json_arrayfb(ofile, "time(s)", "touchdown_tm_table", touchdown_tm_table, g_info->XPTouchDownTM);
 		create_json_array_join(ofile);
-		create_json_arrayd(ofile, "is ground", touchdown_air_table);
+		create_json_arrayd(ofile, "is ground", "touchdown_air_table", touchdown_air_table);
 		create_json_array_join(ofile);
-		create_json_arrayf(ofile, "feet per min", touchdown_vs_table);
+		create_json_arrayf(ofile, "feet per min", "touchdown_vs_table", touchdown_vs_table);
 		create_json_array_join(ofile);
-		create_json_arrayf(ofile, "G force(G)", touchdown_g_table);
+		create_json_arrayf(ofile, "G force(G)", "touchdown_g_table", touchdown_g_table);
 		create_json_array_join(ofile);
-		create_json_arrayf(ofile, "pitch(degree)", touchdown_pch_table);
+		create_json_arrayf(ofile, "pitch(degree)", "touchdown_pch_table", touchdown_pch_table);
 		create_json_array_join(ofile);
-		create_json_arrayf(ofile, "elevator(%)", touchdown_elev_table);
+		create_json_arrayf(ofile, "elevator(%)", "touchdown_elev_table", touchdown_elev_table);
 		create_json_array_join(ofile);
-		create_json_arrayf(ofile, "engine(%)", touchdown_eng_table);
+		create_json_arrayf(ofile, "engine(%)", "touchdown_eng_table", touchdown_eng_table);
 		create_json_array_join(ofile);
-		create_json_arrayf(ofile, "AGL(meter)", touchdown_agl_table);
+		create_json_arrayf(ofile, "AGL(meter)", "touchdown_agl_table", touchdown_agl_table);
 		create_json_array_join(ofile);
-		create_json_arrayf(ofile, "ground speed(meter/s)", touchdown_gs_table);
+		create_json_arrayf(ofile, "ground speed(meter/s)", "touchdown_gs_table", touchdown_gs_table);
 		create_json_array_join(ofile);
-		create_json_arrayf(ofile, "total weight(Kg)", touchdown_tw_table);
+		create_json_arrayf(ofile, "total weight(Kg)", "touchdown_tw_table", touchdown_tw_table);
 		create_json_array_join(ofile);
-		create_json_arrayf(ofile, "gear force(N)", touchdown_gf_table);
+		create_json_arrayf(ofile, "gear force(N)", "touchdown_gf_table", touchdown_gf_table);
 		fprintf(ofile, "]\n");
 		/*write end*/
 		fprintf(ofile, "}");
