@@ -898,6 +898,7 @@ static void write_log_file()
 	static char tmbuf[100], path[512];
 	loc_time_tm = localtime(&g_info->touchTime);
 	memcpy(&time_tm, loc_time_tm, sizeof(time_tm));
+	loc_time_tm = &time_tm;
 	gm_time_tm = gmtime(&g_info->touchTime);
 
 	float lat = XPLMGetDataf(latRef);
