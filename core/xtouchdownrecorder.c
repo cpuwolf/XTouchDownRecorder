@@ -452,7 +452,7 @@ static int gettouchdownanddraw(int idx, float * pfpm, float pg[],int x, int y)
 		/*caculate descent rate*/
 		if((iter_start) && (iter_times < 4) && (delta_tm-delta_tm_expect<=0.0f)) {
 			fpm=(touchdown_agl_table[k]-zero_agl)*196.850394f/delta_tm;
-			if(fpm < last_fpm) {
+			if(fabs(fpm) < fabs(last_fpm)) {
 				last_fpm = fpm;
 				delta_tm_expect= delta_tm/2.0f;
 				iter_times++;
