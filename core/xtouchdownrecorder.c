@@ -430,14 +430,14 @@ static int gettouchdownanddraw(int idx, float * pfpm, float pg[],int x, int y)
 	float zero_agl = touchdown_agl_table[idx];
 	float interval = (float)floor(zero_tm - touchdown_tm_table[k]);
 	float s = interval;
-	float last_fpm=99999.f,fpm;
+	float fpm,sum_fpm=0.0f;
 	float max_g=0.f,min_g=0.f;
 	float delta_tm_expect;
 
 	while(!BUFFER_GO_IS_END(k,tmpc)) {
 		float delta_tm = zero_tm - touchdown_tm_table[k];
 		if((delta_tm - s) <= 0.0f) {
-			/*align with second*/
+			/*align with 1 second*/
 			if(s - 1.0f < 0.0001f) {
 				/*1sec before touch*/
 				iter_start = TRUE;
@@ -452,11 +452,9 @@ static int gettouchdownanddraw(int idx, float * pfpm, float pg[],int x, int y)
 		/*caculate descent rate*/
 		if((iter_start) && (iter_times < 4) && (delta_tm-delta_tm_expect<=0.0f)) {
 			fpm=(touchdown_agl_table[k]-zero_agl)*196.850394f/delta_tm;
-			if(fabs(fpm) < fabs(last_fpm)) {
-				last_fpm = fpm;
-				delta_tm_expect= delta_tm/2.0f;
-				iter_times++;
-			}
+			sum_fpm += fpm;
+			delta_tm_expect= delta_tm/2.0f;
+			iter_times++;
 		}
 		/*caculate G force*/
 		if((delta_tm >= 0.05f)&&(delta_tm <= 3.0f)) {
@@ -478,7 +476,7 @@ static int gettouchdownanddraw(int idx, float * pfpm, float pg[],int x, int y)
 		BUFFER_GO_NEXT(k,tmpc);
 	}
 
-	*pfpm =  last_fpm;
+	*pfpm =  sum_fpm/iter_times;
 	pg[0] = max_g;
 	pg[1] = min_g;
 
@@ -574,11 +572,11 @@ static void drawcb(XPLMWindowID inWindowID, void *inRefcon)
 		float landingGs = touchdown_gs_table[touch_idx];
 		gettouchdownanddraw(touch_idx, &landingVS, landingG, x, y);
 		g_info->XPTouchDownFpm = landingVS;
-		g_info->XPTouchDownLoad = (landingG[0] > landingG[1]? landingG[0]: landingG[1]);
+		g_info->XPTouchDownLoad = landingG[1];//(landingG[0] > landingG[1]? landingG[0]: landingG[1]);
 		/*-- draw touch point vertical lines*/
 		int bouncedtimes = drawtouchdownpoints(x, y);
 		char *text_to_print = text_buf;
-		sprintf(text_to_print, "%.01fFpm (%.02fG)%.02fG %.02fDegree %.01fKnots %s", landingVS, landingG[0], landingG[1],
+		sprintf(text_to_print, "%.01fFpm %.02fG %.02fDegree %.01fKnots %s", landingVS, landingG[1],
 			landingPitch, landingGs*1.943844f, (bouncedtimes > 1 ? "Bounced" : ""));
 		int width_text_to_print = (int)floor(XPLMMeasureString(xplmFont_Basic, text_to_print, (int)strlen(text_to_print)));
 		XPLMDrawString(color, x_text, y_text, text_to_print, NULL, xplmFont_Basic);
@@ -767,7 +765,7 @@ static void create_json_file(char * path, struct tm *tblock)
 		create_json_str(ofile, "xtd_acf_tail", g_info->logAircraftTail);
 		create_json_str(ofile, "xtd_apt_icao", g_info->logAirportId);
 		create_json_str(ofile, "xtd_apt_name", g_info->logAirportName);
-		create_json_int(ofile, "xtd_touch_tw", g_info->XPTouchDownWeight);
+		create_json_int(ofile, "xtd_touch_tw", (int)floor(g_info->XPTouchDownWeight));
 		create_json_f(ofile, "xtd_touch_vs", g_info->XPTouchDownFpm);
 		create_json_f(ofile, "xtd_touch_g", g_info->XPTouchDownLoad);
 		strftime(tmbuf, sizeof(tmbuf), "%F %X", tblock);
@@ -893,13 +891,15 @@ static void write_log_file()
 {
 	FILE *ofile;
 	struct tm *loc_time_tm,*gm_time_tm;
-	struct tm time_tm;
+	struct tm time_tm,gtime_tm;
 	int num;
 	static char tmbuf[100], path[512];
 	loc_time_tm = localtime(&g_info->touchTime);
 	memcpy(&time_tm, loc_time_tm, sizeof(time_tm));
 	loc_time_tm = &time_tm;
 	gm_time_tm = gmtime(&g_info->touchTime);
+	memcpy(&gtime_tm, gm_time_tm, sizeof(time_tm));
+	gm_time_tm = &gtime_tm;
 
 	float lat = XPLMGetDataf(latRef);
 	float lon = XPLMGetDataf(longRef);
