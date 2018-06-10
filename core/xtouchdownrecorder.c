@@ -1284,7 +1284,6 @@ PLUGIN_API int XPluginStart(char * outName, char * outSig, char * outDesc)
 
 PLUGIN_API void	XPluginStop(void)
 {
-	XTDData * pd = datarealtm;
 	XPLMUnregisterCommandHandler(g_info->ToggleCommand, ToggleCommandHandler, 0, 0);
 	XPLMUnregisterFlightLoopCallback(secondcb, NULL);
 	XPLMUnregisterFlightLoopCallback(flightcb, NULL);
@@ -1301,8 +1300,8 @@ PLUGIN_API void	XPluginStop(void)
 		XPLMClearAllMenuItems(g_info->tdr_menu);
 		XPLMDestroyMenu(g_info->tdr_menu);
 	}
-	if(pd->pbuffer) {
-		free(pd->pbuffer);
+	if(datarealtm) {
+		free(datarealtm);
 		//g_pbuffer = NULL;
 	}
 	if (!g_info) {
