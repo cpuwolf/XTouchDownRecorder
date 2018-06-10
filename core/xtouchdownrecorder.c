@@ -77,38 +77,27 @@ static int uploadfile(char * path);
 static XPLMDataRef gearFRef,gForceRef,vertSpeedRef,pitchRef,elevatorRef,engRef,aglRef,
 tmRef,gndSpeedRef,latRef,longRef,tailRef,icaoRef, totalWeightRef;
 
-static float * g_pbuffer = NULL;
-static unsigned int g_start = 0;
-static unsigned int g_end = 0;
-static unsigned int g_size = 0;
 
-#define BUFFER_DELETE() g_size=0;g_start = 0;g_end = 0;
+typedef struct
+{
+	unsigned int start;
+	unsigned int end;
+	unsigned int size;
 
-#define BUFFER_EMPTY() (g_size==0)
+	float *touchdown_vs_table;
+	float *touchdown_g_table;
+	float *touchdown_pch_table;
+	BOOL *touchdown_air_table;
+	float *touchdown_elev_table;
+	float *touchdown_eng_table;
+	float *touchdown_agl_table;
+	float *touchdown_tm_table;
+	float *touchdown_gs_table;
+	float *touchdown_gf_table;
+	float *touchdown_tw_table;
 
-#define BUFFER_FULL() (g_size==MAX_TABLE_ELEMENTS)
-
-/* set value firstly, then increase index */
-#define BUFFER_INSERT_BACK() if(g_end < MAX_TABLE_ELEMENTS) {\
-								g_end++;} if(g_end==MAX_TABLE_ELEMENTS) {\
-									g_end = 0;\
-								} \
-								if(g_size < MAX_TABLE_ELEMENTS) {\
-									g_size++;\
-								} else {\
-									if(g_start < MAX_TABLE_ELEMENTS) {\
-										g_start++;} if(g_start==MAX_TABLE_ELEMENTS) {\
-											g_start = 0;}\
-								}
-
-#define BUFFER_GO_START(idx,tmp_count)  tmp_count=g_size; idx=g_start;
-
-#define BUFFER_GO_IS_END(idx,tmp_count)  (tmp_count<=0)
-
-#define BUFFER_GO_NEXT(idx,tmp_count) if(idx < MAX_TABLE_ELEMENTS) {\
-								idx++;} if(idx==MAX_TABLE_ELEMENTS) {\
-									idx = 0;\
-								} tmp_count--;\
+	float pbuffer[1];
+}XTDData;
 
 enum
 {
@@ -126,17 +115,43 @@ enum
 	MAX_TOUCHDOWN_IDX
 };
 
-static float *touchdown_vs_table;
-static float *touchdown_g_table;
-static float *touchdown_pch_table;
-static BOOL *touchdown_air_table;
-static float *touchdown_elev_table;
-static float *touchdown_eng_table;
-static float *touchdown_agl_table;
-static float *touchdown_tm_table;
-static float *touchdown_gs_table;
-static float *touchdown_gf_table;
-static float *touchdown_tw_table;
+#define _XTDDATASIZE ((MAX_TABLE_ELEMENTS * sizeof(float) * MAX_TOUCHDOWN_IDX) + sizeof(XTDData))
+
+static XTDData *datarealtm, *datacopy;
+
+
+#define _BUFFER_DELETE(xtddata) xtddata->size=0;xtddata->start = 0;xtddata->end = 0;
+#define BUFFER_DELETE() _BUFFER_DELETE(datarealtm);
+
+#define _BUFFER_EMPTY(xtddata) (xtddata->size==0)
+#define BUFFER_EMPTY() _BUFFER_EMPTY(datarealtm);
+
+#define _BUFFER_FULL(xtddata) (xtddata->size==MAX_TABLE_ELEMENTS)
+#define BUFFER_FULL() _BUFFER_FULL(datarealtm)
+
+/* set value firstly, then increase index */
+#define _BUFFER_INSERT_BACK(xtddata) if(xtddata->end < MAX_TABLE_ELEMENTS) {\
+								xtddata->end++;} if(xtddata->end==MAX_TABLE_ELEMENTS) {\
+									xtddata->end = 0;\
+								} \
+								if(xtddata->size < MAX_TABLE_ELEMENTS) {\
+									xtddata->size++;\
+								} else {\
+									if(xtddata->start < MAX_TABLE_ELEMENTS) {\
+										xtddata->start++;} if(xtddata->start==MAX_TABLE_ELEMENTS) {\
+											xtddata->start = 0;}\
+								}
+#define BUFFER_INSERT_BACK() _BUFFER_INSERT_BACK(datarealtm);
+
+#define _BUFFER_GO_START(xtddata,idx,tmp_count)  tmp_count=xtddata->size; idx=xtddata->start;
+#define BUFFER_GO_START(idx,tmp_count) _BUFFER_GO_START(datarealtm,idx,tmp_count)
+
+#define BUFFER_GO_IS_END(idx,tmp_count)  (tmp_count<=0)
+
+#define BUFFER_GO_NEXT(idx,tmp_count) if(idx < MAX_TABLE_ELEMENTS) {\
+								idx++;} if(idx==MAX_TABLE_ELEMENTS) {\
+									idx = 0;\
+								} tmp_count--;\
 
 
 static float lastVS = 1.0;
@@ -251,7 +266,8 @@ static float get_max_val(float mytable[])
 void collect_flight_data()
 {
 	float engtb[4];
-	int iw = g_end;
+	XTDData * pd = datarealtm;
+	int iw = pd->end;
 
 	lastVS = XPLMGetDataf(vertSpeedRef);
 	lastG = XPLMGetDataf(gForceRef);
@@ -267,18 +283,18 @@ void collect_flight_data()
 	lastGearN = XPLMGetDataf(gearFRef);
 
 	/*-- fill the table */
-	touchdown_vs_table[iw] = lastVS;
-	touchdown_g_table[iw] = lastG;
-	touchdown_pch_table[iw] = lastPitch;
-	touchdown_air_table[iw] = lastAir;
-	touchdown_elev_table[iw] = lastElev;
-	touchdown_eng_table[iw] = lastEng;
-	touchdown_agl_table[iw] = lastAgl;
-	touchdown_tm_table[iw] = lastTm;
-	touchdown_gs_table[iw] = lastGs;
+	pd->touchdown_vs_table[iw] = lastVS;
+	pd->touchdown_g_table[iw] = lastG;
+	pd->touchdown_pch_table[iw] = lastPitch;
+	pd->touchdown_air_table[iw] = lastAir;
+	pd->touchdown_elev_table[iw] = lastElev;
+	pd->touchdown_eng_table[iw] = lastEng;
+	pd->touchdown_agl_table[iw] = lastAgl;
+	pd->touchdown_tm_table[iw] = lastTm;
+	pd->touchdown_gs_table[iw] = lastGs;
 
-	touchdown_gf_table[iw] = lastGearN;
-	touchdown_tw_table[iw] = lastTotalKg;
+	pd->touchdown_gf_table[iw] = lastGearN;
+	pd->touchdown_tw_table[iw] = lastTotalKg;
 
 	BUFFER_INSERT_BACK();
 
@@ -423,19 +439,20 @@ static int gettouchdownanddraw(int idx, float * pfpm, float pg[],int x, int y)
 	int x_tmp = x;
 	int iter_times=0;
 	BOOL iter_start=FALSE;
+	XTDData * pd = datarealtm;
 	BUFFER_GO_START(k,tmpc);
 	/*get interval seconds*/
 	int last_k = k;
-	float zero_tm = touchdown_tm_table[idx];
-	float zero_agl = touchdown_agl_table[idx];
-	float interval = (float)floor(zero_tm - touchdown_tm_table[k]);
+	float zero_tm = pd->touchdown_tm_table[idx];
+	float zero_agl = pd->touchdown_agl_table[idx];
+	float interval = (float)floor(zero_tm - pd->touchdown_tm_table[k]);
 	float s = interval;
 	float fpm,sum_fpm=0.0f;
 	float max_g=0.f,min_g=0.f;
 	float delta_tm_expect;
 
 	while(!BUFFER_GO_IS_END(k,tmpc)) {
-		float delta_tm = zero_tm - touchdown_tm_table[k];
+		float delta_tm = zero_tm - pd->touchdown_tm_table[k];
 		if((delta_tm - s) <= 0.0f) {
 			/*align with 1 second*/
 			if(s - 1.0f < 0.0001f) {
@@ -450,16 +467,16 @@ static int gettouchdownanddraw(int idx, float * pfpm, float pg[],int x, int y)
 			s-=1.0f;
 		}
 		/*caculate descent rate*/
-		if((iter_start) && (iter_times < 4) && (delta_tm-delta_tm_expect<=0.0f)) {
-			fpm=(touchdown_agl_table[k]-zero_agl)*196.850394f/delta_tm;
+		if((iter_start) && (iter_times < 2) && (delta_tm-delta_tm_expect<=0.0f)) {
+			fpm=(pd->touchdown_agl_table[k]-zero_agl)*196.850394f/delta_tm;
 			sum_fpm += fpm;
 			delta_tm_expect= delta_tm/2.0f;
 			iter_times++;
 		}
 		/*caculate G force*/
 		if((delta_tm >= 0.05f)&&(delta_tm <= 3.0f)) {
-			if(touchdown_g_table[k] > max_g) {
-				max_g = touchdown_g_table[k];
+			if(pd->touchdown_g_table[k] > max_g) {
+				max_g = pd->touchdown_g_table[k];
 			}
 			/*
 			if(touchdown_g_table[k] < min_g) {
@@ -467,7 +484,7 @@ static int gettouchdownanddraw(int idx, float * pfpm, float pg[],int x, int y)
 			}*/
 		}
 		/*calulate G force*/
-		float tmp_g = touchdown_gf_table[k] / (9.8f*touchdown_tw_table[k]);
+		float tmp_g = pd->touchdown_gf_table[k] / (9.8f*pd->touchdown_tw_table[k]);
 		if (tmp_g > min_g) {
 			min_g = tmp_g;
 		}
@@ -485,25 +502,26 @@ static int gettouchdownanddraw(int idx, float * pfpm, float pg[],int x, int y)
 static int drawtouchdownpoints(int x, int y)
 {
 	int k,tmpc;
+	XTDData * pd = datarealtm;
 	int touchtimes = 0;
 	/*-- draw touch point vertical lines*/
 	int x_tmp = x;
 	
 	BUFFER_GO_START(k,tmpc);
-	BOOL last_air_recorded = touchdown_air_table[k];
-	float last_air_tm = touchdown_tm_table[k];
+	BOOL last_air_recorded = pd->touchdown_air_table[k];
+	float last_air_tm = pd->touchdown_tm_table[k];
 	BOOL b;
 	while(!BUFFER_GO_IS_END(k,tmpc)) {
-		b = touchdown_air_table[k];
+		b = pd->touchdown_air_table[k];
 		if(b != last_air_recorded) {
 			if(b) {
 				/*-- draw vertical line, skip small debounce*/
-				if (touchdown_tm_table[k] - last_air_tm > 0.5f) {
+				if (pd->touchdown_tm_table[k] - last_air_tm > 0.5f) {
 					draw_line(1, 1, 1, 1, 3, x_tmp, y + (_TD_CHART_HEIGHT / 4), x_tmp, y + (_TD_CHART_HEIGHT * 3 / 4));
 					touchtimes++;
 				}
 			} else {
-				last_air_tm = touchdown_tm_table[k];
+				last_air_tm = pd->touchdown_tm_table[k];
 			}
 		}
 		x_tmp = x_tmp + 2;
@@ -516,26 +534,27 @@ static int drawtouchdownpoints(int x, int y)
 static int getfirsttouchdownpointidx()
 {
 	int k,tmpc;
+	XTDData * pd = datarealtm;
 	BUFFER_GO_START(k,tmpc);
-	BOOL last_air_recorded = touchdown_air_table[k];
-	float last_agl_recorded = touchdown_agl_table[k];
+	BOOL last_air_recorded = pd->touchdown_air_table[k];
+	float last_agl_recorded = pd->touchdown_agl_table[k];
 	BOOL b;
-	float max_agl_recorded = get_max_val(touchdown_agl_table);
+	float max_agl_recorded = get_max_val(pd->touchdown_agl_table);
 	while(!BUFFER_GO_IS_END(k,tmpc)) {
-		b = touchdown_air_table[k];
+		b = pd->touchdown_air_table[k];
 		if(b != last_air_recorded) {
 			if(b) {
 				if(max_agl_recorded > 0.5f) {
 					/* touchdown at least from AGL 0.5 meter to Ground: ignore annoying plane load touch down */
 					g_info->IsTouchDown = TRUE;
-					g_info->XPTouchDownTM = touchdown_tm_table[k];
-					g_info->XPTouchDownWeight = touchdown_tw_table[k];
+					g_info->XPTouchDownTM = pd->touchdown_tm_table[k];
+					g_info->XPTouchDownWeight = pd->touchdown_tw_table[k];
 					return k;
 				}
 			}
 		}
 		last_air_recorded = b;
-		last_agl_recorded = touchdown_agl_table[k];
+		last_agl_recorded = pd->touchdown_agl_table[k];
 		BUFFER_GO_NEXT(k,tmpc);
 	}
 	return -1;
@@ -543,6 +562,7 @@ static int getfirsttouchdownpointidx()
 
 static void drawcb(XPLMWindowID inWindowID, void *inRefcon)
 {
+	XTDData * pd = datarealtm;
 	/*-- draw background first*/
 	int x, y;
 	int left, top, right, bottom;
@@ -568,8 +588,8 @@ static void drawcb(XPLMWindowID inWindowID, void *inRefcon)
 	float landingVS, landingG[2];
 	memset(g_info->landingString, 0, sizeof(g_info->landingString));
 	if (touch_idx >= 0) {
-		float landingPitch = touchdown_pch_table[touch_idx];
-		float landingGs = touchdown_gs_table[touch_idx];
+		float landingPitch = pd->touchdown_pch_table[touch_idx];
+		float landingGs = pd->touchdown_gs_table[touch_idx];
 		gettouchdownanddraw(touch_idx, &landingVS, landingG, x, y);
 		g_info->XPTouchDownFpm = landingVS;
 		g_info->XPTouchDownLoad = landingG[1];//(landingG[0] > landingG[1]? landingG[0]: landingG[1]);
@@ -602,9 +622,9 @@ static void drawcb(XPLMWindowID inWindowID, void *inRefcon)
 	*/
 
 	/*-- now draw the chart line light blue*/
-	float max_pch_recorded = get_max_val(touchdown_pch_table);
+	float max_pch_recorded = get_max_val(pd->touchdown_pch_table);
 	sprintf(text_buf, "Max pitch %.02fDegree ", max_pch_recorded);
-	x_text = draw_curve(touchdown_pch_table, 0.6f, 0.85f, 0.87f, text_buf, x_text, y_text, x, y, x, y + (_TD_CHART_HEIGHT / 2), max_pch_recorded*2.0f, max_pch_recorded);
+	x_text = draw_curve(pd->touchdown_pch_table, 0.6f, 0.85f, 0.87f, text_buf, x_text, y_text, x, y, x, y + (_TD_CHART_HEIGHT / 2), max_pch_recorded*2.0f, max_pch_recorded);
 
 	/*-- now draw the chart line orange
 	float max_elev_axis = 2.0;
@@ -613,19 +633,19 @@ static void drawcb(XPLMWindowID inWindowID, void *inRefcon)
 	x_text = draw_curve(touchdown_elev_table, 1.0f,0.49f,0.15f, text_buf, x_text, y_text, x, y, x, y + (_TD_CHART_HEIGHT / 2), max_elev_recorded, max_elev_recorded);
 	*/
 	/*-- now draw the chart line yellow*/
-	float max_eng_recorded = get_max_val(touchdown_eng_table);
+	float max_eng_recorded = get_max_val(pd->touchdown_eng_table);
 	sprintf(text_buf, "Max eng %.02f%% ", max_eng_recorded*100.0f);
-	x_text = draw_curve(touchdown_eng_table, 1.0f, 1.0f, 0.0f, text_buf, x_text, y_text, x, y, x, y + (_TD_CHART_HEIGHT / 2), max_eng_recorded*2.0f, max_eng_recorded);
+	x_text = draw_curve(pd->touchdown_eng_table, 1.0f, 1.0f, 0.0f, text_buf, x_text, y_text, x, y, x, y + (_TD_CHART_HEIGHT / 2), max_eng_recorded*2.0f, max_eng_recorded);
 
 	/*-- now draw the chart line red*/
-	float max_agl_recorded = get_max_val(touchdown_agl_table);
+	float max_agl_recorded = get_max_val(pd->touchdown_agl_table);
 	sprintf(text_buf, "Max AGL %.02fM ", max_agl_recorded);
-	x_text = draw_curve(touchdown_agl_table, 1.0f, 0.1f, 0.1f, text_buf, x_text, y_text, x, y, x, y + (_TD_CHART_HEIGHT / 2), max_agl_recorded*2.0f, max_agl_recorded);
+	x_text = draw_curve(pd->touchdown_agl_table, 1.0f, 0.1f, 0.1f, text_buf, x_text, y_text, x, y, x, y + (_TD_CHART_HEIGHT / 2), max_agl_recorded*2.0f, max_agl_recorded);
 
 	/*-- now draw the chart line blue*/
-	float max_gs_recorded = get_max_val(touchdown_gs_table);
+	float max_gs_recorded = get_max_val(pd->touchdown_gs_table);
 	sprintf(text_buf, "Max %.02fknots ", max_gs_recorded*1.943844f);
-	x_text = draw_curve(touchdown_gs_table, 0.24f, 0.35f, 0.8f, text_buf, x_text, y_text, x, y, x, y, max_gs_recorded, max_gs_recorded);
+	x_text = draw_curve(pd->touchdown_gs_table, 0.24f, 0.35f, 0.8f, text_buf, x_text, y_text, x, y, x, y, max_gs_recorded, max_gs_recorded);
 
 	/*-- title*/
 	color[0] = 1.0;
@@ -751,6 +771,7 @@ static int create_json_arrayd(FILE *ofile, const char * label, const char * name
 }
 static void create_json_file(char * path, struct tm *tblock)
 {
+	XTDData * pd = datarealtm;
 	FILE *ofile;
 	char tmbuf[50];
 	ofile = fopen(path, "a");
@@ -774,27 +795,27 @@ static void create_json_file(char * path, struct tm *tblock)
 		create_json_str(ofile, "xtd_tmzone", tmbuf);
 		/*write main data array */
 		fprintf(ofile, "\"main\": [\n");
-		create_json_arrayfb(ofile, "time(s)", "touchdown_tm_table", touchdown_tm_table, g_info->XPTouchDownTM);
+		create_json_arrayfb(ofile, "time(s)", "touchdown_tm_table", pd->touchdown_tm_table, g_info->XPTouchDownTM);
 		create_json_array_join(ofile);
-		create_json_arrayd(ofile, "is ground", "touchdown_air_table", touchdown_air_table);
+		create_json_arrayd(ofile, "is ground", "touchdown_air_table", pd->touchdown_air_table);
 		create_json_array_join(ofile);
-		create_json_arrayf(ofile, "feet per min", "touchdown_vs_table", touchdown_vs_table);
+		create_json_arrayf(ofile, "feet per min", "touchdown_vs_table", pd->touchdown_vs_table);
 		create_json_array_join(ofile);
-		create_json_arrayf(ofile, "G force(G)", "touchdown_g_table", touchdown_g_table);
+		create_json_arrayf(ofile, "G force(G)", "touchdown_g_table", pd->touchdown_g_table);
 		create_json_array_join(ofile);
-		create_json_arrayf(ofile, "pitch(degree)", "touchdown_pch_table", touchdown_pch_table);
+		create_json_arrayf(ofile, "pitch(degree)", "touchdown_pch_table", pd->touchdown_pch_table);
 		create_json_array_join(ofile);
-		create_json_arrayf(ofile, "elevator(%)", "touchdown_elev_table", touchdown_elev_table);
+		create_json_arrayf(ofile, "elevator(%)", "touchdown_elev_table", pd->touchdown_elev_table);
 		create_json_array_join(ofile);
-		create_json_arrayf(ofile, "engine(%)", "touchdown_eng_table", touchdown_eng_table);
+		create_json_arrayf(ofile, "engine(%)", "touchdown_eng_table", pd->touchdown_eng_table);
 		create_json_array_join(ofile);
-		create_json_arrayf(ofile, "AGL(meter)", "touchdown_agl_table", touchdown_agl_table);
+		create_json_arrayf(ofile, "AGL(meter)", "touchdown_agl_table", pd->touchdown_agl_table);
 		create_json_array_join(ofile);
-		create_json_arrayf(ofile, "ground speed(meter/s)", "touchdown_gs_table", touchdown_gs_table);
+		create_json_arrayf(ofile, "ground speed(meter/s)", "touchdown_gs_table", pd->touchdown_gs_table);
 		create_json_array_join(ofile);
-		create_json_arrayf(ofile, "total weight(Kg)", "touchdown_tw_table", touchdown_tw_table);
+		create_json_arrayf(ofile, "total weight(Kg)", "touchdown_tw_table", pd->touchdown_tw_table);
 		create_json_array_join(ofile);
-		create_json_arrayf(ofile, "gear force(N)", "touchdown_gf_table", touchdown_gf_table);
+		create_json_arrayf(ofile, "gear force(N)", "touchdown_gf_table", pd->touchdown_gf_table);
 		fprintf(ofile, "]\n");
 		/*write end*/
 		fprintf(ofile, "}");
@@ -835,23 +856,24 @@ static int write_csv_file(FILE *ofile,float mytable[], const char * title)
 }
 static void create_csv_file(char * path)
 {
+	XTDData * pd = datarealtm;
 	FILE *ofile;
 	static char tmbuf[100];
 
 	ofile = fopen(path, "a");
 	if (ofile) {
 		/*write main data*/
-		write_csv_file(ofile, touchdown_tm_table, "\"time(s)\"");
-		write_csv_file_bool(ofile, touchdown_air_table, "\"is air\"");
-		write_csv_file(ofile, touchdown_vs_table, "\"(fpm)\"");
-		write_csv_file(ofile, touchdown_g_table, "\"G force(G)\"");
-		write_csv_file(ofile, touchdown_pch_table, "\"pitch(degree)\"");
-		write_csv_file(ofile, touchdown_elev_table, "\"elevator(%)\"");
-		write_csv_file(ofile, touchdown_eng_table, "\"engine(%)\"");
-		write_csv_file(ofile, touchdown_agl_table, "\"AGL(meter)\"");
-		write_csv_file(ofile, touchdown_gs_table, "\"ground speed(meter/s)\"");
-		write_csv_file(ofile, touchdown_tw_table, "\"total weight(Kg)\"");
-		write_csv_file(ofile, touchdown_gf_table, "\"gear force(N)\"");
+		write_csv_file(ofile, pd->touchdown_tm_table, "\"time(s)\"");
+		write_csv_file_bool(ofile, pd->touchdown_air_table, "\"is air\"");
+		write_csv_file(ofile, pd->touchdown_vs_table, "\"(fpm)\"");
+		write_csv_file(ofile, pd->touchdown_g_table, "\"G force(G)\"");
+		write_csv_file(ofile, pd->touchdown_pch_table, "\"pitch(degree)\"");
+		write_csv_file(ofile, pd->touchdown_elev_table, "\"elevator(%)\"");
+		write_csv_file(ofile, pd->touchdown_eng_table, "\"engine(%)\"");
+		write_csv_file(ofile, pd->touchdown_agl_table, "\"AGL(meter)\"");
+		write_csv_file(ofile, pd->touchdown_gs_table, "\"ground speed(meter/s)\"");
+		write_csv_file(ofile, pd->touchdown_tw_table, "\"total weight(Kg)\"");
+		write_csv_file(ofile, pd->touchdown_gf_table, "\"gear force(N)\"");
 		fclose(ofile);
 	}
 	else {
@@ -1164,6 +1186,7 @@ PLUGIN_API int XPluginStart(char * outName, char * outSig, char * outDesc)
 	int menuidx;
 	char path[600], *prefpath;
 	const char *csep;
+	XTDData * pd;
 
 	/* Plugin details */
 	sprintf(outName, _PRONAMEVER_" %s %s", __DATE__ , __TIME__);
@@ -1198,22 +1221,24 @@ PLUGIN_API int XPluginStart(char * outName, char * outSig, char * outDesc)
 	sprintf(path, "XTouchDownRecorder: xp path %s\n", g_info->g_xppath);
 	XPLMDebugString(path);
 
-	g_pbuffer = malloc(MAX_TABLE_ELEMENTS * sizeof(float) * MAX_TOUCHDOWN_IDX);
-	if(!g_pbuffer) {
+	datarealtm = malloc(_XTDDATASIZE);
+	if(!datarealtm) {
 		XPLMDebugString("XTouchDownRecorder:malloc g_pbuffer error!\n");
 		return 0;
 	}
-	touchdown_vs_table = g_pbuffer + (TOUCHDOWN_VS_IDX * MAX_TABLE_ELEMENTS);
-	touchdown_g_table  = g_pbuffer + (TOUCHDOWN_G_IDX * MAX_TABLE_ELEMENTS);
-	touchdown_pch_table = g_pbuffer + (TOUCHDOWN_PCH_IDX * MAX_TABLE_ELEMENTS);
-	touchdown_air_table = (BOOL *)(g_pbuffer + (TOUCHDOWN_AIR_IDX * MAX_TABLE_ELEMENTS));
-	touchdown_elev_table = g_pbuffer + (TOUCHDOWN_ELEV_IDX * MAX_TABLE_ELEMENTS);
-	touchdown_eng_table = g_pbuffer + (TOUCHDOWN_ENG_IDX * MAX_TABLE_ELEMENTS);
-	touchdown_agl_table = g_pbuffer + (TOUCHDOWN_AGL_IDX * MAX_TABLE_ELEMENTS);
-	touchdown_tm_table = g_pbuffer + (TOUCHDOWN_TM_IDX * MAX_TABLE_ELEMENTS);
-	touchdown_gs_table = g_pbuffer + (TOUCHDOWN_GS_IDX * MAX_TABLE_ELEMENTS);
-	touchdown_gf_table = g_pbuffer + (TOUCHDOWN_GF_IDX * MAX_TABLE_ELEMENTS);
-	touchdown_tw_table = g_pbuffer + (TOUCHDOWN_TW_IDX * MAX_TABLE_ELEMENTS);
+	memset(datarealtm, 0, _XTDDATASIZE);
+	pd = datarealtm;
+	pd->touchdown_vs_table = pd->pbuffer + (TOUCHDOWN_VS_IDX * MAX_TABLE_ELEMENTS);
+	pd->touchdown_g_table  = pd->pbuffer + (TOUCHDOWN_G_IDX * MAX_TABLE_ELEMENTS);
+	pd->touchdown_pch_table = pd->pbuffer + (TOUCHDOWN_PCH_IDX * MAX_TABLE_ELEMENTS);
+	pd->touchdown_air_table = (BOOL *)(pd->pbuffer + (TOUCHDOWN_AIR_IDX * MAX_TABLE_ELEMENTS));
+	pd->touchdown_elev_table = pd->pbuffer + (TOUCHDOWN_ELEV_IDX * MAX_TABLE_ELEMENTS);
+	pd->touchdown_eng_table = pd->pbuffer + (TOUCHDOWN_ENG_IDX * MAX_TABLE_ELEMENTS);
+	pd->touchdown_agl_table = pd->pbuffer + (TOUCHDOWN_AGL_IDX * MAX_TABLE_ELEMENTS);
+	pd->touchdown_tm_table = pd->pbuffer + (TOUCHDOWN_TM_IDX * MAX_TABLE_ELEMENTS);
+	pd->touchdown_gs_table = pd->pbuffer + (TOUCHDOWN_GS_IDX * MAX_TABLE_ELEMENTS);
+	pd->touchdown_gf_table = pd->pbuffer + (TOUCHDOWN_GF_IDX * MAX_TABLE_ELEMENTS);
+	pd->touchdown_tw_table = pd->pbuffer + (TOUCHDOWN_TW_IDX * MAX_TABLE_ELEMENTS);
 
 	gearFRef = XPLMFindDataRef("sim/flightmodel/forces/fnrml_gear");
 	gForceRef = XPLMFindDataRef("sim/flightmodel2/misc/gforce_normal");
@@ -1259,6 +1284,7 @@ PLUGIN_API int XPluginStart(char * outName, char * outSig, char * outDesc)
 
 PLUGIN_API void	XPluginStop(void)
 {
+	XTDData * pd = datarealtm;
 	XPLMUnregisterCommandHandler(g_info->ToggleCommand, ToggleCommandHandler, 0, 0);
 	XPLMUnregisterFlightLoopCallback(secondcb, NULL);
 	XPLMUnregisterFlightLoopCallback(flightcb, NULL);
@@ -1275,8 +1301,8 @@ PLUGIN_API void	XPluginStop(void)
 		XPLMClearAllMenuItems(g_info->tdr_menu);
 		XPLMDestroyMenu(g_info->tdr_menu);
 	}
-	if(g_pbuffer) {
-		free(g_pbuffer);
+	if(pd->pbuffer) {
+		free(pd->pbuffer);
 		//g_pbuffer = NULL;
 	}
 	if (!g_info) {
