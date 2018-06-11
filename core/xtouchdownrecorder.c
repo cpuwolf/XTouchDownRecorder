@@ -493,8 +493,8 @@ static int gettouchdownanddraw(XTDData * pd, int idx, float * pfpm, float pg[],i
 			s-=1.0f;
 		}
 		/*caculate descent rate*/
-		if((iter_start) && (iter_times < 3) && (delta_tm-delta_tm_expect<=0.0f)) {
-			fpm=(pd->touchdown_agl_table[k]-zero_agl)*196.850394f/delta_tm;
+		if((iter_start) && (iter_times < 3) && (delta_tm-delta_tm_expect<=0.001f)) {
+			fpm=(pd->touchdown_agl_table[k]-zero_agl)/delta_tm*196.850394f;
 			sum_fpm += fpm;
 			delta_tm_expect= delta_tm/1.5f;
 			iter_times++;
@@ -525,15 +525,14 @@ static int gettouchdownanddraw(XTDData * pd, int idx, float * pfpm, float pg[],i
 
 	return last_k;
 }
-static int drawtouchdownpoints(int x, int y)
+static int drawtouchdownpoints(XTDData * pd, int x, int y)
 {
 	int k,tmpc;
-	XTDData * pd = datarealtm;
 	int touchtimes = 0;
 	/*-- draw touch point vertical lines*/
 	int x_tmp = x;
 	
-	_BUFFER_GO_START(datarealtm,k,tmpc);
+	_BUFFER_GO_START(pd,k,tmpc);
 	BOOL last_air_recorded = pd->touchdown_air_table[k];
 	float last_air_tm = pd->touchdown_tm_table[k];
 	BOOL b;
@@ -585,6 +584,35 @@ static int getfirsttouchdownpointidx(XTDData * pd)
 	return -1;
 }
 
+/*text_buf is a buffer, not a pointer*/
+static BOOL analyzeTouchDown(XTDData * pd, char *text_buf, int x, int y)
+{
+	int touch_idx = getfirsttouchdownpointidx(pd);
+
+	/* print landing load data */
+	float landingVS, landingG[2];
+	memset(g_info->landingString, 0, sizeof(g_info->landingString));
+	if (touch_idx >= 0) {
+		float landingPitch = pd->touchdown_pch_table[touch_idx];
+		float landingGs = pd->touchdown_gs_table[touch_idx];
+		gettouchdownanddraw(pd, touch_idx, &landingVS, landingG, x, y);
+		g_info->XPTouchDownFpm = landingVS;
+		g_info->XPTouchDownLoad = landingG[1];
+		/*-- draw touch point vertical lines*/
+		int bouncedtimes = drawtouchdownpoints(pd, x, y);
+		char *text_to_print = text_buf;
+		sprintf(text_to_print, "%.01fFpm %.02fG %.02fDegree %.01fKnots %s", landingVS, landingG[1],
+			landingPitch, landingGs*1.943844f, (bouncedtimes > 1 ? "Bounced" : ""));
+		//int width_text_to_print = (int)floor(XPLMMeasureString(xplmFont_Basic, text_to_print, (int)strlen(text_to_print)));
+		//XPLMDrawString(color, x_text, y_text, text_to_print, NULL, xplmFont_Basic);
+		//x_text = x_text + width_text_to_print;
+		/*update content for file output*/
+		strcat(g_info->landingString, text_to_print);
+		return TRUE;
+	}
+	return FALSE;
+}
+
 static void drawcb(XPLMWindowID inWindowID, void *inRefcon)
 {
 	XTDData * pd = datarealtm;
@@ -618,16 +646,19 @@ static void drawcb(XPLMWindowID inWindowID, void *inRefcon)
 		gettouchdownanddraw(pd, touch_idx, &landingVS, landingG, x, y);
 		g_info->XPTouchDownFpm = landingVS;
 		g_info->XPTouchDownLoad = landingG[1];//(landingG[0] > landingG[1]? landingG[0]: landingG[1]);
+
 		/*-- draw touch point vertical lines*/
-		int bouncedtimes = drawtouchdownpoints(x, y);
+		int bouncedtimes = drawtouchdownpoints(pd, x, y);
+
 		char *text_to_print = text_buf;
 		sprintf(text_to_print, "%.01fFpm %.02fG %.02fDegree %.01fKnots %s", landingVS, landingG[1],
 			landingPitch, landingGs*1.943844f, (bouncedtimes > 1 ? "Bounced" : ""));
+		/*update content for file output*/
+		strcat(g_info->landingString, text_to_print);
+
 		int width_text_to_print = (int)floor(XPLMMeasureString(xplmFont_Basic, text_to_print, (int)strlen(text_to_print)));
 		XPLMDrawString(color, x_text, y_text, text_to_print, NULL, xplmFont_Basic);
 		x_text = x_text + width_text_to_print;
-		/*update content for file output*/
-		strcat(g_info->landingString, text_to_print);
 	}
 
 	/*start a new line*/
