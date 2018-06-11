@@ -273,13 +273,13 @@ static BOOL is_taxing()
 	return FALSE;
 }
 
-static float get_max_val(float mytable[])
+static float get_max_val(XTDData * pd, float mytable[])
 {
 	int k,tmpc;
 	/*-- calculate max data*/
 	float max_data = 0.0f;
 
-	_BUFFER_GO_START(datarealtm,k,tmpc);
+	_BUFFER_GO_START(pd,k,tmpc);
 	while(!BUFFER_GO_IS_END(k,tmpc)) {
 		float el = mytable[k];
 		if (fabs(el) > fabs(max_data)) {
@@ -323,7 +323,7 @@ void collect_flight_data()
 	pd->touchdown_gf_table[iw] = lastGearN;
 	pd->touchdown_tw_table[iw] = lastTotalKg;
 
-	_BUFFER_INSERT_BACK(datarealtm);
+	_BUFFER_INSERT_BACK(pd);
 
 }
 
@@ -460,13 +460,12 @@ static int draw_curve(float mytable[], float cr, float cg, float cb,
 	return x_text;
 }
 
-static int gettouchdownanddraw(int idx, float * pfpm, float pg[],int x, int y)
+static int gettouchdownanddraw(XTDData * pd, int idx, float * pfpm, float pg[],int x, int y)
 {
 	int k,tmpc;
 	int x_tmp = x;
 	int iter_times=0;
 	BOOL iter_start=FALSE;
-	XTDData * pd = datarealtm;
 	_BUFFER_GO_START(pd,k,tmpc);
 	/*get interval seconds*/
 	int last_k = k;
@@ -561,11 +560,11 @@ static int drawtouchdownpoints(int x, int y)
 static int getfirsttouchdownpointidx(XTDData * pd)
 {
 	int k,tmpc;
-	_BUFFER_GO_START(datarealtm,k,tmpc);
+	_BUFFER_GO_START(pd,k,tmpc);
 	BOOL last_air_recorded = pd->touchdown_air_table[k];
 	float last_agl_recorded = pd->touchdown_agl_table[k];
 	BOOL b;
-	float max_agl_recorded = get_max_val(pd->touchdown_agl_table);
+	float max_agl_recorded = get_max_val(pd, pd->touchdown_agl_table);
 	while(!BUFFER_GO_IS_END(k,tmpc)) {
 		b = pd->touchdown_air_table[k];
 		if(b != last_air_recorded) {
@@ -605,7 +604,7 @@ static void drawcb(XPLMWindowID inWindowID, void *inRefcon)
 	/*-- draw center line*/
 	draw_line(0, 0, 0, 1, 3, x, y + (_TD_CHART_HEIGHT / 2), x + (MAX_TABLE_ELEMENTS * 2), y + (_TD_CHART_HEIGHT / 2));
 
-	int touch_idx = getfirsttouchdownpointidx(datarealtm);
+	int touch_idx = getfirsttouchdownpointidx(pd);
 
 	int x_text = x + 5;
 	int y_text = y + 4;
@@ -616,7 +615,7 @@ static void drawcb(XPLMWindowID inWindowID, void *inRefcon)
 	if (touch_idx >= 0) {
 		float landingPitch = pd->touchdown_pch_table[touch_idx];
 		float landingGs = pd->touchdown_gs_table[touch_idx];
-		gettouchdownanddraw(touch_idx, &landingVS, landingG, x, y);
+		gettouchdownanddraw(pd, touch_idx, &landingVS, landingG, x, y);
 		g_info->XPTouchDownFpm = landingVS;
 		g_info->XPTouchDownLoad = landingG[1];//(landingG[0] > landingG[1]? landingG[0]: landingG[1]);
 		/*-- draw touch point vertical lines*/
@@ -648,7 +647,7 @@ static void drawcb(XPLMWindowID inWindowID, void *inRefcon)
 	*/
 
 	/*-- now draw the chart line light blue*/
-	float max_pch_recorded = get_max_val(pd->touchdown_pch_table);
+	float max_pch_recorded = get_max_val(pd, pd->touchdown_pch_table);
 	sprintf(text_buf, "Max pitch %.02fDegree ", max_pch_recorded);
 	x_text = draw_curve(pd->touchdown_pch_table, 0.6f, 0.85f, 0.87f, text_buf, x_text, y_text, x, y, x, y + (_TD_CHART_HEIGHT / 2), max_pch_recorded*2.0f, max_pch_recorded);
 
@@ -659,17 +658,17 @@ static void drawcb(XPLMWindowID inWindowID, void *inRefcon)
 	x_text = draw_curve(touchdown_elev_table, 1.0f,0.49f,0.15f, text_buf, x_text, y_text, x, y, x, y + (_TD_CHART_HEIGHT / 2), max_elev_recorded, max_elev_recorded);
 	*/
 	/*-- now draw the chart line yellow*/
-	float max_eng_recorded = get_max_val(pd->touchdown_eng_table);
+	float max_eng_recorded = get_max_val(pd, pd->touchdown_eng_table);
 	sprintf(text_buf, "Max eng %.02f%% ", max_eng_recorded*100.0f);
 	x_text = draw_curve(pd->touchdown_eng_table, 1.0f, 1.0f, 0.0f, text_buf, x_text, y_text, x, y, x, y + (_TD_CHART_HEIGHT / 2), max_eng_recorded*2.0f, max_eng_recorded);
 
 	/*-- now draw the chart line red*/
-	float max_agl_recorded = get_max_val(pd->touchdown_agl_table);
+	float max_agl_recorded = get_max_val(pd, pd->touchdown_agl_table);
 	sprintf(text_buf, "Max AGL %.02fM ", max_agl_recorded);
 	x_text = draw_curve(pd->touchdown_agl_table, 1.0f, 0.1f, 0.1f, text_buf, x_text, y_text, x, y, x, y + (_TD_CHART_HEIGHT / 2), max_agl_recorded*2.0f, max_agl_recorded);
 
 	/*-- now draw the chart line blue*/
-	float max_gs_recorded = get_max_val(pd->touchdown_gs_table);
+	float max_gs_recorded = get_max_val(pd, pd->touchdown_gs_table);
 	sprintf(text_buf, "Max %.02fknots ", max_gs_recorded*1.943844f);
 	x_text = draw_curve(pd->touchdown_gs_table, 0.24f, 0.35f, 0.8f, text_buf, x_text, y_text, x, y, x, y, max_gs_recorded, max_gs_recorded);
 
