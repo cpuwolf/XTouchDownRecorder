@@ -153,6 +153,33 @@ static XTDData *datarealtm, *datacopy;
 									idx = 0;\
 								} tmp_count--;\
 
+static XTDData * XTDMalloc()
+{
+	XTDData * pd;
+	pd = malloc(_XTDDATASIZE);
+	if(!pd) {
+		XPLMDebugString("XTouchDownRecorder:malloc error!\n");
+		return NULL;
+	}
+	memset(pd, 0, _XTDDATASIZE);
+	pd->touchdown_vs_table = pd->pbuffer + (TOUCHDOWN_VS_IDX * MAX_TABLE_ELEMENTS);
+	pd->touchdown_g_table  = pd->pbuffer + (TOUCHDOWN_G_IDX * MAX_TABLE_ELEMENTS);
+	pd->touchdown_pch_table = pd->pbuffer + (TOUCHDOWN_PCH_IDX * MAX_TABLE_ELEMENTS);
+	pd->touchdown_air_table = (BOOL *)(pd->pbuffer + (TOUCHDOWN_AIR_IDX * MAX_TABLE_ELEMENTS));
+	pd->touchdown_elev_table = pd->pbuffer + (TOUCHDOWN_ELEV_IDX * MAX_TABLE_ELEMENTS);
+	pd->touchdown_eng_table = pd->pbuffer + (TOUCHDOWN_ENG_IDX * MAX_TABLE_ELEMENTS);
+	pd->touchdown_agl_table = pd->pbuffer + (TOUCHDOWN_AGL_IDX * MAX_TABLE_ELEMENTS);
+	pd->touchdown_tm_table = pd->pbuffer + (TOUCHDOWN_TM_IDX * MAX_TABLE_ELEMENTS);
+	pd->touchdown_gs_table = pd->pbuffer + (TOUCHDOWN_GS_IDX * MAX_TABLE_ELEMENTS);
+	pd->touchdown_gf_table = pd->pbuffer + (TOUCHDOWN_GF_IDX * MAX_TABLE_ELEMENTS);
+	pd->touchdown_tw_table = pd->pbuffer + (TOUCHDOWN_TW_IDX * MAX_TABLE_ELEMENTS);
+	return pd;
+}
+
+static XTDCopy(XTDData * dst, XTDData * src)
+{
+	memcpy(dst, src, _XTDDATASIZE);
+}
 
 static float lastVS = 1.0;
 static float lastG = 1.0;
@@ -455,8 +482,8 @@ static int gettouchdownanddraw(int idx, float * pfpm, float pg[],int x, int y)
 		float delta_tm = zero_tm - pd->touchdown_tm_table[k];
 		if((delta_tm - s) <= 0.0f) {
 			/*align with 1 second*/
-			if(s - 1.0f < 0.0001f) {
-				/*1sec before touch*/
+			if(s - 2.0f < 0.0001f) {
+				/*2sec before touch*/
 				iter_start = TRUE;
 				delta_tm_expect = delta_tm;
 				last_k = k;
@@ -467,10 +494,10 @@ static int gettouchdownanddraw(int idx, float * pfpm, float pg[],int x, int y)
 			s-=1.0f;
 		}
 		/*caculate descent rate*/
-		if((iter_start) && (iter_times < 2) && (delta_tm-delta_tm_expect<=0.0f)) {
+		if((iter_start) && (iter_times < 3) && (delta_tm-delta_tm_expect<=0.0f)) {
 			fpm=(pd->touchdown_agl_table[k]-zero_agl)*196.850394f/delta_tm;
 			sum_fpm += fpm;
-			delta_tm_expect= delta_tm/2.0f;
+			delta_tm_expect= delta_tm/1.5f;
 			iter_times++;
 		}
 		/*caculate G force*/
@@ -531,10 +558,9 @@ static int drawtouchdownpoints(int x, int y)
 	return touchtimes;
 }
 
-static int getfirsttouchdownpointidx()
+static int getfirsttouchdownpointidx(XTDData * pd)
 {
 	int k,tmpc;
-	XTDData * pd = datarealtm;
 	BUFFER_GO_START(k,tmpc);
 	BOOL last_air_recorded = pd->touchdown_air_table[k];
 	float last_agl_recorded = pd->touchdown_agl_table[k];
@@ -579,7 +605,7 @@ static void drawcb(XPLMWindowID inWindowID, void *inRefcon)
 	/*-- draw center line*/
 	draw_line(0, 0, 0, 1, 3, x, y + (_TD_CHART_HEIGHT / 2), x + (MAX_TABLE_ELEMENTS * 2), y + (_TD_CHART_HEIGHT / 2));
 
-	int touch_idx = getfirsttouchdownpointidx();
+	int touch_idx = getfirsttouchdownpointidx(datarealtm);
 
 	int x_text = x + 5;
 	int y_text = y + 4;
@@ -1112,7 +1138,9 @@ static float secondcb(float inElapsedSinceLastCall,
 			time(&g_info->touchTime);
 			/*-- stop data collection*/
 			g_info->collect_touchdown_data = FALSE;
-		} 
+		} else if (g_info->ground_counter == 4) {
+			XTDCopy(datacopy, datarealtm);
+		}
 	} else {
 		/*-- in the air*/
 		g_info->ground_counter = 0;
@@ -1186,7 +1214,6 @@ PLUGIN_API int XPluginStart(char * outName, char * outSig, char * outDesc)
 	int menuidx;
 	char path[600], *prefpath;
 	const char *csep;
-	XTDData * pd;
 
 	/* Plugin details */
 	sprintf(outName, _PRONAMEVER_" %s %s", __DATE__ , __TIME__);
@@ -1221,24 +1248,18 @@ PLUGIN_API int XPluginStart(char * outName, char * outSig, char * outDesc)
 	sprintf(path, "XTouchDownRecorder: xp path %s\n", g_info->g_xppath);
 	XPLMDebugString(path);
 
-	datarealtm = malloc(_XTDDATASIZE);
+	datarealtm = XTDMalloc();
 	if(!datarealtm) {
-		XPLMDebugString("XTouchDownRecorder:malloc g_pbuffer error!\n");
+		XPLMDebugString("XTouchDownRecorder:malloc datarealtm error!\n");
 		return 0;
 	}
-	memset(datarealtm, 0, _XTDDATASIZE);
-	pd = datarealtm;
-	pd->touchdown_vs_table = pd->pbuffer + (TOUCHDOWN_VS_IDX * MAX_TABLE_ELEMENTS);
-	pd->touchdown_g_table  = pd->pbuffer + (TOUCHDOWN_G_IDX * MAX_TABLE_ELEMENTS);
-	pd->touchdown_pch_table = pd->pbuffer + (TOUCHDOWN_PCH_IDX * MAX_TABLE_ELEMENTS);
-	pd->touchdown_air_table = (BOOL *)(pd->pbuffer + (TOUCHDOWN_AIR_IDX * MAX_TABLE_ELEMENTS));
-	pd->touchdown_elev_table = pd->pbuffer + (TOUCHDOWN_ELEV_IDX * MAX_TABLE_ELEMENTS);
-	pd->touchdown_eng_table = pd->pbuffer + (TOUCHDOWN_ENG_IDX * MAX_TABLE_ELEMENTS);
-	pd->touchdown_agl_table = pd->pbuffer + (TOUCHDOWN_AGL_IDX * MAX_TABLE_ELEMENTS);
-	pd->touchdown_tm_table = pd->pbuffer + (TOUCHDOWN_TM_IDX * MAX_TABLE_ELEMENTS);
-	pd->touchdown_gs_table = pd->pbuffer + (TOUCHDOWN_GS_IDX * MAX_TABLE_ELEMENTS);
-	pd->touchdown_gf_table = pd->pbuffer + (TOUCHDOWN_GF_IDX * MAX_TABLE_ELEMENTS);
-	pd->touchdown_tw_table = pd->pbuffer + (TOUCHDOWN_TW_IDX * MAX_TABLE_ELEMENTS);
+
+	datacopy = XTDMalloc();
+	if (!datacopy) {
+		XPLMDebugString("XTouchDownRecorder:malloc datacopy error!\n");
+		return 0;
+	}
+
 
 	gearFRef = XPLMFindDataRef("sim/flightmodel/forces/fnrml_gear");
 	gForceRef = XPLMFindDataRef("sim/flightmodel2/misc/gforce_normal");
@@ -1302,7 +1323,12 @@ PLUGIN_API void	XPluginStop(void)
 	}
 	if(datarealtm) {
 		free(datarealtm);
-		//g_pbuffer = NULL;
+		//datarealtm = NULL;
+	}
+
+	if (datacopy) {
+		free(datacopy);
+		//datacopy = NULL;
 	}
 	if (!g_info) {
 		free(g_info);
