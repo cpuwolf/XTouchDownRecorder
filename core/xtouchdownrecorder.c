@@ -121,13 +121,13 @@ static XTDData *datarealtm, *datacopy;
 
 
 #define _BUFFER_DELETE(xtddata) xtddata->size=0;xtddata->start = 0;xtddata->end = 0;
-#define BUFFER_DELETE() _BUFFER_DELETE(datarealtm);
+//#define BUFFER_DELETE() _BUFFER_DELETE(datarealtm);
 
 #define _BUFFER_EMPTY(xtddata) (xtddata->size==0)
-#define BUFFER_EMPTY() _BUFFER_EMPTY(datarealtm);
+//#define BUFFER_EMPTY() _BUFFER_EMPTY(datarealtm);
 
 #define _BUFFER_FULL(xtddata) (xtddata->size==MAX_TABLE_ELEMENTS)
-#define BUFFER_FULL() _BUFFER_FULL(datarealtm)
+//#define BUFFER_FULL() _BUFFER_FULL(datarealtm)
 
 /* set value firstly, then increase index */
 #define _BUFFER_INSERT_BACK(xtddata) if(xtddata->end < MAX_TABLE_ELEMENTS) {\
@@ -141,10 +141,10 @@ static XTDData *datarealtm, *datacopy;
 										xtddata->start++;} if(xtddata->start==MAX_TABLE_ELEMENTS) {\
 											xtddata->start = 0;}\
 								}
-#define BUFFER_INSERT_BACK() _BUFFER_INSERT_BACK(datarealtm);
+//#define BUFFER_INSERT_BACK() _BUFFER_INSERT_BACK(datarealtm);
 
 #define _BUFFER_GO_START(xtddata,idx,tmp_count)  tmp_count=xtddata->size; idx=xtddata->start;
-#define BUFFER_GO_START(idx,tmp_count) _BUFFER_GO_START(datarealtm,idx,tmp_count)
+//#define BUFFER_GO_START(idx,tmp_count) _BUFFER_GO_START(datarealtm,idx,tmp_count)
 
 #define BUFFER_GO_IS_END(idx,tmp_count)  (tmp_count<=0)
 
@@ -279,7 +279,7 @@ static float get_max_val(float mytable[])
 	/*-- calculate max data*/
 	float max_data = 0.0f;
 
-	BUFFER_GO_START(k,tmpc);
+	_BUFFER_GO_START(datarealtm,k,tmpc);
 	while(!BUFFER_GO_IS_END(k,tmpc)) {
 		float el = mytable[k];
 		if (fabs(el) > fabs(max_data)) {
@@ -323,7 +323,7 @@ void collect_flight_data()
 	pd->touchdown_gf_table[iw] = lastGearN;
 	pd->touchdown_tw_table[iw] = lastTotalKg;
 
-	BUFFER_INSERT_BACK();
+	_BUFFER_INSERT_BACK(datarealtm);
 
 }
 
@@ -422,7 +422,7 @@ static int draw_curve(float mytable[], float cr, float cg, float cb,
 	glColor3f(cr, cg, cb);
 	glLineWidth(1);
 	glBegin(GL_LINE_STRIP);
-	BUFFER_GO_START(k,tmpc);
+	_BUFFER_GO_START(datarealtm,k,tmpc);
 	float p;
 	int y_height,y1,ymax=y_orig + _TD_CHART_HEIGHT;
 	int draw_max_counter = 0;
@@ -467,7 +467,7 @@ static int gettouchdownanddraw(int idx, float * pfpm, float pg[],int x, int y)
 	int iter_times=0;
 	BOOL iter_start=FALSE;
 	XTDData * pd = datarealtm;
-	BUFFER_GO_START(k,tmpc);
+	_BUFFER_GO_START(pd,k,tmpc);
 	/*get interval seconds*/
 	int last_k = k;
 	float zero_tm = pd->touchdown_tm_table[idx];
@@ -534,7 +534,7 @@ static int drawtouchdownpoints(int x, int y)
 	/*-- draw touch point vertical lines*/
 	int x_tmp = x;
 	
-	BUFFER_GO_START(k,tmpc);
+	_BUFFER_GO_START(datarealtm,k,tmpc);
 	BOOL last_air_recorded = pd->touchdown_air_table[k];
 	float last_air_tm = pd->touchdown_tm_table[k];
 	BOOL b;
@@ -561,7 +561,7 @@ static int drawtouchdownpoints(int x, int y)
 static int getfirsttouchdownpointidx(XTDData * pd)
 {
 	int k,tmpc;
-	BUFFER_GO_START(k,tmpc);
+	_BUFFER_GO_START(datarealtm,k,tmpc);
 	BOOL last_air_recorded = pd->touchdown_air_table[k];
 	float last_agl_recorded = pd->touchdown_agl_table[k];
 	BOOL b;
@@ -769,7 +769,7 @@ static int create_json_str(FILE *ofile, const char * label, const char * str)
 	int ret; \
 	int k, tmpc; \
 	fprintf(ofile, "{\"label\": \"%s\",\n\"name\": \"%s\",\n\"data\": [", _label, name); \
-	BUFFER_GO_START(k, tmpc); \
+	_BUFFER_GO_START(datarealtm,k, tmpc); \
 	while (!BUFFER_GO_IS_END(k, tmpc)) { \
 		ret = fprintf(ofile, fmt, mytable[k]-base); \
 		if (ret <= 0) return ret; \
@@ -857,7 +857,7 @@ static int write_csv_file_bool(FILE *ofile,BOOL mytable[], const char * title)
 	int ret;
 	int k,tmpc;
 	fprintf(ofile, "%s,", title);
-	BUFFER_GO_START(k,tmpc);
+	_BUFFER_GO_START(datarealtm,k,tmpc);
 	while(!BUFFER_GO_IS_END(k,tmpc)) {
 		ret=fprintf(ofile, "%d,", mytable[k]);
 		if(ret <= 0) return ret;
@@ -871,7 +871,7 @@ static int write_csv_file(FILE *ofile,float mytable[], const char * title)
 	int ret;
 	int k,tmpc;
 	fprintf(ofile, "%s,", title);
-	BUFFER_GO_START(k,tmpc);
+	_BUFFER_GO_START(datarealtm,k,tmpc);
 	while(!BUFFER_GO_IS_END(k,tmpc)) {
 		ret=fprintf(ofile, "%.02f,", mytable[k]);
 		if(ret <= 0) return ret;
@@ -1118,7 +1118,7 @@ static float secondcb(float inElapsedSinceLastCall,
 		if(is_taxing()) {
 			g_info->taxi_counter++;
 			if (g_info->taxi_counter == 6) {
-				if(BUFFER_FULL()) {
+				if(_BUFFER_FULL(datarealtm)) {
 					g_info->show_touchdown_counter = 20;
 				}
 			} else if (g_info->taxi_counter == 8) {
@@ -1350,7 +1350,8 @@ PLUGIN_API void XPluginReceiveMessage(XPLMPluginID inForm, int inMessage, void *
 		switch(inMessage) {
 		case XPLM_MSG_PLANE_LOADED:
 			if (inParam == NULL) {
-				BUFFER_DELETE();
+				_BUFFER_DELETE(datarealtm);
+				_BUFFER_DELETE(datacopy);
 			}
 			break;
 		}
