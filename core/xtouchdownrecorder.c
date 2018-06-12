@@ -605,6 +605,9 @@ static BOOL analyzeTouchDown(XTDData * pd, char *text_buf, int x, int y, BOOL is
 	if (touch_idx >= 0) {
 		float landingPitch = pd->touchdown_pch_table[touch_idx];
 		float landingGs = pd->touchdown_gs_table[touch_idx];
+
+		memset(g_info->landingString, 0, sizeof(g_info->landingString));
+
 		gettouchdownanddraw(pd, touch_idx, &landingVS, landingG, x, y, isdraw);
 		g_info->XPTouchDownFpm = landingVS;
 		g_info->XPTouchDownLoad = landingG[1];
@@ -642,17 +645,20 @@ static void drawcb(XPLMWindowID inWindowID, void *inRefcon)
 	/*-- draw center line*/
 	draw_line(0, 0, 0, 1, 3, x, y + (_TD_CHART_HEIGHT / 2), x + (MAX_TABLE_ELEMENTS * 2), y + (_TD_CHART_HEIGHT / 2));
 
-	int touch_idx = getfirsttouchdownpointidx(pd);
-
 	int x_text = x + 5;
 	int y_text = y + 4;
 
 	/* print landing load data */
 	float landingVS, landingG[2];
-	memset(g_info->landingString, 0, sizeof(g_info->landingString));
+
+#if 1
+	int touch_idx = getfirsttouchdownpointidx(pd);
 	if (touch_idx >= 0) {
 		float landingPitch = pd->touchdown_pch_table[touch_idx];
 		float landingGs = pd->touchdown_gs_table[touch_idx];
+
+		memset(g_info->landingString, 0, sizeof(g_info->landingString));
+
 		gettouchdownanddraw(pd, touch_idx, &landingVS, landingG, x, y, TRUE);
 		g_info->XPTouchDownFpm = landingVS;
 		g_info->XPTouchDownLoad = landingG[1];//(landingG[0] > landingG[1]? landingG[0]: landingG[1]);
@@ -670,6 +676,14 @@ static void drawcb(XPLMWindowID inWindowID, void *inRefcon)
 		XPLMDrawString(color, x_text, y_text, text_to_print, NULL, xplmFont_Basic);
 		x_text = x_text + width_text_to_print;
 	}
+#else
+	if (analyzeTouchDown(pd, text_buf, x, y, TRUE)) {
+		char *text_to_print = text_buf;
+		int width_text_to_print = (int)floor(XPLMMeasureString(xplmFont_Basic, text_to_print, (int)strlen(text_to_print)));
+		XPLMDrawString(color, x_text, y_text, text_to_print, NULL, xplmFont_Basic);
+		x_text = x_text + width_text_to_print;
+	}
+#endif
 
 	/*start a new line*/
 	x_text = x + 5;
