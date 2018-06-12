@@ -1191,7 +1191,9 @@ static float secondcb(float inElapsedSinceLastCall,
 			g_info->collect_touchdown_data = FALSE;
 		} else if (g_info->ground_counter == 4) {
 			XTDCopy(datacopy, datarealtm);
-			analyzeTouchDown(datacopy, tmpbuf, 0, 0, FALSE);
+			if(analyzeTouchDown(datacopy, tmpbuf, 0, 0, FALSE)){
+				write_log_file_async();
+			}
 		}
 	} else {
 		/*-- in the air*/
