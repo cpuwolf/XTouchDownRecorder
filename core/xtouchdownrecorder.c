@@ -153,6 +153,19 @@ static XTDData *datarealtm, *datacopy;
 									idx = 0;\
 								} tmp_count--;\
 
+#define BUFFER_PT_UPDATE(pd) \
+	pd->touchdown_vs_table = pd->pbuffer + (TOUCHDOWN_VS_IDX * MAX_TABLE_ELEMENTS);\
+	pd->touchdown_g_table = pd->pbuffer + (TOUCHDOWN_G_IDX * MAX_TABLE_ELEMENTS);\
+	pd->touchdown_pch_table = pd->pbuffer + (TOUCHDOWN_PCH_IDX * MAX_TABLE_ELEMENTS);\
+	pd->touchdown_air_table = (BOOL *)(pd->pbuffer + (TOUCHDOWN_AIR_IDX * MAX_TABLE_ELEMENTS));\
+	pd->touchdown_elev_table = pd->pbuffer + (TOUCHDOWN_ELEV_IDX * MAX_TABLE_ELEMENTS);\
+	pd->touchdown_eng_table = pd->pbuffer + (TOUCHDOWN_ENG_IDX * MAX_TABLE_ELEMENTS);\
+	pd->touchdown_agl_table = pd->pbuffer + (TOUCHDOWN_AGL_IDX * MAX_TABLE_ELEMENTS);\
+	pd->touchdown_tm_table = pd->pbuffer + (TOUCHDOWN_TM_IDX * MAX_TABLE_ELEMENTS);\
+	pd->touchdown_gs_table = pd->pbuffer + (TOUCHDOWN_GS_IDX * MAX_TABLE_ELEMENTS);\
+	pd->touchdown_gf_table = pd->pbuffer + (TOUCHDOWN_GF_IDX * MAX_TABLE_ELEMENTS);\
+	pd->touchdown_tw_table = pd->pbuffer + (TOUCHDOWN_TW_IDX * MAX_TABLE_ELEMENTS);
+
 static XTDData * XTDMalloc()
 {
 	XTDData * pd;
@@ -162,23 +175,15 @@ static XTDData * XTDMalloc()
 		return NULL;
 	}
 	memset(pd, 0, _XTDDATASIZE);
-	pd->touchdown_vs_table = pd->pbuffer + (TOUCHDOWN_VS_IDX * MAX_TABLE_ELEMENTS);
-	pd->touchdown_g_table  = pd->pbuffer + (TOUCHDOWN_G_IDX * MAX_TABLE_ELEMENTS);
-	pd->touchdown_pch_table = pd->pbuffer + (TOUCHDOWN_PCH_IDX * MAX_TABLE_ELEMENTS);
-	pd->touchdown_air_table = (BOOL *)(pd->pbuffer + (TOUCHDOWN_AIR_IDX * MAX_TABLE_ELEMENTS));
-	pd->touchdown_elev_table = pd->pbuffer + (TOUCHDOWN_ELEV_IDX * MAX_TABLE_ELEMENTS);
-	pd->touchdown_eng_table = pd->pbuffer + (TOUCHDOWN_ENG_IDX * MAX_TABLE_ELEMENTS);
-	pd->touchdown_agl_table = pd->pbuffer + (TOUCHDOWN_AGL_IDX * MAX_TABLE_ELEMENTS);
-	pd->touchdown_tm_table = pd->pbuffer + (TOUCHDOWN_TM_IDX * MAX_TABLE_ELEMENTS);
-	pd->touchdown_gs_table = pd->pbuffer + (TOUCHDOWN_GS_IDX * MAX_TABLE_ELEMENTS);
-	pd->touchdown_gf_table = pd->pbuffer + (TOUCHDOWN_GF_IDX * MAX_TABLE_ELEMENTS);
-	pd->touchdown_tw_table = pd->pbuffer + (TOUCHDOWN_TW_IDX * MAX_TABLE_ELEMENTS);
+	BUFFER_PT_UPDATE(pd);
 	return pd;
 }
 
 static XTDCopy(XTDData * dst, XTDData * src)
 {
+	XTDData * pd = dst;
 	memcpy(dst, src, _XTDDATASIZE);
+	BUFFER_PT_UPDATE(pd);
 }
 
 static float lastVS = 1.0;
@@ -460,7 +465,7 @@ static int draw_curve(float mytable[], float cr, float cg, float cb,
 	return x_text;
 }
 
-static int gettouchdownanddraw(XTDData * pd, int idx, float * pfpm, float pg[],int x, int y)
+static int gettouchdownanddraw(XTDData * pd, int idx, float * pfpm, float pg[],int x, int y, BOOL isdraw)
 {
 	int k,tmpc;
 	int x_tmp = x;
@@ -471,29 +476,30 @@ static int gettouchdownanddraw(XTDData * pd, int idx, float * pfpm, float pg[],i
 	int last_k = k;
 	float zero_tm = pd->touchdown_tm_table[idx];
 	float zero_agl = pd->touchdown_agl_table[idx];
-	float interval = (float)floor(zero_tm - pd->touchdown_tm_table[k]);
-	float s = interval;
+	float s = (float)floor(zero_tm - pd->touchdown_tm_table[k]);
 	float fpm,sum_fpm=0.0f;
 	float max_g=0.f,min_g=0.f;
 	float delta_tm_expect;
 
 	while(!BUFFER_GO_IS_END(k,tmpc)) {
 		float delta_tm = zero_tm - pd->touchdown_tm_table[k];
-		if((delta_tm - s) <= 0.0f) {
+		if((delta_tm - s) <= 0.0001f) {
 			/*align with 1 second*/
-			if(s - 2.0f < 0.0001f) {
-				/*2sec before touch*/
+			if(s - 1.0f < 0.0001f) {
+				/*1sec before touch*/
 				iter_start = TRUE;
 				delta_tm_expect = delta_tm;
 				last_k = k;
 			}
 			/*draw second axis*/
-			draw_line(0,0,0,1,3,x_tmp, y, x_tmp, y + _TD_CHART_HEIGHT);
+			if (isdraw) {
+				draw_line(0, 0, 0, 1, 3, x_tmp, y, x_tmp, y + _TD_CHART_HEIGHT);
+			}
 			/*goto next second*/
 			s-=1.0f;
 		}
 		/*caculate descent rate*/
-		if((iter_start) && (iter_times < 3) && (delta_tm-delta_tm_expect<=0.001f)) {
+		if((iter_start) && (iter_times < 2) && (delta_tm-delta_tm_expect<=0.0001f)) {
 			fpm=(pd->touchdown_agl_table[k]-zero_agl)/delta_tm*196.850394f;
 			sum_fpm += fpm;
 			delta_tm_expect= delta_tm/1.5f;
@@ -525,7 +531,7 @@ static int gettouchdownanddraw(XTDData * pd, int idx, float * pfpm, float pg[],i
 
 	return last_k;
 }
-static int drawtouchdownpoints(XTDData * pd, int x, int y)
+static int drawtouchdownpoints(XTDData * pd, int x, int y, BOOL isdraw)
 {
 	int k,tmpc;
 	int touchtimes = 0;
@@ -540,11 +546,15 @@ static int drawtouchdownpoints(XTDData * pd, int x, int y)
 		b = pd->touchdown_air_table[k];
 		if(b != last_air_recorded) {
 			if(b) {
-				/*-- draw vertical line, skip small debounce*/
+				/* skip small debounce */
 				if (pd->touchdown_tm_table[k] - last_air_tm > 0.5f) {
-					draw_line(1, 1, 1, 1, 3, x_tmp, y + (_TD_CHART_HEIGHT / 4), x_tmp, y + (_TD_CHART_HEIGHT * 3 / 4));
+					if (isdraw) {
+						/* draw vertical line */
+						draw_line(1, 1, 1, 1, 3, x_tmp, y + (_TD_CHART_HEIGHT / 4), x_tmp, y + (_TD_CHART_HEIGHT * 3 / 4));
+					}
 					touchtimes++;
 				}
+
 			} else {
 				last_air_tm = pd->touchdown_tm_table[k];
 			}
@@ -585,7 +595,7 @@ static int getfirsttouchdownpointidx(XTDData * pd)
 }
 
 /*text_buf is a buffer, not a pointer*/
-static BOOL analyzeTouchDown(XTDData * pd, char *text_buf, int x, int y)
+static BOOL analyzeTouchDown(XTDData * pd, char *text_buf, int x, int y, BOOL isdraw)
 {
 	int touch_idx = getfirsttouchdownpointidx(pd);
 
@@ -595,11 +605,11 @@ static BOOL analyzeTouchDown(XTDData * pd, char *text_buf, int x, int y)
 	if (touch_idx >= 0) {
 		float landingPitch = pd->touchdown_pch_table[touch_idx];
 		float landingGs = pd->touchdown_gs_table[touch_idx];
-		gettouchdownanddraw(pd, touch_idx, &landingVS, landingG, x, y);
+		gettouchdownanddraw(pd, touch_idx, &landingVS, landingG, x, y, isdraw);
 		g_info->XPTouchDownFpm = landingVS;
 		g_info->XPTouchDownLoad = landingG[1];
 		/*-- draw touch point vertical lines*/
-		int bouncedtimes = drawtouchdownpoints(pd, x, y);
+		int bouncedtimes = drawtouchdownpoints(pd, x, y, isdraw);
 		char *text_to_print = text_buf;
 		sprintf(text_to_print, "%.01fFpm %.02fG %.02fDegree %.01fKnots %s", landingVS, landingG[1],
 			landingPitch, landingGs*1.943844f, (bouncedtimes > 1 ? "Bounced" : ""));
@@ -643,12 +653,12 @@ static void drawcb(XPLMWindowID inWindowID, void *inRefcon)
 	if (touch_idx >= 0) {
 		float landingPitch = pd->touchdown_pch_table[touch_idx];
 		float landingGs = pd->touchdown_gs_table[touch_idx];
-		gettouchdownanddraw(pd, touch_idx, &landingVS, landingG, x, y);
+		gettouchdownanddraw(pd, touch_idx, &landingVS, landingG, x, y, TRUE);
 		g_info->XPTouchDownFpm = landingVS;
 		g_info->XPTouchDownLoad = landingG[1];//(landingG[0] > landingG[1]? landingG[0]: landingG[1]);
 
 		/*-- draw touch point vertical lines*/
-		int bouncedtimes = drawtouchdownpoints(pd, x, y);
+		int bouncedtimes = drawtouchdownpoints(pd, x, y, TRUE);
 
 		char *text_to_print = text_buf;
 		sprintf(text_to_print, "%.01fFpm %.02fG %.02fDegree %.01fKnots %s", landingVS, landingG[1],
@@ -1142,7 +1152,7 @@ static float secondcb(float inElapsedSinceLastCall,
 	float inElapsedTimeSinceLastFlightLoop, int inCounter,
 	void *inRefcon)
 {
-	char tmpbuf[100];
+	char tmpbuf[250];
 
 	if (is_on_ground()) {
 		if(is_taxing()) {
@@ -1170,6 +1180,7 @@ static float secondcb(float inElapsedSinceLastCall,
 			g_info->collect_touchdown_data = FALSE;
 		} else if (g_info->ground_counter == 4) {
 			XTDCopy(datacopy, datarealtm);
+			analyzeTouchDown(datacopy, tmpbuf, 0, 0, FALSE);
 		}
 	} else {
 		/*-- in the air*/
