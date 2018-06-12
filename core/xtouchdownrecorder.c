@@ -601,7 +601,7 @@ static BOOL analyzeTouchDown(XTDData * pd, char *text_buf, int x, int y, BOOL is
 
 	/* print landing load data */
 	float landingVS, landingG[2];
-	memset(g_info->landingString, 0, sizeof(g_info->landingString));
+
 	if (touch_idx >= 0) {
 		float landingPitch = pd->touchdown_pch_table[touch_idx];
 		float landingGs = pd->touchdown_gs_table[touch_idx];
@@ -616,9 +616,6 @@ static BOOL analyzeTouchDown(XTDData * pd, char *text_buf, int x, int y, BOOL is
 		char *text_to_print = text_buf;
 		sprintf(text_to_print, "%.01fFpm %.02fG %.02fDegree %.01fKnots %s", landingVS, landingG[1],
 			landingPitch, landingGs*1.943844f, (bouncedtimes > 1 ? "Bounced" : ""));
-		//int width_text_to_print = (int)floor(XPLMMeasureString(xplmFont_Basic, text_to_print, (int)strlen(text_to_print)));
-		//XPLMDrawString(color, x_text, y_text, text_to_print, NULL, xplmFont_Basic);
-		//x_text = x_text + width_text_to_print;
 		/*update content for file output*/
 		strcat(g_info->landingString, text_to_print);
 		return TRUE;
