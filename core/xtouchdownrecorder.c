@@ -1366,8 +1366,8 @@ PLUGIN_API int XPluginStart(char * outName, char * outSig, char * outDesc)
 
 	/*load configuration*/
 	if(read_config_file()) {
-		if ((g_info->conf.px > -10000) && (g_info->conf.px < 10000)
-			&& (g_info->conf.py > -10000) && (g_info->conf.py < 10000)) {
+		if ((g_info->conf.px > 0) && (g_info->conf.px < 10000)
+			&& (g_info->conf.py > 0) && (g_info->conf.py < 10000)) {
 			ref->win.posx = g_info->conf.px;
 			ref->win.posy = g_info->conf.py;
 		} else {
