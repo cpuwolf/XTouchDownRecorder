@@ -204,6 +204,12 @@ static float lastGearN = 0.0;
 
 typedef struct
 {
+	int px;
+	int py;
+}XTDConfig;
+
+typedef struct
+{
 	int posx;
 	int posy;
 	int width;
@@ -228,6 +234,7 @@ typedef struct
 
 	XPLMCommandRef ToggleCommand;
 	char g_xppath[512];
+	char g_xpperfpath[512];
 
 	BOOL collect_touchdown_data;
 	unsigned int show_touchdown_counter;
@@ -251,6 +258,8 @@ typedef struct
 
 	struct lightworker* worker;
 	BOOL lightworkerexit;
+
+	XTDConfig conf;
 }XTDInfo;
 
 XTDInfo * g_info;
@@ -765,8 +774,8 @@ static float flightcb(float inElapsedSinceLastCall,
 	float ret = -1.0f;
 	XTDWin * ref = (XTDWin *)inRefcon;
 	if (!g_info->g_win) {
-		ref->win.posx = 10;
-		ref->win.posy = 900;
+		//ref->win.posx = 10;
+		//ref->win.posy = 900;
 		ref->win.width = _TD_CHART_WIDTH;
 		ref->win.height = _TD_CHART_HEIGHT;
 		/*close button*/
@@ -1049,6 +1058,29 @@ static void write_log_file()
 	uploadfile(path);
 }
 
+static void write_config_file()
+{
+	char path[512];
+	sprintf(path, "%sXTouchDownRecorder.cfg", g_info->g_xpperfpath);
+	FILE* out = fopen(path, "wb");
+	if (out) {
+		fwrite(&g_info->conf, sizeof(XTDConfig), 1, out);
+		fclose(out);
+	}
+}
+
+static BOOL read_config_file()
+{
+	char path[512];
+	sprintf(path, "%sXTouchDownRecorder.cfg", g_info->g_xpperfpath);
+	FILE* in = fopen(path, "rb");
+	if (in) {
+		fread(&g_info->conf, sizeof(XTDConfig), 1, in);
+		fclose(in);
+		return TRUE;
+	}
+	return FALSE;
+}
 static void write_log_file_async()
 {
 	lightworker_queue_put_single(1105, NULL, NULL);
@@ -1282,8 +1314,13 @@ PLUGIN_API int XPluginStart(char * outName, char * outSig, char * outDesc)
 	XPLMGetPrefsPath(path);
 	csep=XPLMGetDirectorySeparator();
 	prefpath = XPLMExtractFileAndPath(path);
+	/* copy pref path */
+	strcpy(g_info->g_xpperfpath, path);
+
 	size_t len = strlen(path);
 	sprintf(path+len,"%c..%c",*csep,*csep);
+
+	sprintf(g_info->g_xpperfpath+len,"%c",*csep);
 
 	strcpy(g_info->g_xppath, path);
 	sprintf(path, "XTouchDownRecorder: xp path %s\n", g_info->g_xppath);
@@ -1326,6 +1363,21 @@ PLUGIN_API int XPluginStart(char * outName, char * outSig, char * outDesc)
 		XPLMDebugString("XTouchDownRecorder: win malloc error\n");
 		return 0;
 	}
+
+	/*load configuration*/
+	if(read_config_file()) {
+		if ((g_info->conf.px > -10000) && (g_info->conf.px < 10000)
+			&& (g_info->conf.py > -10000) && (g_info->conf.py < 10000)) {
+			ref->win.posx = g_info->conf.px;
+			ref->win.posy = g_info->conf.py;
+		} else {
+			ref->win.posx = 10;
+			ref->win.posy = 900;
+		}
+	} else {
+		ref->win.posx = 10;
+		ref->win.posy = 900;
+	}
 	/* register loopback starting at 10s */
 	XPLMRegisterFlightLoopCallback(flightcb, -1, ref);
 
@@ -1350,9 +1402,13 @@ PLUGIN_API void	XPluginStop(void)
 	XPLMUnregisterFlightLoopCallback(secondcb, NULL);
 	XPLMUnregisterFlightLoopCallback(flightcb, NULL);
 	g_info->lightworkerexit = TRUE;
+
 	if (g_info->g_win) {
 		XTDWin *ref=XPLMGetWindowRefCon(g_info->g_win);
 		if (ref) {
+			/*update config*/
+			g_info->conf.px = ref->win.posx;
+			g_info->conf.py = ref->win.posy;
 			free(ref);
 		}
 		XPLMDestroyWindow(g_info->g_win);
@@ -1371,6 +1427,10 @@ PLUGIN_API void	XPluginStop(void)
 		free(datacopy);
 		//datacopy = NULL;
 	}
+
+	/*write configuration*/
+	write_config_file();
+
 	if (!g_info) {
 		free(g_info);
 	}
