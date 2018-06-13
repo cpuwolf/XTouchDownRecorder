@@ -231,7 +231,6 @@ typedef struct
 
 	BOOL collect_touchdown_data;
 	unsigned int show_touchdown_counter;
-	BOOL IsLogWritten;
 	BOOL IsTouchDown;
 	unsigned int ground_counter;
 	unsigned int taxi_counter;
@@ -820,7 +819,7 @@ static int create_json_str(FILE *ofile, const char * label, const char * str)
 	int ret; \
 	int k, tmpc; \
 	fprintf(ofile, "{\"label\": \"%s\",\n\"name\": \"%s\",\n\"data\": [", _label, name); \
-	_BUFFER_GO_START(datarealtm,k, tmpc); \
+	_BUFFER_GO_START(datacopy,k, tmpc); \
 	while (!BUFFER_GO_IS_END(k, tmpc)) { \
 		ret = fprintf(ofile, fmt, mytable[k]-base); \
 		if (ret <= 0) return ret; \
@@ -848,7 +847,7 @@ static int create_json_arrayd(FILE *ofile, const char * label, const char * name
 }
 static void create_json_file(char * path, struct tm *tblock)
 {
-	XTDData * pd = datarealtm;
+	XTDData * pd = datacopy;
 	FILE *ofile;
 	char tmbuf[50];
 	ofile = fopen(path, "a");
@@ -908,7 +907,7 @@ static int write_csv_file_bool(FILE *ofile,BOOL mytable[], const char * title)
 	int ret;
 	int k,tmpc;
 	fprintf(ofile, "%s,", title);
-	_BUFFER_GO_START(datarealtm,k,tmpc);
+	_BUFFER_GO_START(datacopy,k,tmpc);
 	while(!BUFFER_GO_IS_END(k,tmpc)) {
 		ret=fprintf(ofile, "%d,", mytable[k]);
 		if(ret <= 0) return ret;
@@ -922,7 +921,7 @@ static int write_csv_file(FILE *ofile,float mytable[], const char * title)
 	int ret;
 	int k,tmpc;
 	fprintf(ofile, "%s,", title);
-	_BUFFER_GO_START(datarealtm,k,tmpc);
+	_BUFFER_GO_START(datacopy,k,tmpc);
 	while(!BUFFER_GO_IS_END(k,tmpc)) {
 		ret=fprintf(ofile, "%.02f,", mytable[k]);
 		if(ret <= 0) return ret;
@@ -933,7 +932,7 @@ static int write_csv_file(FILE *ofile,float mytable[], const char * title)
 }
 static void create_csv_file(char * path)
 {
-	XTDData * pd = datarealtm;
+	XTDData * pd = datacopy;
 	FILE *ofile;
 	static char tmbuf[100];
 
@@ -1046,7 +1045,6 @@ static void write_log_file()
 	//XPLMDebugString(tmbuf);
 	create_json_file(path, gm_time_tm);
 
-	g_info->IsLogWritten = TRUE;
 	/*upload file*/
 	uploadfile(path);
 }
@@ -1172,16 +1170,6 @@ static float secondcb(float inElapsedSinceLastCall,
 				if(_BUFFER_FULL(datarealtm)) {
 					g_info->show_touchdown_counter = 20;
 				}
-			} else if (g_info->taxi_counter == 8) {
-				if (g_info->IsTouchDown) {
-					g_info->IsLogWritten = FALSE;
-				}
-			} else if (g_info->taxi_counter == 9) {
-				sprintf(tmpbuf, "XTouchDownRecorder: on ground %ds\n", g_info->ground_counter);
-				XPLMDebugString(tmpbuf);
-				if (!g_info->IsLogWritten) {
-					write_log_file_async();
-				}
 			}
 		}
 		g_info->ground_counter = g_info->ground_counter + 1;
@@ -1283,7 +1271,6 @@ PLUGIN_API int XPluginStart(char * outName, char * outSig, char * outDesc)
 	memset(g_info, 0, sizeof(XTDInfo));
 	g_info->collect_touchdown_data = TRUE;
 	g_info->ground_counter = 10;
-	g_info->IsLogWritten = TRUE;
 
 	/*get XP version info*/
 	GetXPVer();
