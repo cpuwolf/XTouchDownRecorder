@@ -533,7 +533,13 @@ static int gettouchdownanddraw(XTDData * pd, int idx, float * pfpm, float pg[],i
 		BUFFER_GO_NEXT(k,tmpc);
 	}
 
-	*pfpm =  sum_fpm/iter_times;
+	if(iter_times == 0) {
+		_BUFFER_GO_START(pd,k,tmpc);
+		float delta_tm = zero_tm - pd->touchdown_tm_table[k];
+		*pfpm = (pd->touchdown_agl_table[k]-zero_agl)/delta_tm*196.850394f;;
+	} else {
+		*pfpm =  sum_fpm/iter_times;
+	}
 	pg[0] = max_g;
 	pg[1] = min_g;
 
@@ -994,6 +1000,17 @@ static int movefile(char * srcfile, char * dstfile)
 	}
 	return 0;
 }
+
+static void trimtail(char * str)
+{
+	char *end;
+	// Trim trailing space
+	end = str + strlen(str) - 1;
+	while(end > str && isspace((unsigned char)*end)) end--;
+	// Write new null terminator character
+	end[1] = '\0';
+}
+
 static void write_log_file()
 {
 	FILE *ofile;
@@ -1025,6 +1042,7 @@ static void write_log_file()
 
 	num = XPLMGetDatab(icaoRef, g_info->logAircraftIcao, 0, 39);
 	g_info->logAircraftIcao[num] = 0;
+	trimtail(g_info->logAircraftIcao);
 
 	sprintf(path, "%sXTouchDownRecorderLog.txt", g_info->g_xppath);
 
