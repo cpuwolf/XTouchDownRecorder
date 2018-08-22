@@ -1039,6 +1039,7 @@ static void write_log_file()
 
 	num = XPLMGetDatab(tailRef, g_info->logAircraftTail, 0, 49);
 	g_info->logAircraftTail[num] = 0;
+	trimtail(g_info->logAircraftTail);
 
 	num = XPLMGetDatab(icaoRef, g_info->logAircraftIcao, 0, 39);
 	g_info->logAircraftIcao[num] = 0;
