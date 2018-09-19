@@ -66,7 +66,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "lightworker.h"
 
-#define _PROVER_ "V6a"
+#define _PROVER_ "V6"
 #define _PRONAMEVER_ "XTouchDownRecorder " _PROVER_ " (" __DATE__ ")"
 
 static int uploadfile(char * path);
