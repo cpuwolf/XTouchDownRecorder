@@ -1103,6 +1103,7 @@ static BOOL read_config_file()
 static void write_log_file_async()
 {
 	lightworker_queue_put_single(1105, NULL, NULL);
+	lightworker_event_set(&g_info->worker->event);
 }
 static BOOL getnetinfodone()
 {
@@ -1279,6 +1280,7 @@ static void GetXPVer()
 
 static unsigned int lightworker_job_helper(void *arg)
 {
+	struct lightworker * thread = (struct lightworker *)arg;
 	getnetinfo();
 	if (!getnetinfodone()) {
 		getnetinfo();
@@ -1286,6 +1288,7 @@ static unsigned int lightworker_job_helper(void *arg)
 
 	lightworker_queue_task * task;
 	while (!g_info->lightworkerexit) {
+		lightworker_event_wait(&thread->event);
 		task = lightworker_queue_get_single();
 		if (task) {
 			switch (task->msg) {
@@ -1294,10 +1297,8 @@ static unsigned int lightworker_job_helper(void *arg)
 				break;
 			}
 		}
-		else {
-			lightworker_sleep(5000);
-		}
 	}
+	lightworker_event_set(&thread->event_exit);
 	return 0;
 }
 
@@ -1421,6 +1422,8 @@ PLUGIN_API void	XPluginStop(void)
 	XPLMUnregisterFlightLoopCallback(secondcb, NULL);
 	XPLMUnregisterFlightLoopCallback(flightcb, NULL);
 	g_info->lightworkerexit = TRUE;
+	lightworker_event_set(&g_info->worker->event);
+	lightworker_event_wait(&g_info->worker->event_exit);
 
 	if (g_info->g_win) {
 		XTDWin *ref=XPLMGetWindowRefCon(g_info->g_win);

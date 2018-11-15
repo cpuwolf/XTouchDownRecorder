@@ -61,6 +61,8 @@ struct lightworker* lightworker_create(lightworker_job_t func, void *arg)
     thread->priv=arg;
 
 	lightworker_mutex_init(&thread->mutex);
+	lightworker_event_init(&thread->event);
+	lightworker_event_init(&thread->event_exit);
 #if defined(_WIN32)
 	thread->thread_id = CreateThread(NULL, 0,
 		(LPTHREAD_START_ROUTINE)_lightworker_job_helper, thread, 0, NULL);
@@ -89,6 +91,40 @@ void lightworker_destroy(struct lightworker* thread)
 #endif
 }
 
+void lightworker_event_init(lightworker_event * ev)
+{
+#if defined(_WIN32)
+	ev->event = CreateEvent(NULL, FALSE, FALSE, TEXT("lightworker_event"));
+#else
+	pthread_mutex_init(&ev->mutex, NULL);
+	pthread_cond_init(&ev->condition, NULL);
+	ev->flag = 0;
+#endif
+}
+int lightworker_event_wait(lightworker_event * ev)
+{
+#if defined(_WIN32)
+	WaitForSingleObject(&ev->event, INFINITE);
+#else
+	pthread_mutex_lock(&ev->mutex);
+    while (!ev->flag)
+		pthread_cond_wait(&ev->condition, &ev->mutex);
+	ev->flag = 0;
+	pthread_mutex_unlock(&ev->mutex);
+#endif
+	return 0;
+}
+void lightworker_event_set(lightworker_event * ev)
+{
+#if defined(_WIN32)
+	SetEvent (&ev->event);
+#else
+	pthread_mutex_lock(&ev->mutex);
+	ev->flag = 1;
+	pthread_cond_signal(&ev->condition);
+	pthread_mutex_unlock(&ev->mutex);
+#endif
+}
 
 static void lightworker_q_init(lightworker_q * cb, unsigned int max)
 {

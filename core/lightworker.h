@@ -50,10 +50,26 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define lightworker_mutex_destroy(m)  pthread_mutex_destroy(m)
 #endif
 
+typedef struct {
+#if defined(_WIN32)
+	HANDLE event;
+#else
+	pthread_mutex_t mutex;
+	pthread_cond_t condition;
+	unsigned int flag;
+#endif
+}lightworker_event;
+
+void lightworker_event_init(lightworker_event *);
+int lightworker_event_wait(lightworker_event *);
+void lightworker_event_set(lightworker_event *);
+
 typedef unsigned int(*lightworker_job_t)(void *);
 
 struct lightworker
 {
+	lightworker_event event;
+	lightworker_event event_exit;
 	lightworker_mutex_t mutex;
 	lightworker_thread_t thread_id;
 	lightworker_job_t func;
@@ -61,6 +77,7 @@ struct lightworker
 };
 
 struct lightworker* lightworker_create(lightworker_job_t func, void *arg);
+
 
 typedef struct {
 	unsigned int g_max_size;
