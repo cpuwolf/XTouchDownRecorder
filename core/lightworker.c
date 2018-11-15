@@ -49,7 +49,8 @@ static void * _lightworker_job_helper(void *arg)
 {
     struct lightworker * thread = (struct lightworker *)arg;
     thread->func(thread->priv);
-	free(arg);
+	lightworker_event_set(&thread->event_exit);
+	lightworker_event_destroy(&thread->event);
     return NULL;
 }
 
@@ -60,9 +61,9 @@ struct lightworker* lightworker_create(lightworker_job_t func, void *arg)
     thread->func=func;
     thread->priv=arg;
 
-	lightworker_mutex_init(&thread->mutex);
 	lightworker_event_init(&thread->event);
 	lightworker_event_init(&thread->event_exit);
+	lightworker_queue_init_single(thread);
 #if defined(_WIN32)
 	thread->thread_id = CreateThread(NULL, 0,
 		(LPTHREAD_START_ROUTINE)_lightworker_job_helper, thread, 0, NULL);
@@ -80,8 +81,15 @@ struct lightworker* lightworker_create(lightworker_job_t func, void *arg)
 	return thread;
 }
 
+void lightworker_wait_exit(struct lightworker* thread)
+{
+	lightworker_event_set(&thread->event);
+	lightworker_event_wait(&thread->event_exit);
+}
+
 void lightworker_destroy(struct lightworker* thread)
 {
+	lightworker_wait_exit(thread);
 #if defined(_WIN32)
 	CloseHandle(thread->thread_id);
 #else
@@ -89,6 +97,7 @@ void lightworker_destroy(struct lightworker* thread)
 		pthread_detach(thread->thread_id);
 	}
 #endif
+	free(thread);
 }
 
 void lightworker_event_init(lightworker_event * ev)
@@ -123,6 +132,16 @@ void lightworker_event_set(lightworker_event * ev)
 	ev->flag = 1;
 	pthread_cond_signal(&ev->condition);
 	pthread_mutex_unlock(&ev->mutex);
+#endif
+}
+
+void lightworker_event_destroy(lightworker_event * ev)
+{
+#if defined(_WIN32)
+	CloseHandle(&ev->event);
+#else
+	pthread_mutex_destroy(&ev->mutex);
+	pthread_cond_destroy(&ev->condition);
 #endif
 }
 
@@ -189,14 +208,6 @@ static void lightworker_q_get_post(lightworker_q * cb)
 	lightworker_mutex_release(&cb->lock);
 }
 //customer queue
-#define LIGHTWORKER_QUEUE_TASK_MAX 10
-
-typedef struct {
-	lightworker_q q;
-	lightworker_queue_task task[LIGHTWORKER_QUEUE_TASK_MAX];
-}lightworker_queue;
-
-static lightworker_queue g_wq;
 
 void lightworker_queue_init(lightworker_queue * cb)
 {
@@ -229,19 +240,21 @@ lightworker_queue_task* lightworker_queue_get(lightworker_queue * cb)
 	}
 }
 
-void lightworker_queue_init_single()
+void lightworker_queue_init_single(struct lightworker *thread)
 {
-	lightworker_queue * cb = &g_wq;
+	lightworker_queue * cb = &thread->wq;
 	lightworker_queue_init(cb);
 }
-void lightworker_queue_put_single(int msg, lightworker_job_t func, void *arg)
+void lightworker_queue_put_single(struct lightworker *thread, int msg, lightworker_job_t func, void *arg)
 {
-	lightworker_queue * cb = &g_wq;
+	lightworker_queue * cb = &thread->wq;
 	lightworker_queue_put(cb, msg, func, arg);
+	lightworker_event_set(&thread->event);
 }
-lightworker_queue_task* lightworker_queue_get_single()
+lightworker_queue_task* lightworker_queue_get_single(struct lightworker *thread)
 {
-	lightworker_queue * cb = &g_wq;
+	lightworker_queue * cb = &thread->wq;
+	lightworker_event_wait(&thread->event);
 	return lightworker_queue_get(cb);
 }
 void lightworker_sleep(int ms)

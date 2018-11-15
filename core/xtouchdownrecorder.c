@@ -1102,8 +1102,7 @@ static BOOL read_config_file()
 }
 static void write_log_file_async()
 {
-	lightworker_queue_put_single(1105, NULL, NULL);
-	lightworker_event_set(&g_info->worker->event);
+	lightworker_queue_put_single(g_info->worker,1105, NULL, NULL);
 }
 static BOOL getnetinfodone()
 {
@@ -1288,8 +1287,7 @@ static unsigned int lightworker_job_helper(void *arg)
 
 	lightworker_queue_task * task;
 	while (!g_info->lightworkerexit) {
-		lightworker_event_wait(&thread->event);
-		task = lightworker_queue_get_single();
+		task = lightworker_queue_get_single(g_info->worker);
 		if (task) {
 			switch (task->msg) {
 			case 1105:
@@ -1298,7 +1296,6 @@ static unsigned int lightworker_job_helper(void *arg)
 			}
 		}
 	}
-	lightworker_event_set(&thread->event_exit);
 	return 0;
 }
 
@@ -1328,7 +1325,6 @@ PLUGIN_API int XPluginStart(char * outName, char * outSig, char * outDesc)
 	GetXPVer();
 
 	/*create a worker*/
-	lightworker_queue_init_single();
 	g_info->worker = lightworker_create(lightworker_job_helper, g_info);
 	/* get path*/
 	XPLMGetPrefsPath(path);
@@ -1422,8 +1418,7 @@ PLUGIN_API void	XPluginStop(void)
 	XPLMUnregisterFlightLoopCallback(secondcb, NULL);
 	XPLMUnregisterFlightLoopCallback(flightcb, NULL);
 	g_info->lightworkerexit = TRUE;
-	lightworker_event_set(&g_info->worker->event);
-	lightworker_event_wait(&g_info->worker->event_exit);
+	lightworker_destroy(g_info->worker);
 
 	if (g_info->g_win) {
 		XTDWin *ref=XPLMGetWindowRefCon(g_info->g_win);

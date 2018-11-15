@@ -63,21 +63,9 @@ typedef struct {
 void lightworker_event_init(lightworker_event *);
 int lightworker_event_wait(lightworker_event *);
 void lightworker_event_set(lightworker_event *);
+void lightworker_event_destroy(lightworker_event *);
 
 typedef unsigned int(*lightworker_job_t)(void *);
-
-struct lightworker
-{
-	lightworker_event event;
-	lightworker_event event_exit;
-	lightworker_mutex_t mutex;
-	lightworker_thread_t thread_id;
-	lightworker_job_t func;
-    void * priv;
-};
-
-struct lightworker* lightworker_create(lightworker_job_t func, void *arg);
-
 
 typedef struct {
 	unsigned int g_max_size;
@@ -88,16 +76,40 @@ typedef struct {
 	lightworker_mutex_t lock;
 }lightworker_q;
 
-
 typedef struct {
 	int msg;
 	lightworker_job_t func;
 	void * priv;
 }lightworker_queue_task;
 
-void lightworker_queue_init_single();
-void lightworker_queue_put_single(int msg, lightworker_job_t func, void *arg);
-lightworker_queue_task* lightworker_queue_get_single();
+#define LIGHTWORKER_QUEUE_TASK_MAX 10
+
+typedef struct {
+	lightworker_q q;
+	lightworker_queue_task task[LIGHTWORKER_QUEUE_TASK_MAX];
+}lightworker_queue;
+
+void lightworker_queue_init_single(struct lightworker*);
+void lightworker_queue_put_single(struct lightworker*,int msg, lightworker_job_t func, void *arg);
+lightworker_queue_task* lightworker_queue_get_single(struct lightworker*);
+
+
+
+
+struct lightworker
+{
+	lightworker_event event;
+	lightworker_event event_exit;
+	lightworker_thread_t thread_id;
+	lightworker_queue wq;
+	lightworker_job_t func;
+    void * priv;
+};
+
+struct lightworker* lightworker_create(lightworker_job_t func, void *arg);
+void lightworker_destroy(struct lightworker* thread);
 void lightworker_sleep(int ms);
+
+
 
 #endif //LIGHTWORKER_H
