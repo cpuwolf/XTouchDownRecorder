@@ -179,7 +179,7 @@ static XTDData * XTDMalloc()
 	return pd;
 }
 
-static XTDCopy(XTDData * dst, XTDData * src)
+static void XTDCopy(XTDData * dst, XTDData * src)
 {
 	XTDData * pd = dst;
 	memcpy(dst, src, _XTDDATASIZE);
@@ -949,7 +949,7 @@ static void create_csv_file(char * path)
 {
 	XTDData * pd = datacopy;
 	FILE *ofile;
-	static char tmbuf[100];
+	//static char tmbuf[100];
 
 	ofile = fopen(path, "a");
 	if (ofile) {
@@ -1279,7 +1279,7 @@ static void GetXPVer()
 
 static unsigned int lightworker_job_helper(void *arg)
 {
-	struct lightworker * thread = (struct lightworker *)arg;
+	//struct lightworker * thread = (struct lightworker *)arg;
 	getnetinfo();
 	if (!getnetinfodone()) {
 		getnetinfo();

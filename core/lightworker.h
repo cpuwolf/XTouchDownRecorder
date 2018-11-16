@@ -89,22 +89,20 @@ typedef struct {
 	lightworker_queue_task task[LIGHTWORKER_QUEUE_TASK_MAX];
 }lightworker_queue;
 
+struct lightworker
+{
+    lightworker_event event;
+    lightworker_event event_exit;
+    lightworker_thread_t thread_id;
+    lightworker_queue wq;
+    lightworker_job_t func;
+    void * priv;
+};
+
 void lightworker_queue_init_single(struct lightworker*);
 void lightworker_queue_put_single(struct lightworker*,int msg, lightworker_job_t func, void *arg);
 lightworker_queue_task* lightworker_queue_get_single(struct lightworker*);
 
-
-
-
-struct lightworker
-{
-	lightworker_event event;
-	lightworker_event event_exit;
-	lightworker_thread_t thread_id;
-	lightworker_queue wq;
-	lightworker_job_t func;
-    void * priv;
-};
 
 struct lightworker* lightworker_create(lightworker_job_t func, void *arg);
 void lightworker_destroy(struct lightworker* thread);
