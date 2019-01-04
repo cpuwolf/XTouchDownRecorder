@@ -19,9 +19,13 @@ after almost six months working on X-Plane 11  with different aircraft, I realiz
 * automatically pop up after landing
 * button/key assignment
 
-## maintain website ##
+## Installation
 
-https://forums.x-plane.org/index.php?/files/file/39630-touchdownrecorder/
+unzip and move XTouchDownRecorder to X-Plane 11\Resources\plugins\
+re-start X-Plane
+check X-Plane Plugin menu, there will be a "XTouchDownRecorder"
+even if your airplane touched the ground several times, XTouchDownRecorder will give you a beautiful chart for landing analsysis
+
 
 ## Joystick button/key assignment ##
 
