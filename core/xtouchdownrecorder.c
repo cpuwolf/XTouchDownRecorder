@@ -890,13 +890,13 @@ static void create_json_file(char * path, struct tm *tblock)
 		for(int i=0; i < strlen(pathbuf);i++){
 			if (pathbuf[i] == '\\') { pathbuf[i] = '/'; }
 		}
-		create_json_str(ofile, "xtd_xp_path", g_info->g_xppath);
+		create_json_str(ofile, "xtd_xp_path", pathbuf);
 		#if defined(__APPLE__)
 		create_json_str(ofile, "xtd_os", "mac");
 		#elif defined(__unix__)
-		create_json_str(ofile, "xtd_os", "win");
-		#else
 		create_json_str(ofile, "xtd_os", "lin");
+		#else
+		create_json_str(ofile, "xtd_os", "win");
 		#endif
 		create_json_str(ofile, "xtd_acf_icao", g_info->logAircraftIcao);
 		create_json_str(ofile, "xtd_acf_tail", g_info->logAircraftTail);
@@ -1104,7 +1104,7 @@ static void write_log_file()
 	do {
 		/*upload file*/
 		if (uploadfile(path)) {
-			//remove(path);
+			remove(path);
 			break;
 		}
 		trytimes--;
@@ -1196,7 +1196,7 @@ static int uploadfile(char * path)
 {
 	CURL *curl;
 	CURLcode res;
-	float speed_upload, total_time;
+	double speed_upload, total_time;
 	int ret = 0;
 	char tmpbuf[90];
 
@@ -1218,6 +1218,7 @@ static int uploadfile(char * path)
 		curl_mime_data(field, "send", CURL_ZERO_TERMINATED);
 
 		curl_easy_setopt(curl, CURLOPT_URL, "https://x-plane.vip/chat/upload");
+		curl_easy_setopt(curl, CURLOPT_FAILONERROR, 1L);
 		curl_easy_setopt(curl, CURLOPT_MIMEPOST, form);
 		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, httpcb);
 		curl_easy_setopt(curl, CURLOPT_USERAGENT, "Dark Secret Ninja/1.0");
