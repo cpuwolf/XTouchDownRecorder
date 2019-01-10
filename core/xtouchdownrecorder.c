@@ -66,7 +66,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "lightworker.h"
 
-#define _PROVER_ "V7"
+#define _PROVER_ "V8"
 #define _PRONAMEVER_ "XTouchDownRecorder " _PROVER_ " (" __DATE__ ")"
 
 static int uploadfile(char * path);
@@ -586,9 +586,14 @@ static int getfirsttouchdownpointidx(XTDData * pd)
 	_BUFFER_GO_START(pd,k,tmpc);
 	BOOL last_air_recorded = pd->touchdown_air_table[k];
 	float last_agl_recorded = pd->touchdown_agl_table[k];
+	float last_air_tm = pd->touchdown_tm_table[k];
 	BOOL b;
 	float max_agl_recorded = get_max_val(pd, pd->touchdown_agl_table);
 	while(!BUFFER_GO_IS_END(k,tmpc)) {
+		/*if aircraft has been reloaded, there will be jump in time */
+		if (fabs(pd->touchdown_tm_table[k] - last_air_tm) > 5.0f) {
+			return -1;
+		}
 		b = pd->touchdown_air_table[k];
 		if(b != last_air_recorded) {
 			if(b) {
@@ -603,6 +608,7 @@ static int getfirsttouchdownpointidx(XTDData * pd)
 		}
 		last_air_recorded = b;
 		last_agl_recorded = pd->touchdown_agl_table[k];
+		last_air_tm = pd->touchdown_tm_table[k];
 		BUFFER_GO_NEXT(k,tmpc);
 	}
 	return -1;
@@ -1011,12 +1017,15 @@ static void trimtail(char * str)
 	end[1] = '\0';
 }
 
+/* work thread context, so you are free */
 static void write_log_file()
 {
 	FILE *ofile;
 	struct tm *loc_time_tm,*gm_time_tm;
 	struct tm time_tm,gtime_tm;
 	int num;
+	int trytimes=5;
+
 	static char tmbuf[100], path[512];
 	loc_time_tm = localtime(&g_info->touchTime);
 	memcpy(&time_tm, loc_time_tm, sizeof(time_tm));
@@ -1073,8 +1082,14 @@ static void write_log_file()
 	//XPLMDebugString(tmbuf);
 	create_json_file(path, gm_time_tm);
 
-	/*upload file*/
-	uploadfile(path);
+	do {
+		/*upload file*/
+		if (uploadfile(path)) {
+			remove(path);
+			break;
+		}
+		trytimes--;
+	} while(trytimes > 0);
 }
 
 static void write_config_file()
