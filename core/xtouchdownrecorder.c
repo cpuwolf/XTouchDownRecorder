@@ -878,7 +878,14 @@ static void create_json_file(char * path, struct tm *tblock)
 		/*write header*/
 		create_json_int(ofile, "xtd_xp_ver", g_info->xpVer);
 		create_json_str(ofile, "xtd_ver", _PROVER_);
-		//create_json_str(ofile, "xtd_xp_path", g_info->g_xppath);
+		create_json_str(ofile, "xtd_xp_path", g_info->g_xppath);
+		#if defined(__APPLE__)
+		create_json_str(ofile, "xtd_os", "mac");
+		#elif defined(__unix__)
+		create_json_str(ofile, "xtd_os", "win");
+		#else
+		create_json_str(ofile, "xtd_os", "lin");
+		#endif
 		create_json_str(ofile, "xtd_acf_icao", g_info->logAircraftIcao);
 		create_json_str(ofile, "xtd_acf_tail", g_info->logAircraftTail);
 		create_json_str(ofile, "xtd_apt_icao", g_info->logAirportId);
