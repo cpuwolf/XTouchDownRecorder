@@ -55,6 +55,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <XPLMProcessing.h>
 #include <XPLMMenus.h>
 #include <XPLMNavigation.h>
+#include <XPWidgets.h>
+#include <XPStandardWidgets.h>
+#include <XPWidgetUtils.h>
 
 #ifdef __APPLE__
 #include <OpenGL/gl.h>
@@ -206,6 +209,7 @@ typedef struct
 {
 	int px;
 	int py;
+	BOOL agree;
 }XTDConfig;
 
 typedef struct
@@ -260,9 +264,12 @@ typedef struct
 	BOOL lightworkerexit;
 
 	XTDConfig conf;
+	XTDWin * winref;
+	XPWidgetID AgreeMainWidget;
 }XTDInfo;
 
 XTDInfo * g_info;
+static int XPluginStartBH();
 
 static BOOL check_ground(float n)
 {
@@ -871,6 +878,7 @@ static void create_json_file(char * path, struct tm *tblock)
 	XTDData * pd = datacopy;
 	FILE *ofile;
 	char tmbuf[50];
+	char pathbuf[512];
 	ofile = fopen(path, "a");
 	if (ofile) {
 		fprintf(ofile, "{\n");
@@ -878,6 +886,10 @@ static void create_json_file(char * path, struct tm *tblock)
 		/*write header*/
 		create_json_int(ofile, "xtd_xp_ver", g_info->xpVer);
 		create_json_str(ofile, "xtd_ver", _PROVER_);
+		strncpy(pathbuf, g_info->g_xppath, sizeof(pathbuf)-1);
+		for(int i=0; i < strlen(pathbuf);i++){
+			if (pathbuf[i] == '\\') { pathbuf[i] = '/'; }
+		}
 		create_json_str(ofile, "xtd_xp_path", g_info->g_xppath);
 		#if defined(__APPLE__)
 		create_json_str(ofile, "xtd_os", "mac");
@@ -1080,7 +1092,7 @@ static void write_log_file()
 	/*reuse tmbuf, generating file name*/
 	strftime(tmbuf, sizeof(tmbuf), "XTD-%F-%H%M%S.csv", loc_time_tm);
 	sprintf(path, "%s%s", g_info->g_xppath, tmbuf);
-	create_csv_file(path);
+	//create_csv_file(path);
 
 	XPLMDebugString("XTouchDownRecorder: writing json\n");
 	/*reuse tmbuf, generating file name*/
@@ -1092,11 +1104,12 @@ static void write_log_file()
 	do {
 		/*upload file*/
 		if (uploadfile(path)) {
-			remove(path);
+			//remove(path);
 			break;
 		}
 		trytimes--;
 	} while(trytimes > 0);
+	XPLMDebugString("XTouchDownRecorder: upload done\n");
 }
 
 static void write_config_file()
@@ -1320,11 +1333,69 @@ static unsigned int lightworker_job_helper(void *arg)
 	}
 	return 0;
 }
+int	CreateAgreeWidgetsHandler(
+						XPWidgetMessage			inMessage,
+						XPWidgetID				inWidget,
+						intptr_t				inParam1,
+						intptr_t				inParam2)
+{
+	char Buffer[256];
+
+	// Close button pressed, only hide the widget, rather than destropying it.
+	if (inMessage == xpMessage_CloseButtonPushed)
+	{
+
+		XPHideWidget(inWidget);
+
+		return 1;
+	}
+
+	// Test for a button pressed
+	if (inMessage == xpMsg_PushButtonPressed)
+	{
+		g_info->conf.agree = 1;
+		XPHideWidget(g_info->AgreeMainWidget);
+		return XPluginStartBH();
+	}
+	return 0;
+}
+void CreateAgreeWidgets(int x, int y, int w, int h)
+{
+	int x2 = x + w;
+	int y2 = y - h;
+
+	XPWidgetID AgreeMainWidget = g_info->AgreeMainWidget = XPCreateWidget(x, y, x2, y2,
+					1,	// Visible
+					"XTouchDownRecorder User Agreement",	// desc
+					1,		// root
+					NULL,	// no container
+					xpWidgetClass_MainWindow);
+
+	XPSetWidgetProperty(AgreeMainWidget, xpProperty_MainWindowHasCloseBoxes, 1);
+
+
+	XPCreateWidget(x+70, y-80, x2-70, y-100,
+							1, "XTouchDownRecorder will collect your landing data \n", 0, AgreeMainWidget,
+							xpWidgetClass_Caption);
+	XPCreateWidget(x+70, y-100, x2-70, y-120,
+							1, "for improving software,\n", 0, AgreeMainWidget,
+							xpWidgetClass_Caption);
+	XPCreateWidget(x+70, y-120, x2-70, y-140,
+							1, "press Agree button or Close windows for Disagree", 0, AgreeMainWidget,
+							xpWidgetClass_Caption);
+
+
+	XPWidgetID AgreeMainWidgetButton = XPCreateWidget(x+70, y-310, x+170, y-332,
+					1, "Agree", 0, AgreeMainWidget,
+					xpWidgetClass_Button);
+
+	XPSetWidgetProperty(AgreeMainWidgetButton, xpProperty_ButtonType, xpPushButton);
+	XPAddWidgetCallback(AgreeMainWidget, CreateAgreeWidgetsHandler);
+	XPShowWidget(AgreeMainWidget);
+}
 
 PLUGIN_API int XPluginStart(char * outName, char * outSig, char * outDesc)
 {
-	XPLMMenuID plugins_menu;
-	int menuidx;
 	char path[600], *prefpath;
 	const char *csep;
 
@@ -1401,6 +1472,7 @@ PLUGIN_API int XPluginStart(char * outName, char * outSig, char * outDesc)
 		XPLMDebugString("XTouchDownRecorder: win malloc error\n");
 		return 0;
 	}
+	g_info->winref = ref;
 
 	/*load configuration*/
 	if(read_config_file()) {
@@ -1416,8 +1488,21 @@ PLUGIN_API int XPluginStart(char * outName, char * outSig, char * outDesc)
 		ref->win.posx = 10;
 		ref->win.posy = 900;
 	}
+
+	if (g_info->conf.agree != 1) {
+		CreateAgreeWidgets(ref->win.posx, ref->win.posy, 500, 500);
+		return 1;
+	}
+
+	return XPluginStartBH();
+}
+
+static int XPluginStartBH()
+{
+	XPLMMenuID plugins_menu;
+	int menuidx;
 	/* register loopback starting at 10s */
-	XPLMRegisterFlightLoopCallback(flightcb, -1, ref);
+	XPLMRegisterFlightLoopCallback(flightcb, -1, g_info->winref);
 
 	/* register loopback in 1s */
 	XPLMRegisterFlightLoopCallback(secondcb, 1.0f, NULL);
@@ -1430,7 +1515,6 @@ PLUGIN_API int XPluginStart(char * outName, char * outSig, char * outDesc)
 	g_info->tdr_menu = XPLMCreateMenu("XTouchDownRecorder", plugins_menu, menuidx,
 				menucb, NULL);
 	XPLMAppendMenuItem(g_info->tdr_menu, "Show/Hide", NULL, 1);
-
 	return 1;
 }
 
