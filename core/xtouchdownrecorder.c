@@ -78,7 +78,7 @@ static int uploadfile(char * path);
 #define CURVE_LEN 2
 
 static XPLMDataRef gearFRef,gForceRef,vertSpeedRef,pitchRef,elevatorRef,engRef,aglRef,
-tmRef,gndSpeedRef,latRef,longRef,tailRef,icaoRef, totalWeightRef;
+tmRef,gndSpeedRef,latRef,longRef,tailRef,icaoRef, totalWeightRef,fpsRef ;
 
 
 typedef struct
@@ -266,6 +266,7 @@ typedef struct
 	XTDConfig conf;
 	XTDWin * winref;
 	XPWidgetID AgreeMainWidget;
+	int counterafttd;
 }XTDInfo;
 
 XTDInfo * g_info;
@@ -1249,6 +1250,8 @@ static float secondcb(float inElapsedSinceLastCall,
 	void *inRefcon)
 {
 	char tmpbuf[250];
+	float fps;
+	int counter;
 
 	if (is_on_ground()) {
 		if(is_taxing()) {
@@ -1260,11 +1263,17 @@ static float secondcb(float inElapsedSinceLastCall,
 			}
 		}
 		g_info->ground_counter = g_info->ground_counter + 1;
-		if (g_info->ground_counter == 3) {
+		//recalibrate stop time
+		fps= XPLMGetDataf(fpsRef);
+		counter = (int)((float)MAX_TABLE_ELEMENTS/1.7f/fps);
+		if ((counter > 10) && (counter< 200)){
+			g_info->counterafttd = counter;
+		}
+		if (g_info->ground_counter == g_info->counterafttd) {
 			time(&g_info->touchTime);
 			/*-- stop data collection*/
 			g_info->collect_touchdown_data = FALSE;
-		} else if (g_info->ground_counter == 4) {
+		} else if (g_info->ground_counter == (g_info->counterafttd+1)) {
 			XTDCopy(datacopy, datarealtm);
 			if(analyzeTouchDown(datacopy, tmpbuf, 0, 0, FALSE)){
 				write_log_file_async();
@@ -1414,6 +1423,7 @@ PLUGIN_API int XPluginStart(char * outName, char * outSig, char * outDesc)
 	memset(g_info, 0, sizeof(XTDInfo));
 	g_info->collect_touchdown_data = TRUE;
 	g_info->ground_counter = 10;
+	g_info->counterafttd = MAX_TABLE_ELEMENTS/2/30;
 
 	/*get XP version info*/
 	GetXPVer();
@@ -1464,6 +1474,7 @@ PLUGIN_API int XPluginStart(char * outName, char * outSig, char * outDesc)
 	tailRef = XPLMFindDataRef("sim/aircraft/view/acf_tailnum");
 	icaoRef = XPLMFindDataRef("sim/aircraft/view/acf_ICAO");
 	totalWeightRef = XPLMFindDataRef("sim/flightmodel/weight/m_total");
+	fpsRef = XPLMFindDataRef("sim/operation/misc/frame_rate_period");
 
 	/* MAC OS */
 	XPLMEnableFeature("XPLM_USE_NATIVE_PATHS", 1);
