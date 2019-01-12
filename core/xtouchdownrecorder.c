@@ -1369,8 +1369,10 @@ int	CreateAgreeWidgetsHandler(
 	}
 	return 0;
 }
-void CreateAgreeWidgets(int x, int y, int w, int h)
+void CreateAgreeWidgets(int x, int y)
 {
+	int w = 500;
+	int h = 300;
 	int x2 = x + w;
 	int y2 = y - h;
 
@@ -1391,11 +1393,11 @@ void CreateAgreeWidgets(int x, int y, int w, int h)
 							1, "for improving software,\n", 0, AgreeMainWidget,
 							xpWidgetClass_Caption);
 	XPCreateWidget(x+70, y-120, x2-70, y-140,
-							1, "press Agree button or Close windows for Disagree", 0, AgreeMainWidget,
+							1, "Click Agree button or Close window for Disagree", 0, AgreeMainWidget,
 							xpWidgetClass_Caption);
 
 
-	XPWidgetID AgreeMainWidgetButton = XPCreateWidget(x+70, y-310, x+170, y-332,
+	XPWidgetID AgreeMainWidgetButton = XPCreateWidget(x+70, y-250, x+170, y-280,
 					1, "Agree", 0, AgreeMainWidget,
 					xpWidgetClass_Button);
 
@@ -1502,7 +1504,7 @@ PLUGIN_API int XPluginStart(char * outName, char * outSig, char * outDesc)
 	}
 
 	if (g_info->conf.agree != 1) {
-		CreateAgreeWidgets(ref->win.posx, ref->win.posy, 500, 500);
+		CreateAgreeWidgets(ref->win.posx, ref->win.posy);
 		return 1;
 	}
 
