@@ -495,6 +495,7 @@ static int gettouchdownanddraw(XTDData * pd, int idx, float * pfpm, float pg[],i
 	float s = (float)floor(zero_tm - pd->touchdown_tm_table[k]);
 	float fpm,sum_fpm=0.0f;
 	float max_g=0.f,min_g=0.f;
+	int g_count = 0;
 	float delta_tm_expect;
 
 	while(!BUFFER_GO_IS_END(k,tmpc)) {
@@ -522,14 +523,9 @@ static int gettouchdownanddraw(XTDData * pd, int idx, float * pfpm, float pg[],i
 			iter_times++;
 		}
 		/*caculate G force*/
-		if((delta_tm >= 0.05f)&&(delta_tm <= 3.0f)) {
-			if(pd->touchdown_g_table[k] > max_g) {
-				max_g = pd->touchdown_g_table[k];
-			}
-			/*
-			if(touchdown_g_table[k] < min_g) {
-				min_g = touchdown_g_table[k];
-			}*/
+		if((delta_tm >= -3.0f)&&(delta_tm <= 3.0f)) {
+				max_g += pd->touchdown_g_table[k];
+				g_count++;
 		}
 		/*calulate G force*/
 		float tmp_g = pd->touchdown_gf_table[k] / (9.8f*pd->touchdown_tw_table[k]);
@@ -548,7 +544,7 @@ static int gettouchdownanddraw(XTDData * pd, int idx, float * pfpm, float pg[],i
 	} else {
 		*pfpm =  sum_fpm/iter_times;
 	}
-	pg[0] = max_g;
+	pg[0] = max_g/g_count;
 	pg[1] = min_g;
 
 	return last_k;
@@ -638,11 +634,11 @@ static BOOL analyzeTouchDown(XTDData * pd, char *text_buf, int x, int y, BOOL is
 
 		gettouchdownanddraw(pd, touch_idx, &landingVS, landingG, x, y, isdraw);
 		g_info->XPTouchDownFpm = landingVS;
-		g_info->XPTouchDownLoad = landingG[1];
+		g_info->XPTouchDownLoad = landingG[0];
 		/*-- draw touch point vertical lines*/
 		int bouncedtimes = drawtouchdownpoints(pd, x, y, isdraw);
 		char *text_to_print = text_buf;
-		sprintf(text_to_print, "%.01fFpm %.02fG %.02fDegree %.01fKnots %s", landingVS, landingG[1],
+		sprintf(text_to_print, "%.01fFpm %.02fG %.02fDegree %.01fKnots %s", landingVS, landingG[0],
 			landingPitch, landingGs*1.943844f, (bouncedtimes > 1 ? "Bounced" : ""));
 		/*update content for file output*/
 		strcat(g_info->landingString, text_to_print);
