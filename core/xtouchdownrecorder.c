@@ -682,13 +682,13 @@ static void drawcb(XPLMWindowID inWindowID, void *inRefcon)
 
 		gettouchdownanddraw(pd, touch_idx, &landingVS, landingG, x, y, TRUE);
 		g_info->XPTouchDownFpm = landingVS;
-		g_info->XPTouchDownLoad = landingG[1];//(landingG[0] > landingG[1]? landingG[0]: landingG[1]);
+		g_info->XPTouchDownLoad = landingG[0];//(landingG[0] > landingG[1]? landingG[0]: landingG[1]);
 
 		/*-- draw touch point vertical lines*/
 		int bouncedtimes = drawtouchdownpoints(pd, x, y, TRUE);
 
 		char *text_to_print = text_buf;
-		sprintf(text_to_print, "%.01fFpm %.02fG %.02fDegree %.01fKnots %s", landingVS, landingG[1],
+		sprintf(text_to_print, "%.01fFpm %.02fG %.02fDegree %.01fKnots %s", landingVS, landingG[0],
 			landingPitch, landingGs*1.943844f, (bouncedtimes > 1 ? "Bounced" : ""));
 		/*update content for file output*/
 		strcat(g_info->landingString, text_to_print);
@@ -1367,8 +1367,8 @@ int	CreateAgreeWidgetsHandler(
 }
 void CreateAgreeWidgets(int x, int y)
 {
-	int w = 500;
-	int h = 300;
+	int w = 400;
+	int h = 240;
 	int x2 = x + w;
 	int y2 = y - h;
 
@@ -1382,18 +1382,18 @@ void CreateAgreeWidgets(int x, int y)
 	XPSetWidgetProperty(AgreeMainWidget, xpProperty_MainWindowHasCloseBoxes, 1);
 
 
-	XPCreateWidget(x+70, y-80, x2-70, y-100,
+	XPCreateWidget(x+50, y-50, x2-50, y-70,
 							1, "XTouchDownRecorder will collect your landing data \n", 0, AgreeMainWidget,
 							xpWidgetClass_Caption);
-	XPCreateWidget(x+70, y-100, x2-70, y-120,
+	XPCreateWidget(x+50, y-70, x2-50, y-90,
 							1, "for improving software,\n", 0, AgreeMainWidget,
 							xpWidgetClass_Caption);
-	XPCreateWidget(x+70, y-120, x2-70, y-140,
+	XPCreateWidget(x+50, y-110, x2-50, y-130,
 							1, "Click Agree button or Close window for Disagree", 0, AgreeMainWidget,
 							xpWidgetClass_Caption);
 
 
-	XPWidgetID AgreeMainWidgetButton = XPCreateWidget(x+70, y-250, x+170, y-280,
+	XPWidgetID AgreeMainWidgetButton = XPCreateWidget(x+140, y-170, x+280, y-190,
 					1, "Agree", 0, AgreeMainWidget,
 					xpWidgetClass_Button);
 
