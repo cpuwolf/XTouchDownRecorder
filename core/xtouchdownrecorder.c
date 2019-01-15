@@ -1083,7 +1083,7 @@ static void enumfolder()
 			sprintf(fullpath, "%s%s", path, FindFileData.cFileName);
 			if(tryuploadfile(fullpath)) {
 				txtlen=strlen(fullpath);
-				fullpath[txtlen-4]=0;
+				fullpath[txtlen-5]=0;
 				strcat(fullpath, ".csv");
 				remove(fullpath);
 				sprintf(fullpath, "XTouchDownRecorder: found %s\n", fullpath);
