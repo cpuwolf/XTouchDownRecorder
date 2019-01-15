@@ -20,24 +20,28 @@ it supports Windows, Mac, Linux x64 only
 
 **click** here open a new world
 
-![XTouchDownRecorder clickme](https://github.com/cpuwolf/XTouchDownRecorder/blob/net/img/xtdr_cme.gif)
+![XTouchDownRecorder clickme](img/xtdr_cme.gif)
 
-![XTouchDownRecorder clickme](https://github.com/cpuwolf/XTouchDownRecorder/blob/net/img/xtdr_web.gif)
+![XTouchDownRecorder clickme](img/xtdr_web.gif)
 
 ## Installation
 
 1. Unzip and move folder *XTouchDownRecorder* to X-Plane 11\Resources\plugins\
 1. Start X-Plane
-1. Check X-Plane Plugin menu, there will be a "XTouchDownRecorder"
+1. Check X-Plane Plugin menu, there will be a *XTouchDownRecorder*
 
 
 ## Joystick button/key assignment ##
 
 assign button/key to cpuwolf/XTouchDownRecorder/Toggle TouchDownRecorder Chart
 
-![TouchDownRecorder](img/TouchDownRecorder_cmd.jpg)
+X-Plane 11 user
 
-![TouchDownRecorder](TouchDownRecorder_xp10_command.jpg)
+![TouchDownRecorder](img/xtdr_cmd.gif)
+
+X-Plane 10 user
+
+![TouchDownRecorder](img/TouchDownRecorder_xp10_command.jpg)
 
 ## Screenshot on X-Plane 11 ##
 
