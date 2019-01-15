@@ -22,6 +22,8 @@ it supports Windows, Mac, Linux x64 only
 
 ![XTouchDownRecorder clickme](https://github.com/cpuwolf/XTouchDownRecorder/blob/net/img/xtdr_cme.gif)
 
+![XTouchDownRecorder clickme](https://github.com/cpuwolf/XTouchDownRecorder/blob/net/img/xtdr_web.gif)
+
 ## Installation
 
 1. unzip and move XTouchDownRecorder to X-Plane 11\Resources\plugins\
@@ -58,7 +60,7 @@ this project starts with
 
 https://github.com/leecbaker/xplane_sdk
 
-## Contact Me ##
+## Contact Me :heart: ##
 
 https://www.paypal.me/cpuwolf
 
