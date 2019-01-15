@@ -5,26 +5,28 @@ it is used for aircraft landing data analysis
 
 it supports Windows, Mac, Linux x64 only
 
-## Blog on Mar 2018 ##
-
-after almost six months working on X-Plane 11  with different aircraft, I realize that X-Plane dataref output G force value and Fpm value is appliabe only to in-flight, not for touching down. then I decide to re-calucate Fpm value by my own, and skip G force value in the next release.
-
 
 ## feature ##
 
-* touch ground times
 * landing fpm, pitch, G force
+* touch ground times
 * max fpm,pitch, G force around landing
 * landing log will be automatically written to log file TouchDownRecorderLog.txt
 * automatically pop up after landing
 * button/key assignment
+* [XTouchDownRecorder Community](https://x-plane.vip/xtdr/)
+
+## XTouchDown Recorder Community ##
+
+click here, you will open a new world
+
+![XTouchDownRecorder clickme](https://github.com/cpuwolf/XTouchDownRecorder/blob/net/img/xtdr_cme.gif)
 
 ## Installation
 
 unzip and move XTouchDownRecorder to X-Plane 11\Resources\plugins\
 re-start X-Plane
 check X-Plane Plugin menu, there will be a "XTouchDownRecorder"
-even if your airplane touched the ground several times, XTouchDownRecorder will give you a beautiful chart for landing analsysis
 
 
 ## Joystick button/key assignment ##
@@ -55,3 +57,13 @@ assign button/key to cpuwolf/XTouchDownRecorder/Toggle TouchDownRecorder Chart
 this project starts with
 
 https://github.com/leecbaker/xplane_sdk
+
+## Contact Me ##
+
+https://www.paypal.me/cpuwolf
+
+https://www.patreon.com/cpuwolf
+
+https://x-plane.vip/xtdr/
+
+QQ群：378072629
