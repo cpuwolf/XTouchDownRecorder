@@ -76,7 +76,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define _PROVER_ "V8"
 #define _PRONAMEVER_ "XTouchDownRecorder " _PROVER_ " (" __DATE__ ")"
 
-static int uploadfile(char * path);
+static BOOL uploadfile(char * path);
 
 #define MAX_TABLE_ELEMENTS 500
 #define CURVE_LEN 2
@@ -277,7 +277,7 @@ typedef struct
 }XTDInfo;
 
 XTDInfo * g_info;
-static int XPluginStartBH();
+static int XPluginStartBH(void);
 
 static BOOL check_ground(float n)
 {
@@ -1064,7 +1064,7 @@ static BOOL tryuploadfile(char * path)
 	} while(trytimes > 0);
 	return FALSE;
 }
-static void enumfolder_async();
+static void enumfolder_async(void);
 static void enumfolder()
 {
 	char tmpbuf[256];
@@ -1102,7 +1102,7 @@ static void enumfolder()
 
 	if (dp != NULL)
 	{
-		while (ep = readdir (dp)){
+		while (ep = readdir(dp)){
 			sprintf(tmpbuf, "XTouchDownRecorder: enumfolder %s\n", ep->d_name);
 			XPLMDebugString(tmpbuf);
 		}
