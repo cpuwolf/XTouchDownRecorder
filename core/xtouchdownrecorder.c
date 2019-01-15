@@ -657,7 +657,7 @@ static BOOL analyzeTouchDown(XTDData * pd, char *text_buf, int x, int y, BOOL is
 static void ChangingColor(float ccolor[])
 {
 	static unsigned int bcolor = 0;
-	bcolor++;
+	bcolor+=9;
 	if (bcolor > 0xFFFFFF) { bcolor=0; }
 	ccolor[0] = (float)(bcolor & 0xFF)/256.0f;
 	ccolor[1] = (float)((bcolor>>8) & 0xFF)/256.0f;
@@ -780,19 +780,22 @@ static void drawcb(XPLMWindowID inWindowID, void *inRefcon)
 	ref->link.posx = x_text;
 	ref->link.posy = y_text + 15;
 	strcpy(text_buf, g_info->g_NewsString);
+	float * colr=color;
 	if (ref->link.in) {
 		color[0] = 0.0;
+	} else {
+		if (g_info->linkcolorchange){
+			float ccolor[3];
+			ChangingColor(ccolor);
+			colr = ccolor;
+		}
 	}
 	
 	ref->link.width = (int)floor(XPLMMeasureString(xplmFont_Basic, text_buf, (int)strlen(text_buf)));
 	ref->link.height = 15;
-	if (g_info->linkcolorchange){
-		float ccolor[3];
-		ChangingColor(ccolor);
-		XPLMDrawString(ccolor, x_text, y_text, text_buf, NULL, xplmFont_Basic);
-	} else {
-		XPLMDrawString(color, x_text, y_text, text_buf, NULL, xplmFont_Basic);
-	}
+
+	XPLMDrawString(colr, x_text, y_text, text_buf, NULL, xplmFont_Basic);
+
 
 
 	/*-- draw close button on top-right*/
@@ -1047,6 +1050,20 @@ static int movefile(char * srcfile, char * dstfile)
 	return 0;
 }
 
+static void tryuploadfile(char * path)
+{
+	int trytimes=5;
+	do {
+		/*upload file*/
+		if (uploadfile(path)) {
+			remove(path);
+			break;
+		}
+		lightworker_sleep(2000);
+		trytimes--;
+	} while(trytimes > 0);
+}
+
 static void enumfolder()
 {
 	char tmpbuf[256];
@@ -1056,11 +1073,14 @@ static void enumfolder()
 	HANDLE hFind;
 	WIN32_FIND_DATA FindFileData;
 
-	sprintf(tmpbuf, "%s\\*", path);
+	sprintf(tmpbuf, "%sXTD*.json", path);
 	if((hFind = FindFirstFile(tmpbuf, &FindFileData)) != INVALID_HANDLE_VALUE) {
 	    do{
-	        sprintf(tmpbuf, "XTouchDownRecorder: enumfolder %s\\%s\n", path, FindFileData.cFileName);
-			XPLMDebugString(tmpbuf);
+	        sprintf(fullpath, "XTouchDownRecorder: enumfolder %s\\%s\n", path, FindFileData.cFileName);
+			XPLMDebugString(fullpath);
+			sprintf(fullpath, "%s\\%s", path, FindFileData.cFileName);
+			tryuploadfile(fullpath);
+			lightworker_sleep(5000);
 	    } while(FindNextFile(hFind, &FindFileData));
 	    FindClose(hFind);
 	}
@@ -1093,6 +1113,7 @@ static void trimtail(char * str)
 	end[1] = '\0';
 }
 
+
 /* work thread context, so you are free */
 static void write_log_file()
 {
@@ -1100,7 +1121,7 @@ static void write_log_file()
 	struct tm *loc_time_tm,*gm_time_tm;
 	struct tm time_tm,gtime_tm;
 	int num;
-	int trytimes=5;
+	
 
 	static char tmbuf[100], path[512];
 	loc_time_tm = localtime(&g_info->touchTime);
@@ -1158,14 +1179,7 @@ static void write_log_file()
 	//XPLMDebugString(tmbuf);
 	create_json_file(path, gm_time_tm);
 
-	do {
-		/*upload file*/
-		if (uploadfile(path)) {
-			remove(path);
-			break;
-		}
-		trytimes--;
-	} while(trytimes > 0);
+	tryuploadfile(path);
 	XPLMDebugString("XTouchDownRecorder: upload done\n");
 }
 
@@ -1287,9 +1301,10 @@ static int uploadfile(char * path)
 		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, httpcb);
 		curl_easy_setopt(curl, CURLOPT_USERAGENT, "Dark Secret Ninja/1.0");
 		res = curl_easy_perform(curl);
+		curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_code);
+		sprintf(tmpbuf, "XTouchDownRecorder: status code %d\n", http_code);
+		XPLMDebugString(tmpbuf);
 		if (res != CURLE_OK) {
-			curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_code);
-			
 		} else {
 			curl_easy_getinfo(curl, CURLINFO_SPEED_UPLOAD, &speed_upload);
 			curl_easy_getinfo(curl, CURLINFO_TOTAL_TIME, &total_time);
