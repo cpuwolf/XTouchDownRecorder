@@ -14,11 +14,11 @@ it supports Windows, Mac, Linux x64 only
 * landing log will be automatically written to log file TouchDownRecorderLog.txt
 * automatically pop up after landing
 * button/key assignment
-* :thumbsup:[XTouchDownRecorder Community!](https://x-plane.vip/xtdr/)
+* :thumbsup:[XTouchDownRecorder Community](https://x-plane.vip/xtdr/)
 
 ## XTouchDownRecorder Community ##
 
-** click ** here open a new world
+**click** here open a new world
 
 ![XTouchDownRecorder clickme](https://github.com/cpuwolf/XTouchDownRecorder/blob/net/img/xtdr_cme.gif)
 
@@ -26,9 +26,9 @@ it supports Windows, Mac, Linux x64 only
 
 ## Installation
 
-1. unzip and move XTouchDownRecorder to X-Plane 11\Resources\plugins\
-1. re-start X-Plane
-1. check X-Plane Plugin menu, there will be a "XTouchDownRecorder"
+1. Unzip and move folder *XTouchDownRecorder* to X-Plane 11\Resources\plugins\
+1. Start X-Plane
+1. Check X-Plane Plugin menu, there will be a "XTouchDownRecorder"
 
 
 ## Joystick button/key assignment ##
