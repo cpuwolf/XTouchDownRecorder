@@ -657,7 +657,7 @@ static BOOL analyzeTouchDown(XTDData * pd, char *text_buf, int x, int y, BOOL is
 static void ChangingColor(float ccolor[])
 {
 	static unsigned int bcolor = 0;
-	bcolor+=6;
+	bcolor+=12;
 	if (bcolor > 0xFFFFFF) { bcolor=0; }
 	ccolor[0] = (float)(bcolor & 0xFF)/255.0f;
 	ccolor[1] = (float)((bcolor>>8) & 0xFF)/255.0f;
