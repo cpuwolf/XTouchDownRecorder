@@ -33,6 +33,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <time.h>
 #include <stdio.h>
 #include <sys/stat.h>
+#if defined(_WIN32)
+#else
+#include <dirent.h>
+#endif
 
 #pragma comment(lib, "wldap32.lib" )
 #pragma comment(lib, "crypt32.lib" )
@@ -267,6 +271,9 @@ typedef struct
 	XTDWin * winref;
 	XPWidgetID AgreeMainWidget;
 	int counterafttd;
+
+	BOOL linkcolorchange;
+	unsigned int linkcolor;
 }XTDInfo;
 
 XTDInfo * g_info;
@@ -523,7 +530,7 @@ static int gettouchdownanddraw(XTDData * pd, int idx, float * pfpm, float pg[],i
 			iter_times++;
 		}
 		/*caculate G force*/
-		if((delta_tm >= -3.0f)&&(delta_tm <= 3.0f)) {
+		if((delta_tm >= 0.0f)&&(delta_tm <= 0.2f)) {
 				max_g += pd->touchdown_g_table[k];
 				g_count++;
 		}
@@ -647,6 +654,16 @@ static BOOL analyzeTouchDown(XTDData * pd, char *text_buf, int x, int y, BOOL is
 	return FALSE;
 }
 
+static void ChangingColor(float ccolor[])
+{
+	static unsigned int bcolor = 0;
+	bcolor++;
+	if (bcolor > 0xFFFFFF) { bcolor=0; }
+	ccolor[0] = (float)(bcolor & 0xFF)/256.0f;
+	ccolor[1] = (float)((bcolor>>8) & 0xFF)/256.0f;
+	ccolor[2] = (float)((bcolor>>16) & 0xFF)/256.0f;
+}
+
 static void drawcb(XPLMWindowID inWindowID, void *inRefcon)
 {
 	XTDData * pd = datarealtm;
@@ -766,9 +783,16 @@ static void drawcb(XPLMWindowID inWindowID, void *inRefcon)
 	if (ref->link.in) {
 		color[0] = 0.0;
 	}
+	
 	ref->link.width = (int)floor(XPLMMeasureString(xplmFont_Basic, text_buf, (int)strlen(text_buf)));
 	ref->link.height = 15;
-	XPLMDrawString(color, x_text, y_text, text_buf, NULL, xplmFont_Basic);
+	if (g_info->linkcolorchange){
+		float ccolor[3];
+		ChangingColor(ccolor);
+		XPLMDrawString(ccolor, x_text, y_text, text_buf, NULL, xplmFont_Basic);
+	} else {
+		XPLMDrawString(color, x_text, y_text, text_buf, NULL, xplmFont_Basic);
+	}
 
 
 	/*-- draw close button on top-right*/
@@ -1023,6 +1047,42 @@ static int movefile(char * srcfile, char * dstfile)
 	return 0;
 }
 
+static void enumfolder()
+{
+	char tmpbuf[256];
+	char fullpath[256];
+	char * path = g_info->g_xppath;
+#if defined(_WIN32)
+	HANDLE hFind;
+	WIN32_FIND_DATA FindFileData;
+
+	sprintf(tmpbuf, "%s\\*", path);
+	if((hFind = FindFirstFile(tmpbuf, &FindFileData)) != INVALID_HANDLE_VALUE) {
+	    do{
+	        sprintf(tmpbuf, "XTouchDownRecorder: enumfolder %s\\%s\n", path, FindFileData.cFileName);
+			XPLMDebugString(tmpbuf);
+	    } while(FindNextFile(hFind, &FindFileData));
+	    FindClose(hFind);
+	}
+#else
+	DIR *dp;
+	struct dirent *ep;     
+	dp = opendir(path);
+
+	if (dp != NULL)
+	{
+		while (ep = readdir (dp)){
+			sprintf(tmpbuf, "XTouchDownRecorder: enumfolder %s\n", ep->d_name);
+			XPLMDebugString(tmpbuf);
+		}
+
+		closedir (dp);
+	}
+	else
+		XPLMDebugString("XTouchDownRecorder: cannot find path\n");
+#endif
+}
+
 static void trimtail(char * str)
 {
 	char *end;
@@ -1136,6 +1196,10 @@ static void write_log_file_async()
 {
 	lightworker_queue_put_single(g_info->worker,1105, NULL, NULL);
 }
+static void enumfolder_async()
+{
+	lightworker_queue_put_single(g_info->worker,1051, NULL, NULL);
+}
 static BOOL getnetinfodone()
 {
 	return (strlen(g_info->g_NewsString) > 1)?TRUE:FALSE;
@@ -1144,6 +1208,7 @@ static size_t httpcb(char *ptr, size_t size, size_t nmemb, void *userdata)
 {
     size_t len = size*nmemb;
 	char *p_n;
+	g_info->linkcolorchange = TRUE;
     if(len < sizeof(g_info->g_NewsString)) {
 		memcpy(g_info->g_NewsString, ptr, len);
     } else {
@@ -1200,6 +1265,8 @@ static int uploadfile(char * path)
 	curl_mime *form = NULL;
 	curl_mimepart *field = NULL;
 
+	long http_code = 0;
+
 	curl_global_init(CURL_GLOBAL_DEFAULT);
 
 	curl = curl_easy_init();
@@ -1214,15 +1281,16 @@ static int uploadfile(char * path)
 		curl_mime_name(field, "submit");
 		curl_mime_data(field, "send", CURL_ZERO_TERMINATED);
 
-		curl_easy_setopt(curl, CURLOPT_URL, "https://x-plane.vip/chat/upload");
+		curl_easy_setopt(curl, CURLOPT_URL, "https://x-plane.vip/xtdr/upload");
 		curl_easy_setopt(curl, CURLOPT_FAILONERROR, 1L);
 		curl_easy_setopt(curl, CURLOPT_MIMEPOST, form);
 		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, httpcb);
 		curl_easy_setopt(curl, CURLOPT_USERAGENT, "Dark Secret Ninja/1.0");
 		res = curl_easy_perform(curl);
-		if (res != CURLE_OK)
-			XPLMDebugString("XTouchDownRecorder: upload error\n");
-		else {
+		if (res != CURLE_OK) {
+			curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_code);
+			
+		} else {
 			curl_easy_getinfo(curl, CURLINFO_SPEED_UPLOAD, &speed_upload);
 			curl_easy_getinfo(curl, CURLINFO_TOTAL_TIME, &total_time);
 			sprintf(tmpbuf, "XTouchDownRecorder: Upload speed %.0f bytes/sec\n", speed_upload);
@@ -1334,6 +1402,8 @@ static unsigned int lightworker_job_helper(void *arg)
 			case 1105:
 				write_log_file();
 				break;
+			case 1051:
+				enumfolder();
 			}
 		}
 	}
@@ -1345,8 +1415,6 @@ int	CreateAgreeWidgetsHandler(
 						intptr_t				inParam1,
 						intptr_t				inParam2)
 {
-	char Buffer[256];
-
 	// Close button pressed, only hide the widget, rather than destropying it.
 	if (inMessage == xpMessage_CloseButtonPushed)
 	{
@@ -1393,7 +1461,7 @@ void CreateAgreeWidgets(int x, int y)
 							xpWidgetClass_Caption);
 
 
-	XPWidgetID AgreeMainWidgetButton = XPCreateWidget(x+140, y-170, x+280, y-190,
+	XPWidgetID AgreeMainWidgetButton = XPCreateWidget(x+100, y-170, x+240, y-190,
 					1, "Agree", 0, AgreeMainWidget,
 					xpWidgetClass_Button);
 
@@ -1525,6 +1593,7 @@ static int XPluginStartBH()
 	g_info->tdr_menu = XPLMCreateMenu("XTouchDownRecorder", plugins_menu, menuidx,
 				menucb, NULL);
 	XPLMAppendMenuItem(g_info->tdr_menu, "Show/Hide", NULL, 1);
+	enumfolder_async();
 	return 1;
 }
 
