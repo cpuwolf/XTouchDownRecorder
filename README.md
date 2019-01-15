@@ -35,26 +35,26 @@ it supports Windows, Mac, Linux x64 only
 
 assign button/key to cpuwolf/XTouchDownRecorder/Toggle TouchDownRecorder Chart
 
-X-Plane 11 user
+### X-Plane 11 user ###
 
 ![TouchDownRecorder](img/xtdr_cmd.gif)
 
-X-Plane 10 user
+### X-Plane 10 user ###
 
 ![TouchDownRecorder](img/TouchDownRecorder_xp10_command.jpg)
 
-## Screenshot on X-Plane 11 ##
 
-![TouchDownRecorder](img/TouchDownRecorder.jpg)
+## Screenshot ##
+### X-Plane 11 ###
+
 ![TouchDownRecorder](img/TouchDownRecorder_replay.jpg)
-![TouchDownRecorder](img/TouchDownRecorder_xp11_v6a.jpg)
 
-## Screenshot on X-Plane 10 ##
 
-![TouchDownRecorder](img/TouchDownRecorder_xp10.jpg)
+### X-Plane 10 ###
+
 ![TouchDownRecorder](img/TouchDownRecorder_xp10_menu.jpg)
 
-## How to Look into it ##
+## Data Analysis ##
 
 ![TouchDownRecorder](img/TouchDownRecorder_manual.jpg)
 
