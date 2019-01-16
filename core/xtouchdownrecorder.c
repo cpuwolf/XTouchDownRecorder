@@ -272,9 +272,6 @@ typedef struct
 	XPWidgetID AgreeMainWidget;
 	int counterafttd;
 
-	BOOL linkcolorchange;
-	unsigned int linkcolor;
-
 	BOOL curl_disable_ssl_verify;
 }XTDInfo;
 
@@ -511,6 +508,8 @@ static int gettouchdownanddraw(XTDData * pd, int idx, float * pfpm, float pg[],i
 	float max_g=0.f,min_g=0.f;
 	int g_count = 0;
 	float delta_tm_expect;
+	float resfpm;
+	BOOL gforce_done=FALSE;
 
 	while(!BUFFER_GO_IS_END(k,tmpc)) {
 		float delta_tm = zero_tm - pd->touchdown_tm_table[k];
@@ -537,9 +536,14 @@ static int gettouchdownanddraw(XTDData * pd, int idx, float * pfpm, float pg[],i
 			iter_times++;
 		}
 		/*caculate G force*/
-		if((delta_tm >= 0.0f)&&(delta_tm <= 0.2f)) {
+		if((delta_tm <= 0.0f)&&(delta_tm > -0.28f)) {
 				max_g += pd->touchdown_g_table[k];
 				g_count++;
+		} else if((!gforce_done)&&(delta_tm <= -0.28f)&&(delta_tm > -1.0f)) {
+			if(pd->touchdown_g_table[k] > 1.0f) {
+				max_g += pd->touchdown_g_table[k];
+				g_count++;
+			} else {gforce_done=TRUE;}
 		}
 		/*calulate G force*/
 		float tmp_g = pd->touchdown_gf_table[k] / (9.8f*pd->touchdown_tw_table[k]);
@@ -554,10 +558,16 @@ static int gettouchdownanddraw(XTDData * pd, int idx, float * pfpm, float pg[],i
 	if(iter_times == 0) {
 		_BUFFER_GO_START(pd,k,tmpc);
 		float delta_tm = zero_tm - pd->touchdown_tm_table[k];
-		*pfpm = (pd->touchdown_agl_table[k]-zero_agl)/delta_tm*196.850394f;;
+		resfpm = (pd->touchdown_agl_table[k]-zero_agl)/delta_tm*196.850394f;
 	} else {
-		*pfpm =  sum_fpm/iter_times;
+		resfpm =  sum_fpm/iter_times;
 	}
+	if(!isnan(fpm)) {
+		*pfpm = resfpm;
+	} else {
+		*pfpm=0.00001f;
+	}
+
 	pg[0] = max_g/g_count;
 	pg[1] = min_g;
 
@@ -791,11 +801,10 @@ static void drawcb(XPLMWindowID inWindowID, void *inRefcon)
 	if (ref->link.in) {
 		color[0] = 0.0;
 	} else {
-		if (g_info->linkcolorchange){
-			float ccolor[3];
-			ChangingColor(ccolor);
-			colr = ccolor;
-		}
+		float ccolor[3];
+		ChangingColor(ccolor);
+		colr = ccolor;
+
 	}
 	
 	ref->link.width = (int)floor(XPLMMeasureString(xplmFont_Basic, text_buf, (int)strlen(text_buf)));
@@ -1262,7 +1271,6 @@ static size_t httpcb(char *ptr, size_t size, size_t nmemb, void *userdata)
 {
     size_t len = size*nmemb;
 	char *p_n;
-	g_info->linkcolorchange = TRUE;
     if(len < sizeof(g_info->g_NewsString)) {
 		memcpy(g_info->g_NewsString, ptr, len);
     } else {
