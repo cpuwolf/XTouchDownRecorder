@@ -274,6 +274,8 @@ typedef struct
 
 	BOOL linkcolorchange;
 	unsigned int linkcolor;
+
+	BOOL curl_disable_ssl_verify;
 }XTDInfo;
 
 XTDInfo * g_info;
@@ -390,10 +392,15 @@ static int mousecb(XPLMWindowID inWindowID, int x, int y,
 			g_info->show_touchdown_counter = 0;
 		} else if (InBox(&(ref->link), x, y)) {
 #if defined(_WIN32)
-			//char tmp[512];
-			//sprintf(tmp, "cmd /c start %s", g_info->g_NewsLink);
-			//system(tmp);
 			ShellExecute(NULL, "open", g_info->g_NewsLink, NULL, NULL, SW_SHOWNORMAL);
+#elif defined(__linux__)
+			char tmp[512];
+			sprintf(tmp, "sensible-browser %s&", g_info->g_NewsLink);
+			system(tmp);
+#elif defined(__APPLE__)
+			char tmp[512];
+			sprintf(tmp, "open %s&", g_info->g_NewsLink);
+			system(tmp);
 #endif
 		}
 		lastMouseX = x;
@@ -1100,12 +1107,33 @@ static void enumfolder()
 	DIR *dp;
 	struct dirent *ep;     
 	dp = opendir(path);
+	char * ename;
 
 	if (dp != NULL)
 	{
 		while (ep = readdir(dp)){
+			ename = ep->d_name;
 			sprintf(tmpbuf, "XTouchDownRecorder: enumfolder %s\n", ep->d_name);
 			XPLMDebugString(tmpbuf);
+			txtlen=strlen(ename);
+			if(strncmp(ename,"XTD-",4)==0) {
+				ename = ep->d_name+txtlen-5;
+				if(strncmp(ename,".json",5)==0) {
+					sprintf(fullpath, "XTouchDownRecorder: enumfolder %s%s\n", path, ep->d_name);
+					XPLMDebugString(fullpath);
+					sprintf(fullpath, "%s%s", path, ep->d_name);
+					if(tryuploadfile(fullpath)) {
+						txtlen=strlen(fullpath);
+						fullpath[txtlen-5]=0;
+						strcat(fullpath, ".csv");
+						remove(fullpath);
+						sprintf(fullpath, "XTouchDownRecorder: found %s\n", fullpath);
+						XPLMDebugString(fullpath);
+					}
+					enumfolder_async();
+					break;
+				}
+			}
 		}
 
 		closedir (dp);
@@ -1260,17 +1288,25 @@ static void getnetinfo()
 {
 	CURL *curl;
  	CURLcode res;
+	char tmpbuf[90];
  
  	curl_global_init(CURL_GLOBAL_DEFAULT);
  
  	curl = curl_easy_init();
  	if(curl) {
-		curl_easy_setopt(curl, CURLOPT_URL, "https://raw.githubusercontent.com/cpuwolf/XTouchDownRecorder/net/news.txt");
+		curl_easy_setopt(curl, CURLOPT_URL, "https://raw.githubusercontent.com/cpuwolf/XTouchDownRecorder/master/news.txt");
 		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, httpcb);
 		curl_easy_setopt(curl, CURLOPT_USERAGENT, "Dark Secret Ninja/1.0");
+		if(g_info->curl_disable_ssl_verify) {
+			curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, FALSE);
+		}
     	res = curl_easy_perform(curl);
     	if(res != CURLE_OK)
-    		XPLMDebugString("XTouchDownRecorder: getnetinfo error\n");
+  			if(res == CURLE_PEER_FAILED_VERIFICATION ) {
+  				g_info->curl_disable_ssl_verify = TRUE;
+  			}
+			sprintf(tmpbuf, "XTouchDownRecorder: getnetinfo error %d\n", res);
+    		XPLMDebugString(tmpbuf);
  
 		curl_easy_cleanup(curl);
 	}
@@ -1312,11 +1348,19 @@ static BOOL uploadfile(char * path)
 		curl_easy_setopt(curl, CURLOPT_MIMEPOST, form);
 		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, httpcb);
 		curl_easy_setopt(curl, CURLOPT_USERAGENT, "Dark Secret Ninja/1.0");
+		if(g_info->curl_disable_ssl_verify) {
+			curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, FALSE);
+		}
 		res = curl_easy_perform(curl);
 		curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_code);
 		sprintf(tmpbuf, "XTouchDownRecorder: status code %d\n", http_code);
 		XPLMDebugString(tmpbuf);
 		if (res != CURLE_OK) {
+			if(res == CURLE_PEER_FAILED_VERIFICATION ) {
+  				g_info->curl_disable_ssl_verify = TRUE;
+  			}
+			sprintf(tmpbuf, "XTouchDownRecorder: upload error %d\n", res);
+    			XPLMDebugString(tmpbuf);
 			if(http_code == 400) {
 				ret = TRUE;
 			}
@@ -1574,6 +1618,9 @@ PLUGIN_API int XPluginStart(char * outName, char * outSig, char * outDesc)
 
 	/* MAC OS */
 	XPLMEnableFeature("XPLM_USE_NATIVE_PATHS", 1);
+#if defined(__linux__)
+	g_info->curl_disable_ssl_verify = TRUE;
+#endif
 
 	XTDWin * ref = malloc(sizeof(XTDWin));
 	if (!ref) {
