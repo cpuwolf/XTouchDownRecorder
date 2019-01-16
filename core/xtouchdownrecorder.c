@@ -903,6 +903,7 @@ static void create_json_file(char * path, struct tm *tblock)
 	FILE *ofile;
 	char tmbuf[50];
 	char pathbuf[512];
+	int i;
 	ofile = fopen(path, "a");
 	if (ofile) {
 		fprintf(ofile, "{\n");
@@ -911,7 +912,7 @@ static void create_json_file(char * path, struct tm *tblock)
 		create_json_int(ofile, "xtd_xp_ver", g_info->xpVer);
 		create_json_str(ofile, "xtd_ver", _PROVER_);
 		strncpy(pathbuf, g_info->g_xppath, sizeof(pathbuf)-1);
-		for(int i=0; i < strlen(pathbuf);i++){
+		for(i=0; i < strlen(pathbuf);i++){
 			if (pathbuf[i] == '\\') { pathbuf[i] = '/'; }
 		}
 		create_json_str(ofile, "xtd_xp_path", pathbuf);
