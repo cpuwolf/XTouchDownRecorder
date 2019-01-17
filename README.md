@@ -24,7 +24,11 @@ it supports Windows, Mac, Linux x64 only
 
 ![XTouchDownRecorder clickme](img/xtdr_web.gif)
 
-## Installation
+## XTouchDownRecorder Youtube ##
+
+[![XTouchDownRecorder Demo](http://img.youtube.com/vi/Pp2c9TIFF8U/0.jpg)](https://youtu.be/Pp2c9TIFF8U)
+
+## Installation ##
 
 1. Unzip and move folder *XTouchDownRecorder* to X-Plane 11\Resources\plugins\
 1. Start X-Plane
