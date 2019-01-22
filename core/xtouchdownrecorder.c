@@ -889,7 +889,11 @@ static float flightcb(float inElapsedSinceLastCall,
 		g_info->g_win = XPLMCreateWindowEx(&win);
 #ifdef XPLM300		
 		XPLMSetWindowPositioningMode(g_info->g_win, xplm_WindowPositionFree, -1);
+		XPLMSetWindowResizingLimits(g_info->g_win, ref->win.width, ref->win.height, ref->win.width, ref->win.height);
 		XPLMSetWindowTitle(g_info->g_win, _PRONAMEVER_);
+		//XPWidgetID AgreeMainWidgetButton = XPCreateWidget(x+100, y-170, x+240, y-190,
+		//			1, "Agree", 0, AgreeMainWidget,
+		//			xpWidgetClass_Button);
 #endif
 	}
 
@@ -1564,6 +1568,7 @@ void CreateAgreeWidgets(int x, int y)
 	int h = 240;
 	int x2 = x + w;
 	int y2 = y - h;
+	XPLMWindowID winid;
 
 	XPWidgetID AgreeMainWidget = g_info->AgreeMainWidget = XPCreateWidget(x, y, x2, y2,
 					1,	// Visible
@@ -1573,7 +1578,10 @@ void CreateAgreeWidgets(int x, int y)
 					xpWidgetClass_MainWindow);
 
 	XPSetWidgetProperty(AgreeMainWidget, xpProperty_MainWindowHasCloseBoxes, 1);
-
+#ifdef XPLM300
+	winid = XPGetWidgetUnderlyingWindow(AgreeMainWidget);
+	//XPLMSetWindowPositioningMode(winid, xplm_WindowPopOut,0);
+#endif
 
 	XPCreateWidget(x+50, y-50, x2-50, y-70,
 							1, "XTouchDownRecorder will collect your landing data \n", 0, AgreeMainWidget,
@@ -1669,6 +1677,9 @@ PLUGIN_API int XPluginStart(char * outName, char * outSig, char * outDesc)
 
 	/* MAC OS */
 	XPLMEnableFeature("XPLM_USE_NATIVE_PATHS", 1);
+#ifdef XPLM300
+	XPLMEnableFeature("XPLM_USE_NATIVE_WIDGET_WINDOWS", 1);
+#endif
 #if defined(__linux__)
 	g_info->curl_disable_ssl_verify = TRUE;
 #endif
