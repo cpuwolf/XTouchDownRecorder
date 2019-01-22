@@ -73,7 +73,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "lightworker.h"
 
-#define _PROVER_ "V8"
+#define _PROVER_ "V9"
 #define _PRONAMEVER_ "XTouchDownRecorder " _PROVER_ " (" __DATE__ ")"
 
 static BOOL uploadfile(char * path);
@@ -273,6 +273,8 @@ typedef struct
 	int counterafttd;
 
 	BOOL curl_disable_ssl_verify;
+	float XPTouchDownLat;
+	float XPTouchDownLon;
 }XTDInfo;
 
 XTDInfo * g_info;
@@ -353,6 +355,9 @@ void collect_flight_data()
 	_BUFFER_INSERT_BACK(pd);
 
 }
+
+static int	dummy_wheel_cb(XPLMWindowID in_window_id, int x, int y, int wheel, int clicks, void * in_refcon)
+{ return 0; }
 
 static void keycb(XPLMWindowID inWindowID, char inKey, XPLMKeyFlags inFlags,
 				   char inVirtualKey, void *inRefcon, int losingFocus)
@@ -443,8 +448,8 @@ static int draw_curve(float mytable[], float cr, float cg, float cb,
 	/*-- print text*/
 	int x_text = x_text_start;
 	int y_text = y_text_start;
-	int width_text_to_print = (int)(floor(XPLMMeasureString(xplmFont_Basic, text_to_print, (int)strlen(text_to_print))));
-	XPLMDrawString(color, x_text, y_text, text_to_print, NULL, xplmFont_Basic);
+	int width_text_to_print = (int)(floor(XPLMMeasureString(xplmFont_Proportional, text_to_print, (int)strlen(text_to_print))));
+	XPLMDrawString(color, x_text, y_text, text_to_print, NULL, xplmFont_Proportional);
 	x_text = x_text + width_text_to_print;
 	/*-- draw line*/
 	int x_tmp = x_start;
@@ -691,8 +696,22 @@ static void drawcb(XPLMWindowID inWindowID, void *inRefcon)
 	char text_buf[256];
 	XTDWin * ref = inRefcon;
 
+	// Mandatory: We *must* set the OpenGL state before drawing
+	// (we can't make any assumptions about it)
+	XPLMSetGraphicsState(
+						 0 /* no fog */,
+						 0 /* 0 texture units */,
+						 0 /* no lighting */,
+						 0 /* no alpha testing */,
+						 1 /* do alpha blend */,
+						 1 /* do depth testing */,
+						 0 /* no depth writing */
+						 );
+
 	XPLMGetWindowGeometry(inWindowID, &left, &top, &right, &bottom);
+#ifndef XPLM300	
 	XPLMDrawTranslucentDarkBox(left, top, right, bottom);
+#endif	
 
 	x = left;
 	y = bottom;
@@ -727,15 +746,15 @@ static void drawcb(XPLMWindowID inWindowID, void *inRefcon)
 		/*update content for file output*/
 		strcat(g_info->landingString, text_to_print);
 
-		int width_text_to_print = (int)floor(XPLMMeasureString(xplmFont_Basic, text_to_print, (int)strlen(text_to_print)));
-		XPLMDrawString(color, x_text, y_text, text_to_print, NULL, xplmFont_Basic);
+		int width_text_to_print = (int)floor(XPLMMeasureString(xplmFont_Proportional, text_to_print, (int)strlen(text_to_print)));
+		XPLMDrawString(color, x_text, y_text, text_to_print, NULL, xplmFont_Proportional);
 		x_text = x_text + width_text_to_print;
 	}
 #else
 	if (analyzeTouchDown(pd, text_buf, x, y, TRUE)) {
 		char *text_to_print = text_buf;
-		int width_text_to_print = (int)floor(XPLMMeasureString(xplmFont_Basic, text_to_print, (int)strlen(text_to_print)));
-		XPLMDrawString(color, x_text, y_text, text_to_print, NULL, xplmFont_Basic);
+		int width_text_to_print = (int)floor(XPLMMeasureString(xplmFont_Proportional, text_to_print, (int)strlen(text_to_print)));
+		XPLMDrawString(color, x_text, y_text, text_to_print, NULL, xplmFont_Proportional);
 		x_text = x_text + width_text_to_print;
 	}
 #endif
@@ -789,8 +808,13 @@ static void drawcb(XPLMWindowID inWindowID, void *inRefcon)
 	strcpy(text_buf, _PRONAMEVER_" by cpuwolf ");
 	x_text = x + 5;
 	y_text = y + _TD_CHART_HEIGHT - 15;
-	XPLMDrawString(color, x_text, y_text, text_buf, NULL, xplmFont_Basic);
-	int width_text_to_print = (int)floor(XPLMMeasureString(xplmFont_Basic, text_buf, (int)strlen(text_buf)));
+#ifndef XPLM300		
+	XPLMDrawString(color, x_text, y_text, text_buf, NULL, xplmFont_Proportional);
+
+	int width_text_to_print = (int)floor(XPLMMeasureString(xplmFont_Proportional, text_buf, (int)strlen(text_buf)));
+#else
+	int width_text_to_print = 0;
+#endif
 	x_text = x_text + width_text_to_print;
 
 	/* draw link*/
@@ -807,13 +831,13 @@ static void drawcb(XPLMWindowID inWindowID, void *inRefcon)
 
 	}
 	
-	ref->link.width = (int)floor(XPLMMeasureString(xplmFont_Basic, text_buf, (int)strlen(text_buf)));
+	ref->link.width = (int)floor(XPLMMeasureString(xplmFont_Proportional, text_buf, (int)strlen(text_buf)));
 	ref->link.height = 15;
 
-	XPLMDrawString(colr, x_text, y_text, text_buf, NULL, xplmFont_Basic);
+	XPLMDrawString(colr, x_text, y_text, text_buf, NULL, xplmFont_Proportional);
 
 
-
+#ifndef XPLM300	
 	/*-- draw close button on top-right*/
 	glDisable(GL_TEXTURE_2D);
 	glColor3f(1.0, 1.0, 1.0);
@@ -824,6 +848,7 @@ static void drawcb(XPLMWindowID inWindowID, void *inRefcon)
 	glVertex2i(right - 1, top - 10);
 	glEnd();
 	glEnable(GL_TEXTURE_2D);
+#endif	
 }
 
 static float flightcb(float inElapsedSinceLastCall,
@@ -851,10 +876,21 @@ static float flightcb(float inElapsedSinceLastCall,
 		win.drawWindowFunc = drawcb;
 		win.handleKeyFunc = keycb;
 		win.handleMouseClickFunc = mousecb;
-		win.handleCursorFunc = cursorcb;
-		win.handleMouseWheelFunc = NULL;
+#ifdef XPLM300		
+		win.handleRightClickFunc = mousecb;
+#endif
+		win.handleCursorFunc = cursorcb;			
+		win.handleMouseWheelFunc = dummy_wheel_cb;
 		win.refcon = inRefcon;
+#ifdef XPLM300
+		win.layer = xplm_WindowLayerFloatingWindows;
+		win.decorateAsFloatingWindow = xplm_WindowDecorationRoundRectangle;
+#endif
 		g_info->g_win = XPLMCreateWindowEx(&win);
+#ifdef XPLM300		
+		XPLMSetWindowPositioningMode(g_info->g_win, xplm_WindowPositionFree, -1);
+		XPLMSetWindowTitle(g_info->g_win, _PRONAMEVER_);
+#endif
 	}
 
 	if(g_info->collect_touchdown_data) {
@@ -869,7 +905,10 @@ static float flightcb(float inElapsedSinceLastCall,
 
 	return ret;
 }
-
+static int create_json_ff(FILE *ofile, const char * label, float d)
+{
+	return fprintf(ofile, "\"%s\": %f,\n", label, d);
+}
 static int create_json_f(FILE *ofile, const char * label, float d)
 {
 	return fprintf(ofile, "\"%s\": %.02f,\n", label, d);
@@ -950,6 +989,8 @@ static void create_json_file(char * path, struct tm *tblock)
 		create_json_str(ofile, "xtd_touch_tm", tmbuf);
 		strftime(tmbuf, sizeof(tmbuf), "%z", tblock);
 		create_json_str(ofile, "xtd_tmzone", tmbuf);
+		create_json_ff(ofile, "xtd_touch_lat", g_info->XPTouchDownLat);
+		create_json_ff(ofile, "xtd_touch_lon", g_info->XPTouchDownLon);
 		/*write main data array */
 		fprintf(ofile, "\"main\": [\n");
 		create_json_arrayfb(ofile, "time(s)", "touchdown_tm_table", pd->touchdown_tm_table, g_info->XPTouchDownTM);
@@ -1182,6 +1223,8 @@ static void write_log_file()
 
 	float lat = XPLMGetDataf(latRef);
 	float lon = XPLMGetDataf(longRef);
+	g_info->XPTouchDownLat = lat;
+	g_info->XPTouchDownLon = lon;
 	XPLMNavRef navref = XPLMFindNavAid(NULL, NULL, &lat, &lon, NULL, xplm_Nav_Airport);
 
 	if (XPLM_NAV_NOT_FOUND != navref)
