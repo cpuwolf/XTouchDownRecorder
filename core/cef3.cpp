@@ -129,7 +129,8 @@ void CEF_update()
 
 void CEF_url(struct cefui * pcef,char * url)
 {
-	pcef->browser_->GetMainFrame()->LoadURL(CefString(url));
+	//pcef->browser_->GetMainFrame()->LoadURL(CefString(url));
+	pcef->browser_->GetMainFrame()->LoadURL("https://x-plane.vip/xtdr/static/bad.html");
 }
 
 void CEF_deinit(struct cefui * pcef)

@@ -393,9 +393,12 @@ static int mousecb(XPLMWindowID inWindowID, int x, int y,
 	XTDWin * ref = (XTDWin *)inRefcon;
 	switch (inMouse) {
 	case xplm_MouseDown:
+#ifndef XPLM300
 		if (InBox(&(ref->close), x, y)) {
 			g_info->show_touchdown_counter = 0;
-		} else if (InBox(&(ref->link), x, y)) {
+		} else 
+#endif
+		if (InBox(&(ref->link), x, y)) {
 #if defined(_WIN32)
 			ShellExecute(NULL, "open", g_info->g_NewsLink, NULL, NULL, SW_SHOWNORMAL);
 #elif defined(__linux__)
@@ -411,7 +414,7 @@ static int mousecb(XPLMWindowID inWindowID, int x, int y,
 		lastMouseX = x;
 		lastMouseY = y;
 		break;
-
+#ifndef XPLM300
 	case xplm_MouseDrag:
 		ref->win.posx += x - lastMouseX;
 		ref->win.posy += y - lastMouseY;
@@ -423,6 +426,7 @@ static int mousecb(XPLMWindowID inWindowID, int x, int y,
 		ref->close.posx = ref->win.posx + ref->win.width - ref->close.width;
 		ref->close.posy = ref->win.posy;
 		break;
+#endif
 	}
 	return 1;
 }
@@ -1366,6 +1370,10 @@ static size_t httpcb(char *ptr, size_t size, size_t nmemb, void *userdata)
 		if (p_n + 1 < g_info->g_NewsString + len) {
 			*p_n = 0;
 			strcpy(g_info->g_NewsLink, p_n + 1);
+			if (g_info->pcef->isinit) {
+				CEF_url(g_info->pcef, g_info->g_NewsLink);
+			}
+
 		}
 	}
     return size*nmemb;
