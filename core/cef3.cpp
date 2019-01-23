@@ -127,14 +127,15 @@ void CEF_update()
 	CefDoMessageLoopWork();
 }
 
-void CEF_url()
+void CEF_url(struct cefui * pcef,char * url)
 {
-
+	pcef->browser_->GetMainFrame()->LoadURL(CefString(url));
 }
 
 void CEF_deinit(struct cefui * pcef)
 {
-	//CefRunMessageLoop();
+	pcef->browser_->GetHost()->CloseBrowser(true);
 	CefDoMessageLoopWork();
 	CefShutdown();
+	free(pcef);
 }
