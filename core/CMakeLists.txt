@@ -1,5 +1,5 @@
 # Necessary CMake
-project(xtouchdownrecorder C)
+project(xtouchdownrecorder CXX)
 cmake_minimum_required(VERSION 2.8)
 
 
@@ -25,7 +25,7 @@ set(LIBCURL_DIR ${PROJECT_SOURCE_DIR}/../curl-7.58.0)
 find_path(LIBCURL_INCLUDE_DIR curl/curl.h HINTS ${LIBCURL_DIR}/include)
 include_directories(${LIBCURL_INCLUDE_DIR})
 # Set up the plugin
-add_xplane_plugin(xtouchdownrecorder xtouchdownrecorder.c lightworker.c lightworker.h)
+add_xplane_plugin(xtouchdownrecorder xtouchdownrecorder.cpp lightworker.cpp lightworker.h)
 
 add_dependencies(${PROJECT_NAME} libcurl)
 

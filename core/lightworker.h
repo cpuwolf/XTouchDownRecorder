@@ -99,6 +99,10 @@ struct lightworker
     void * priv;
 };
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 void lightworker_queue_init_single(struct lightworker*);
 void lightworker_queue_put_single(struct lightworker*,int msg, lightworker_job_t func, void *arg);
 lightworker_queue_task* lightworker_queue_get_single(struct lightworker*);
@@ -108,6 +112,8 @@ struct lightworker* lightworker_create(lightworker_job_t func, void *arg);
 void lightworker_destroy(struct lightworker* thread);
 void lightworker_sleep(int ms);
 
-
+#ifdef __cplusplus
+}
+#endif
 
 #endif //LIGHTWORKER_H

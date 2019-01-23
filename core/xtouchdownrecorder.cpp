@@ -176,7 +176,7 @@ static XTDData *datarealtm, *datacopy;
 static XTDData * XTDMalloc()
 {
 	XTDData * pd;
-	pd = malloc(_XTDDATASIZE);
+	pd = (XTDData *)malloc(_XTDDATASIZE);
 	if(!pd) {
 		XPLMDebugString("XTouchDownRecorder:malloc error!\n");
 		return NULL;
@@ -376,7 +376,7 @@ static BOOL InBox(XTDWinBox * box, int x, int y)
 
 static XPLMCursorStatus cursorcb(XPLMWindowID inWindowID,int x,int y,void * inRefcon)
 {
-	XTDWin * ref = inRefcon;
+	XTDWin * ref = (XTDWin *)inRefcon;
 	if (InBox(&(ref->link), x, y)) {
 		return xplm_CursorHidden;
 	}
@@ -694,7 +694,7 @@ static void drawcb(XPLMWindowID inWindowID, void *inRefcon)
 	int left, top, right, bottom;
 	float color[] = { 1.0, 1.0, 1.0 };
 	char text_buf[256];
-	XTDWin * ref = inRefcon;
+	XTDWin * ref = (XTDWin *)inRefcon;
 
 	// Mandatory: We *must* set the OpenGL state before drawing
 	// (we can't make any assumptions about it)
@@ -1614,7 +1614,7 @@ PLUGIN_API int XPluginStart(char * outName, char * outSig, char * outDesc)
 	strcpy(outDesc, "More information https://github.com/cpuwolf/");
 
 
-	g_info = malloc(sizeof(XTDInfo));
+	g_info = (XTDInfo *)malloc(sizeof(XTDInfo));
 	if (!g_info) {
 		XPLMDebugString("XTouchDownRecorder:malloc info error!\n");
 		return 0;
@@ -1684,7 +1684,7 @@ PLUGIN_API int XPluginStart(char * outName, char * outSig, char * outDesc)
 	g_info->curl_disable_ssl_verify = TRUE;
 #endif
 
-	XTDWin * ref = malloc(sizeof(XTDWin));
+	XTDWin * ref = (XTDWin *)malloc(sizeof(XTDWin));
 	if (!ref) {
 		XPLMDebugString("XTouchDownRecorder: win malloc error\n");
 		return 0;
@@ -1745,7 +1745,7 @@ PLUGIN_API void	XPluginStop(void)
 	lightworker_destroy(g_info->worker);
 
 	if (g_info->g_win) {
-		XTDWin *ref=XPLMGetWindowRefCon(g_info->g_win);
+		XTDWin *ref=(XTDWin *)XPLMGetWindowRefCon(g_info->g_win);
 		if (ref) {
 			/*update config*/
 			g_info->conf.px = ref->win.posx;

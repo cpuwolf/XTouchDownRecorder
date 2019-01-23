@@ -56,7 +56,7 @@ static void * _lightworker_job_helper(void *arg)
 
 struct lightworker* lightworker_create(lightworker_job_t func, void *arg)
 {
-	struct lightworker * thread = malloc(sizeof(struct lightworker));
+	struct lightworker * thread = (struct lightworker *)malloc(sizeof(struct lightworker));
 	if (!thread) return NULL;
     thread->func=func;
     thread->priv=arg;
