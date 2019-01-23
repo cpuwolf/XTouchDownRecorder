@@ -277,8 +277,7 @@ typedef struct
 	float XPTouchDownLat;
 	float XPTouchDownLon;
 
-	bool cef;
-	GLuint * ceftxt;
+	struct cefui *pcef;
 }XTDInfo;
 
 XTDInfo * g_info;
@@ -713,7 +712,7 @@ static void drawcb(XPLMWindowID inWindowID, void *inRefcon)
 						 );
 
 	XPLMGetWindowGeometry(inWindowID, &left, &top, &right, &bottom);
-	if(g_info->cef) {
+	if(g_info->pcef->isinit) {
 		CEF_update();
 		int screen_x, screen_y;
 		int width_= right-left;
@@ -722,7 +721,7 @@ static void drawcb(XPLMWindowID inWindowID, void *inRefcon)
 		XPLMGetScreenSize(&screen_x, &screen_y);
 		XPLMSetGraphicsState(1, 1, 0, 1, 1, 1, 1);
 
-		glBindTexture(GL_TEXTURE_2D, *(g_info->ceftxt));
+		glBindTexture(GL_TEXTURE_2D, *(g_info->pcef->ceftxt));
 
 		glBegin(GL_QUADS);
 		glTexCoord2f(0.0, 1.0);
@@ -923,6 +922,10 @@ static float flightcb(float inElapsedSinceLastCall,
 		//			1, "Agree", 0, AgreeMainWidget,
 		//			xpWidgetClass_Button);
 #endif
+	}
+
+	if(g_info->pcef->isinit) {
+		CEF_update();
 	}
 
 	if(g_info->collect_touchdown_data) {
@@ -1474,6 +1477,10 @@ static float secondcb(float inElapsedSinceLastCall,
 	float fps;
 	int counter;
 
+	if(g_info->pcef->isinit) {
+		CEF_update();
+	}
+
 	if (is_on_ground()) {
 		if(is_taxing()) {
 			g_info->taxi_counter++;
@@ -1761,8 +1768,8 @@ static int XPluginStartBH()
 				menucb, NULL);
 	XPLMAppendMenuItem(g_info->tdr_menu, "Show/Hide", NULL, 1);
 	enumfolder_async();
-	g_info->cef=CEF_init(_TD_CHART_WIDTH, _TD_CHART_HEIGHT, &(g_info->ceftxt));
-	if(g_info->cef){
+	g_info->pcef=CEF_init(_TD_CHART_WIDTH, _TD_CHART_HEIGHT);
+	if((g_info->pcef)&&(g_info->pcef->isinit)){
 		XPLMDebugString("XTouchDownRecorder: CEF_init OK\n");
 	} else {
 		XPLMDebugString("XTouchDownRecorder: CEF_init failed\n");
@@ -1772,6 +1779,9 @@ static int XPluginStartBH()
 
 PLUGIN_API void	XPluginStop(void)
 {
+	if(g_info->pcef->isinit) {
+		CEF_deinit(g_info->pcef);
+	}
 	XPLMUnregisterCommandHandler(g_info->ToggleCommand, ToggleCommandHandler, 0, 0);
 	XPLMUnregisterFlightLoopCallback(secondcb, NULL);
 	XPLMUnregisterFlightLoopCallback(flightcb, NULL);

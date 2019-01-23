@@ -58,13 +58,21 @@ public:
 	IMPLEMENT_REFCOUNTING(BrowserClient);
 };
 
+struct cefui
+{
+	bool isinit;
+	CefRefPtr<CefBrowser> browser_;
+	CefRefPtr<BrowserClient> client_;
+	GLuint * ceftxt;
+};
+
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-bool CEF_init(int w, int h, GLuint **);
+struct cefui * CEF_init(int w, int h);
 void CEF_update();
-void CEF_deinit();
+void CEF_deinit(struct cefui *);
 
 #ifdef __cplusplus
 }

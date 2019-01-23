@@ -85,12 +85,13 @@ BrowserClient::BrowserClient(RenderHandler *renderHandler)
 {
 }
 
-bool CEF_init(int w, int h, GLuint ** ceftxt)
+struct cefui * CEF_init(int w, int h)
 {
 	int exit_code;
-	CefRefPtr<CefBrowser> browser_;
-	CefRefPtr<BrowserClient> client_;
 	RenderHandler* render_handler_;
+
+	struct cefui * pcef = (struct cefui *)malloc(sizeof(struct cefui));
+	if (!pcef) {return NULL;}
 
 	CefMainArgs args;
 
@@ -100,11 +101,12 @@ bool CEF_init(int w, int h, GLuint ** ceftxt)
 	bool result = CefInitialize(args, settings, nullptr, nullptr);
 	if (!result) {
 		exit_code = -1;
-		return false;
+		pcef->isinit=false;
+		return pcef;
 	}
 
 	render_handler_ = new RenderHandler();
-	render_handler_->init(ceftxt);
+	render_handler_->init(&(pcef->ceftxt));
 
 	render_handler_->resize(w, h);
 
@@ -113,19 +115,26 @@ bool CEF_init(int w, int h, GLuint ** ceftxt)
 	window_info.SetAsWindowless(NULL); 
 
 	// browserSettings.windowless_frame_rate = 60; // 30 is default
-	client_ = new BrowserClient(render_handler_);
+	pcef->client_ = new BrowserClient(render_handler_);
 
-	browser_ = CefBrowserHost::CreateBrowserSync(window_info, client_.get(), "https://x-plane.vip/xtdr/static/", browserSettings, nullptr);
-	return true;
+	pcef->browser_ = CefBrowserHost::CreateBrowserSync(window_info, pcef->client_.get(), "https://x-plane.vip/xtdr/static/", browserSettings, nullptr);
+
+	pcef->isinit=true;
+	return pcef;
 }
 void CEF_update()
 {
 	CefDoMessageLoopWork();
 }
 
+void CEF_url()
+{
 
-void CEF_deinit()
+}
+
+void CEF_deinit(struct cefui * pcef)
 {
 	//CefRunMessageLoop();
+	CefDoMessageLoopWork();
 	CefShutdown();
 }
