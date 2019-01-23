@@ -72,7 +72,7 @@ void RenderHandler::GetViewRect(CefRefPtr<CefBrowser> browser, CefRect &rect)
 
 void RenderHandler::OnPaint(CefRefPtr<CefBrowser> browser, PaintElementType type, const RectList &dirtyRects, const void *buffer, int width, int height)
 {
-#if 0
+#if 1
 	int screen_x, screen_y;
 	#define MARGIN_SIZE 0
 	XPLMGetScreenSize(&screen_x, &screen_y);
@@ -126,7 +126,6 @@ bool CEF_init(int w, int h)
 		exit_code = -1;
 		return false;
 	}
-	return true;
 
 	render_handler_ = new RenderHandler();
 	render_handler_->init();

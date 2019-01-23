@@ -712,6 +712,9 @@ static void drawcb(XPLMWindowID inWindowID, void *inRefcon)
 						 );
 
 	XPLMGetWindowGeometry(inWindowID, &left, &top, &right, &bottom);
+	if(g_info->cef) {
+		CEF_update();
+	}
 #ifndef XPLM300	
 	XPLMDrawTranslucentDarkBox(left, top, right, bottom);
 #endif	
