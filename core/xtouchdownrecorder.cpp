@@ -383,6 +383,10 @@ static XPLMCursorStatus cursorcb(XPLMWindowID inWindowID,int x,int y,void * inRe
 	if (InBox(&(ref->link), x, y)) {
 		return xplm_CursorHidden;
 	}
+
+	if((g_info->pcef)&&(g_info->pcef->isinit)){
+			CEF_mousemove(g_info->pcef, x, y);
+	}
 	return xplm_CursorDefault;
 }
 

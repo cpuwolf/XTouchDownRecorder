@@ -5,6 +5,8 @@
 #include <include/cef_app.h>
 #include <include/cef_client.h>
 #include <include/cef_render_handler.h>
+#include <include/cef_life_span_handler.h>
+#include <include/cef_load_handler.h>
 
 #ifdef __APPLE__
 #include <OpenGL/gl.h>
@@ -20,20 +22,18 @@ class RenderHandler : public CefRenderHandler
 public:
 	RenderHandler();
 
-public:
 	void init(GLuint ** ceftxt);
 	void resize(int w, int h);
 
 	// CefRenderHandler interface
-public:
 	void GetViewRect(CefRefPtr<CefBrowser> browser, CefRect &rect);
 	void OnPaint(CefRefPtr<CefBrowser> browser, PaintElementType type, const RectList &dirtyRects, const void *buffer, int width, int height);
 
 	// CefBase interface
-public:
+
 	IMPLEMENT_REFCOUNTING(RenderHandler);
 
-public:
+
 	GLuint tex() const { return tex_; }
 
 private:
@@ -44,14 +44,26 @@ private:
 };
 
 
-class BrowserClient : public CefClient
+class BrowserClient : public CefClient,
+	public CefLifeSpanHandler,
+	public CefLoadHandler
 {
 public:
 	BrowserClient(RenderHandler *renderHandler);
 
-	virtual CefRefPtr<CefRenderHandler> GetRenderHandler() {
+	CefRefPtr<CefRenderHandler> GetRenderHandler() override {
 		return m_renderHandler;
 	}
+	CefRefPtr<CefLifeSpanHandler> GetLifeSpanHandler() override
+    {
+        return this;
+    }
+
+    CefRefPtr<CefLoadHandler> GetLoadHandler() override
+    {
+        return this;
+    }
+
 
 	CefRefPtr<CefRenderHandler> m_renderHandler;
 
@@ -74,6 +86,7 @@ struct cefui * CEF_init(int w, int h);
 void CEF_update();
 void CEF_url(struct cefui * pcef,char * url);
 void CEF_mouseclick(struct cefui * pcef, int x, int y,bool up);
+void CEF_mousemove(struct cefui * pcef, int x, int y);
 void CEF_deinit(struct cefui *);
 
 #ifdef __cplusplus

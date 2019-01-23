@@ -131,7 +131,7 @@ void CEF_update()
 void CEF_url(struct cefui * pcef,char * url)
 {
 	CefString curl;
-	curl.FromString(url);
+	curl.FromASCII(url);
 	pcef->browser_->GetMainFrame()->LoadURL(curl);
 	//pcef->browser_->GetMainFrame()->LoadURL("https://x-plane.vip/xtdr/static/bad.html");
 }
@@ -142,6 +142,14 @@ void CEF_mouseclick(struct cefui * pcef, int x, int y,bool up)
 	evt.x = x;
 	evt.y = y;
 	pcef->browser_->GetHost()->SendMouseClickEvent(evt, MBT_LEFT, up, 1);
+}
+
+void CEF_mousemove(struct cefui * pcef, int x, int y)
+{
+	CefMouseEvent evt;
+	evt.x = x;
+	evt.y = y;
+	pcef->browser_->GetHost()->SendMouseMoveEvent(evt, false);
 }
 
 void CEF_deinit(struct cefui * pcef)
