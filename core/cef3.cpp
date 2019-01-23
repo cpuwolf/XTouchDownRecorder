@@ -32,10 +32,112 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <include/cef_client.h>
 #include <include/cef_render_handler.h>
 
+#ifdef __APPLE__
+#include <OpenGL/gl.h>
+#include <Carbon/Carbon.h>
+#else
+#include <stdlib.h>
+#include <GL/gl.h>
+//#include <GL/glew.h>
+#endif
+
+class RenderHandler : public CefRenderHandler
+{
+public:
+	RenderHandler();
+
+public:
+	void init();
+	void resize(int w, int h);
+
+	// CefRenderHandler interface
+public:
+	void GetViewRect(CefRefPtr<CefBrowser> browser, CefRect &rect);
+	void OnPaint(CefRefPtr<CefBrowser> browser, PaintElementType type, const RectList &dirtyRects, const void *buffer, int width, int height);
+
+	// CefBase interface
+public:
+	IMPLEMENT_REFCOUNTING(RenderHandler);
+
+public:
+	GLuint tex() const { return tex_; }
+
+private:
+	int width_;
+	int height_;
+
+	GLuint tex_;
+};
+
+RenderHandler::RenderHandler()
+	: width_(2), height_(2), tex_(0)
+{
+}
+
+void RenderHandler::init()
+{
+	glGenTextures(1, &tex_);
+	glBindTexture(GL_TEXTURE_2D, tex_);
+
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+	// dummy texture data - for debugging
+	const unsigned char data[] = {
+		255, 0, 0, 255,
+		0, 255, 0, 255,
+		0, 0, 255, 255,
+		255, 255, 255, 255,
+	};
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 2, 2, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+
+	glBindTexture(GL_TEXTURE_2D, 0);
+}
+void RenderHandler::resize(int w, int h)
+{
+	width_ = w;
+	height_ = h;
+}
+
+void RenderHandler::GetViewRect(CefRefPtr<CefBrowser> browser, CefRect &rect)
+{
+	rect = CefRect(0, 0, width_, height_);
+}
+
+void RenderHandler::OnPaint(CefRefPtr<CefBrowser> browser, PaintElementType type, const RectList &dirtyRects, const void *buffer, int width, int height)
+{
+	glBindTexture(GL_TEXTURE_2D, tex_);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_BGRA_EXT, GL_UNSIGNED_BYTE, (unsigned char*)buffer);
+	glBindTexture(GL_TEXTURE_2D, 0);
+}
+
+class BrowserClient : public CefClient
+{
+public:
+	BrowserClient(RenderHandler *renderHandler);
+
+	virtual CefRefPtr<CefRenderHandler> GetRenderHandler() {
+		return m_renderHandler;
+	}
+
+	CefRefPtr<CefRenderHandler> m_renderHandler;
+
+	IMPLEMENT_REFCOUNTING(BrowserClient);
+};
+
+BrowserClient::BrowserClient(RenderHandler *renderHandler)
+	: m_renderHandler(renderHandler)
+{
+}
 
 bool CEF_init()
 {
 	int exit_code;
+	CefRefPtr<CefBrowser> browser_;
+	CefRefPtr<BrowserClient> client_;
+	RenderHandler* render_handler_;
 
 	CefMainArgs args;
 	exit_code = CefExecuteProcess(args, nullptr, nullptr);;
@@ -49,5 +151,16 @@ bool CEF_init()
 		exit_code = -1;
 		return false;
 	}
+
+	render_handler_ = new RenderHandler();
+	render_handler_->init();
+
+	CefBrowserSettings browserSettings;
+	CefWindowInfo window_info;
+
+	// browserSettings.windowless_frame_rate = 60; // 30 is default
+	client_ = new BrowserClient(render_handler_);
+
+	browser_ = CefBrowserHost::CreateBrowserSync(window_info, client_.get(), "https://x-plane.vip/xtdr/static/", browserSettings, nullptr);
 	return true;
 }
