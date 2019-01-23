@@ -28,6 +28,26 @@ CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
 OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
-#include <cef_app.h>
-#include <cef_client.h>
-#include <cef_render_handler.h>
+#include <include/cef_app.h>
+#include <include/cef_client.h>
+#include <include/cef_render_handler.h>
+
+
+bool CEF_init()
+{
+	int exit_code;
+
+	CefMainArgs args;
+	exit_code = CefExecuteProcess(args, nullptr, nullptr);;
+	if (exit_code >= 0) {
+		return false;
+	}
+
+	CefSettings settings;
+	bool result = CefInitialize(args, settings, nullptr, nullptr);
+	if (!result) {
+		exit_code = -1;
+		return false;
+	}
+	return true;
+}
