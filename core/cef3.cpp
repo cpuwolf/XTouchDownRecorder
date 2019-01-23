@@ -92,6 +92,7 @@ struct cefui * CEF_init(int w, int h)
 
 	struct cefui * pcef = (struct cefui *)malloc(sizeof(struct cefui));
 	if (!pcef) {return NULL;}
+	memset(pcef, 0, sizeof(struct cefui));
 
 	CefMainArgs args;
 
@@ -101,9 +102,9 @@ struct cefui * CEF_init(int w, int h)
 	bool result = CefInitialize(args, settings, nullptr, nullptr);
 	if (!result) {
 		exit_code = -1;
-		pcef->isinit=false;
 		return pcef;
 	}
+	
 
 	render_handler_ = new RenderHandler();
 	render_handler_->init(&(pcef->ceftxt));
@@ -129,8 +130,18 @@ void CEF_update()
 
 void CEF_url(struct cefui * pcef,char * url)
 {
-	//pcef->browser_->GetMainFrame()->LoadURL(CefString(url));
-	pcef->browser_->GetMainFrame()->LoadURL("https://x-plane.vip/xtdr/static/bad.html");
+	CefString curl;
+	curl.FromString(url);
+	pcef->browser_->GetMainFrame()->LoadURL(curl);
+	//pcef->browser_->GetMainFrame()->LoadURL("https://x-plane.vip/xtdr/static/bad.html");
+}
+
+void CEF_mouseclick(struct cefui * pcef, int x, int y,bool up)
+{
+	CefMouseEvent evt;
+	evt.x = x;
+	evt.y = y;
+	pcef->browser_->GetHost()->SendMouseClickEvent(evt, MBT_LEFT, up, 1);
 }
 
 void CEF_deinit(struct cefui * pcef)

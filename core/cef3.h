@@ -73,6 +73,7 @@ extern "C" {
 struct cefui * CEF_init(int w, int h);
 void CEF_update();
 void CEF_url(struct cefui * pcef,char * url);
+void CEF_mouseclick(struct cefui * pcef, int x, int y,bool up);
 void CEF_deinit(struct cefui *);
 
 #ifdef __cplusplus

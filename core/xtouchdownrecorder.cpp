@@ -411,8 +411,17 @@ static int mousecb(XPLMWindowID inWindowID, int x, int y,
 			system(tmp);
 #endif
 		}
+
+		if((g_info->pcef)&&(g_info->pcef->isinit)){
+			CEF_mouseclick(g_info->pcef, x, y,false);
+		}
 		lastMouseX = x;
 		lastMouseY = y;
+		break;
+	case xplm_MouseUp:
+		if((g_info->pcef)&&(g_info->pcef->isinit)){
+			CEF_mouseclick(g_info->pcef, x, y,true);
+		}
 		break;
 #ifndef XPLM300
 	case xplm_MouseDrag:
@@ -716,7 +725,7 @@ static void drawcb(XPLMWindowID inWindowID, void *inRefcon)
 						 );
 
 	XPLMGetWindowGeometry(inWindowID, &left, &top, &right, &bottom);
-	if(g_info->pcef->isinit) {
+	if((g_info->pcef)&&(g_info->pcef->isinit)){
 		CEF_update();
 		int screen_x, screen_y;
 		int width_= right-left;
@@ -928,7 +937,7 @@ static float flightcb(float inElapsedSinceLastCall,
 #endif
 	}
 
-	if(g_info->pcef->isinit) {
+	if((g_info->pcef)&&(g_info->pcef->isinit)){
 		CEF_update();
 	}
 
@@ -1370,7 +1379,7 @@ static size_t httpcb(char *ptr, size_t size, size_t nmemb, void *userdata)
 		if (p_n + 1 < g_info->g_NewsString + len) {
 			*p_n = 0;
 			strcpy(g_info->g_NewsLink, p_n + 1);
-			if (g_info->pcef->isinit) {
+			if((g_info->pcef)&&(g_info->pcef->isinit)){
 				CEF_url(g_info->pcef, g_info->g_NewsLink);
 			}
 
@@ -1485,7 +1494,7 @@ static float secondcb(float inElapsedSinceLastCall,
 	float fps;
 	int counter;
 
-	if(g_info->pcef->isinit) {
+	if((g_info->pcef)&&(g_info->pcef->isinit)){
 		CEF_update();
 	}
 
@@ -1727,6 +1736,7 @@ PLUGIN_API int XPluginStart(char * outName, char * outSig, char * outDesc)
 	g_info->curl_disable_ssl_verify = TRUE;
 #endif
 
+	XPLMDebugString("XTouchDownRecorder: read config\n");
 	XTDWin * ref = (XTDWin *)malloc(sizeof(XTDWin));
 	if (!ref) {
 		XPLMDebugString("XTouchDownRecorder: win malloc error\n");
@@ -1749,6 +1759,14 @@ PLUGIN_API int XPluginStart(char * outName, char * outSig, char * outDesc)
 		ref->win.posy = 900;
 	}
 
+	XPLMDebugString("XTouchDownRecorder: start CEF\n");
+	g_info->pcef=CEF_init(_TD_CHART_WIDTH, _TD_CHART_HEIGHT);
+	if((g_info->pcef)&&(g_info->pcef->isinit)){
+		XPLMDebugString("XTouchDownRecorder: CEF_init OK\n");
+	} else {
+		XPLMDebugString("XTouchDownRecorder: CEF_init failed\n");
+		return 0;
+	}
 	if (g_info->conf.agree != 1) {
 		CreateAgreeWidgets(ref->win.posx, ref->win.posy);
 		return 1;
@@ -1776,25 +1794,22 @@ static int XPluginStartBH()
 				menucb, NULL);
 	XPLMAppendMenuItem(g_info->tdr_menu, "Show/Hide", NULL, 1);
 	enumfolder_async();
-	g_info->pcef=CEF_init(_TD_CHART_WIDTH, _TD_CHART_HEIGHT);
-	if((g_info->pcef)&&(g_info->pcef->isinit)){
-		XPLMDebugString("XTouchDownRecorder: CEF_init OK\n");
-	} else {
-		XPLMDebugString("XTouchDownRecorder: CEF_init failed\n");
-	}
+
 	return 1;
 }
 
 PLUGIN_API void	XPluginStop(void)
 {
-	if(g_info->pcef->isinit) {
-		CEF_deinit(g_info->pcef);
-	}
+
 	XPLMUnregisterCommandHandler(g_info->ToggleCommand, ToggleCommandHandler, 0, 0);
 	XPLMUnregisterFlightLoopCallback(secondcb, NULL);
 	XPLMUnregisterFlightLoopCallback(flightcb, NULL);
 	g_info->lightworkerexit = TRUE;
 	lightworker_destroy(g_info->worker);
+
+	if((g_info->pcef)&&(g_info->pcef->isinit)){
+		CEF_deinit(g_info->pcef);
+	}
 
 	if (g_info->g_win) {
 		XTDWin *ref=(XTDWin *)XPLMGetWindowRefCon(g_info->g_win);
