@@ -111,13 +111,16 @@ bool CEF_init(int w, int h)
 	RenderHandler* render_handler_;
 
 	CefMainArgs args;
+#if 0	
 	exit_code = CefExecuteProcess(args, nullptr, nullptr);;
 	if (exit_code >= 0) {
 		return false;
 	}
-	
+#endif
 
 	CefSettings settings;
+	CefString(&settings.browser_subprocess_path).FromASCII("Resources\\plugins\\XTouchDownRecorder\\64\\xtouchdownrecorder_ui.exe");
+
 	bool result = CefInitialize(args, settings, nullptr, nullptr);
 	if (!result) {
 		exit_code = -1;

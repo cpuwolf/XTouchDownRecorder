@@ -67,5 +67,10 @@ ENDIF()
 PRINT_CEF_CONFIG()
 
 
+set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /SUBSYSTEM:WINDOWS /ENTRY:mainCRTStartup")
+add_executable (xtouchdownrecorder_ui cef3_ui.cpp)
+target_link_libraries (xtouchdownrecorder_ui libcef_lib libcef_dll_wrapper)
+
+
 
 
