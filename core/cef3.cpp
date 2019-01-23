@@ -40,7 +40,7 @@ RenderHandler::RenderHandler()
 {
 }
 
-void RenderHandler::init()
+void RenderHandler::init(GLuint ** ceftxt)
 {
 	glGenTextures(1, &tex_);
 	glBindTexture(GL_TEXTURE_2D, tex_);
@@ -58,6 +58,8 @@ void RenderHandler::init()
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 2, 2, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
 
 	glBindTexture(GL_TEXTURE_2D, 0);
+
+	*ceftxt = &tex_;
 }
 void RenderHandler::resize(int w, int h)
 {
@@ -72,30 +74,10 @@ void RenderHandler::GetViewRect(CefRefPtr<CefBrowser> browser, CefRect &rect)
 
 void RenderHandler::OnPaint(CefRefPtr<CefBrowser> browser, PaintElementType type, const RectList &dirtyRects, const void *buffer, int width, int height)
 {
-#if 1
-	int screen_x, screen_y;
-	#define MARGIN_SIZE 0
-	XPLMGetScreenSize(&screen_x, &screen_y);
-	XPLMSetGraphicsState(1, 1, 0, 1, 1, 1, 1);
-
 	glBindTexture(GL_TEXTURE_2D, tex_);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_BGRA_EXT, GL_UNSIGNED_BYTE, (unsigned char*)buffer);
-
-	glBegin(GL_QUADS);
-	glTexCoord2f(0.0, 1.0);
-	glVertex2f((screen_x - width_) / 2 - MARGIN_SIZE, 0);
-	glTexCoord2f(0.0, 0.0);
-	glVertex2f((screen_x - width_) / 2 - MARGIN_SIZE,
-	    height_ + 2 * MARGIN_SIZE);
-	glTexCoord2f(1.0, 0.0);
-	glVertex2f((screen_x + width_) / 2 + MARGIN_SIZE,
-	    height_ + 2 * MARGIN_SIZE);
-	glTexCoord2f(1.0, 1.0);
-	glVertex2f((screen_x + width_) / 2 + MARGIN_SIZE, 0);
-	glEnd();
-
 	glBindTexture(GL_TEXTURE_2D, 0);
-#endif
+
 }
 
 BrowserClient::BrowserClient(RenderHandler *renderHandler)
@@ -103,7 +85,7 @@ BrowserClient::BrowserClient(RenderHandler *renderHandler)
 {
 }
 
-bool CEF_init(int w, int h)
+bool CEF_init(int w, int h, GLuint ** ceftxt)
 {
 	int exit_code;
 	CefRefPtr<CefBrowser> browser_;
@@ -111,12 +93,6 @@ bool CEF_init(int w, int h)
 	RenderHandler* render_handler_;
 
 	CefMainArgs args;
-#if 0	
-	exit_code = CefExecuteProcess(args, nullptr, nullptr);;
-	if (exit_code >= 0) {
-		return false;
-	}
-#endif
 
 	CefSettings settings;
 	CefString(&settings.browser_subprocess_path).FromASCII("Resources\\plugins\\XTouchDownRecorder\\64\\xtouchdownrecorder_ui.exe");
@@ -128,7 +104,7 @@ bool CEF_init(int w, int h)
 	}
 
 	render_handler_ = new RenderHandler();
-	render_handler_->init();
+	render_handler_->init(ceftxt);
 
 	render_handler_->resize(w, h);
 
@@ -146,6 +122,7 @@ void CEF_update()
 {
 	CefDoMessageLoopWork();
 }
+
 
 void CEF_deinit()
 {

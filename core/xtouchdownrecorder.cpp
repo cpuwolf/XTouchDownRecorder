@@ -278,6 +278,7 @@ typedef struct
 	float XPTouchDownLon;
 
 	bool cef;
+	GLuint * ceftxt;
 }XTDInfo;
 
 XTDInfo * g_info;
@@ -714,6 +715,27 @@ static void drawcb(XPLMWindowID inWindowID, void *inRefcon)
 	XPLMGetWindowGeometry(inWindowID, &left, &top, &right, &bottom);
 	if(g_info->cef) {
 		CEF_update();
+		int screen_x, screen_y;
+		int width_= right-left;
+		int height_=top-bottom;
+		#define MARGIN_SIZE 0
+		XPLMGetScreenSize(&screen_x, &screen_y);
+		XPLMSetGraphicsState(1, 1, 0, 1, 1, 1, 1);
+
+		glBindTexture(GL_TEXTURE_2D, *(g_info->ceftxt));
+
+		glBegin(GL_QUADS);
+		glTexCoord2f(0.0, 1.0);
+		glVertex2f(left, bottom);
+		glTexCoord2f(0.0, 0.0);
+		glVertex2f(left, top);
+		glTexCoord2f(1.0, 0.0);
+		glVertex2f(right,top);
+		glTexCoord2f(1.0, 1.0);
+		glVertex2f(right, bottom);
+		glEnd();
+
+		glBindTexture(GL_TEXTURE_2D, 0);
 	}
 #ifndef XPLM300	
 	XPLMDrawTranslucentDarkBox(left, top, right, bottom);
@@ -1739,7 +1761,7 @@ static int XPluginStartBH()
 				menucb, NULL);
 	XPLMAppendMenuItem(g_info->tdr_menu, "Show/Hide", NULL, 1);
 	enumfolder_async();
-	g_info->cef=CEF_init(_TD_CHART_WIDTH, _TD_CHART_HEIGHT);
+	g_info->cef=CEF_init(_TD_CHART_WIDTH, _TD_CHART_HEIGHT, &(g_info->ceftxt));
 	if(g_info->cef){
 		XPLMDebugString("XTouchDownRecorder: CEF_init OK\n");
 	} else {

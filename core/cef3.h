@@ -21,7 +21,7 @@ public:
 	RenderHandler();
 
 public:
-	void init();
+	void init(GLuint ** ceftxt);
 	void resize(int w, int h);
 
 	// CefRenderHandler interface
@@ -62,7 +62,7 @@ public:
 #ifdef __cplusplus
 extern "C" {
 #endif
-bool CEF_init(int w, int h);
+bool CEF_init(int w, int h, GLuint **);
 void CEF_update();
 void CEF_deinit();
 
