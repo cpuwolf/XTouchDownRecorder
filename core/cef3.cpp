@@ -28,46 +28,12 @@ CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
 OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
-#include <include/cef_app.h>
-#include <include/cef_client.h>
-#include <include/cef_render_handler.h>
 
-#ifdef __APPLE__
-#include <OpenGL/gl.h>
-#include <Carbon/Carbon.h>
-#else
-#include <stdlib.h>
-#include <GL/gl.h>
-//#include <GL/glew.h>
-#endif
+#include "cef3.h"
 
-class RenderHandler : public CefRenderHandler
-{
-public:
-	RenderHandler();
-
-public:
-	void init();
-	void resize(int w, int h);
-
-	// CefRenderHandler interface
-public:
-	void GetViewRect(CefRefPtr<CefBrowser> browser, CefRect &rect);
-	void OnPaint(CefRefPtr<CefBrowser> browser, PaintElementType type, const RectList &dirtyRects, const void *buffer, int width, int height);
-
-	// CefBase interface
-public:
-	IMPLEMENT_REFCOUNTING(RenderHandler);
-
-public:
-	GLuint tex() const { return tex_; }
-
-private:
-	int width_;
-	int height_;
-
-	GLuint tex_;
-};
+#include <XPLMPlugin.h>
+#include <XPLMDisplay.h>
+#include <XPLMGraphics.h>
 
 RenderHandler::RenderHandler()
 	: width_(2), height_(2), tex_(0)
@@ -81,8 +47,6 @@ void RenderHandler::init()
 
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
 	// dummy texture data - for debugging
 	const unsigned char data[] = {
@@ -108,31 +72,38 @@ void RenderHandler::GetViewRect(CefRefPtr<CefBrowser> browser, CefRect &rect)
 
 void RenderHandler::OnPaint(CefRefPtr<CefBrowser> browser, PaintElementType type, const RectList &dirtyRects, const void *buffer, int width, int height)
 {
+#if 0
+	int screen_x, screen_y;
+	#define MARGIN_SIZE 0
+	XPLMGetScreenSize(&screen_x, &screen_y);
+	XPLMSetGraphicsState(1, 1, 0, 1, 1, 1, 1);
+
 	glBindTexture(GL_TEXTURE_2D, tex_);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_BGRA_EXT, GL_UNSIGNED_BYTE, (unsigned char*)buffer);
+
+	glBegin(GL_QUADS);
+	glTexCoord2f(0.0, 1.0);
+	glVertex2f((screen_x - width_) / 2 - MARGIN_SIZE, 0);
+	glTexCoord2f(0.0, 0.0);
+	glVertex2f((screen_x - width_) / 2 - MARGIN_SIZE,
+	    height_ + 2 * MARGIN_SIZE);
+	glTexCoord2f(1.0, 0.0);
+	glVertex2f((screen_x + width_) / 2 + MARGIN_SIZE,
+	    height_ + 2 * MARGIN_SIZE);
+	glTexCoord2f(1.0, 1.0);
+	glVertex2f((screen_x + width_) / 2 + MARGIN_SIZE, 0);
+	glEnd();
+
 	glBindTexture(GL_TEXTURE_2D, 0);
+#endif
 }
-
-class BrowserClient : public CefClient
-{
-public:
-	BrowserClient(RenderHandler *renderHandler);
-
-	virtual CefRefPtr<CefRenderHandler> GetRenderHandler() {
-		return m_renderHandler;
-	}
-
-	CefRefPtr<CefRenderHandler> m_renderHandler;
-
-	IMPLEMENT_REFCOUNTING(BrowserClient);
-};
 
 BrowserClient::BrowserClient(RenderHandler *renderHandler)
 	: m_renderHandler(renderHandler)
 {
 }
 
-bool CEF_init()
+bool CEF_init(int w, int h)
 {
 	int exit_code;
 	CefRefPtr<CefBrowser> browser_;
@@ -144,6 +115,7 @@ bool CEF_init()
 	if (exit_code >= 0) {
 		return false;
 	}
+	
 
 	CefSettings settings;
 	bool result = CefInitialize(args, settings, nullptr, nullptr);
@@ -151,16 +123,30 @@ bool CEF_init()
 		exit_code = -1;
 		return false;
 	}
+	return true;
 
 	render_handler_ = new RenderHandler();
 	render_handler_->init();
 
+	render_handler_->resize(w, h);
+
 	CefBrowserSettings browserSettings;
 	CefWindowInfo window_info;
+	window_info.SetAsWindowless(NULL); 
 
 	// browserSettings.windowless_frame_rate = 60; // 30 is default
 	client_ = new BrowserClient(render_handler_);
 
 	browser_ = CefBrowserHost::CreateBrowserSync(window_info, client_.get(), "https://x-plane.vip/xtdr/static/", browserSettings, nullptr);
 	return true;
+}
+void CEF_update()
+{
+	CefDoMessageLoopWork();
+}
+
+void CEF_deinit()
+{
+	//CefRunMessageLoop();
+	CefShutdown();
 }

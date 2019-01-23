@@ -72,6 +72,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include "lightworker.h"
+#include "cef3.h"
 
 #define _PROVER_ "V9"
 #define _PRONAMEVER_ "XTouchDownRecorder " _PROVER_ " (" __DATE__ ")"
@@ -275,6 +276,8 @@ typedef struct
 	BOOL curl_disable_ssl_verify;
 	float XPTouchDownLat;
 	float XPTouchDownLon;
+
+	bool cef;
 }XTDInfo;
 
 XTDInfo * g_info;
@@ -1733,6 +1736,12 @@ static int XPluginStartBH()
 				menucb, NULL);
 	XPLMAppendMenuItem(g_info->tdr_menu, "Show/Hide", NULL, 1);
 	enumfolder_async();
+	g_info->cef=CEF_init(_TD_CHART_WIDTH, _TD_CHART_HEIGHT);
+	if(g_info->cef){
+		XPLMDebugString("XTouchDownRecorder: CEF_init OK\n");
+	} else {
+		XPLMDebugString("XTouchDownRecorder: CEF_init failed\n");
+	}
 	return 1;
 }
 
