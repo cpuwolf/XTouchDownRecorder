@@ -558,10 +558,12 @@ static int gettouchdownanddraw(XTDData * pd, int idx, float * pfpm, float pg[],i
 				delta_tm_expect = delta_tm;
 				last_k = k;
 			}
+#ifndef XPLM300			
 			/*draw second axis*/
 			if (isdraw) {
 				draw_line(0, 0, 0, 1, 3, x_tmp, y, x_tmp, y + _TD_CHART_HEIGHT);
 			}
+#endif			
 			/*goto next second*/
 			s-=1.0f;
 		}
@@ -627,10 +629,12 @@ static int drawtouchdownpoints(XTDData * pd, int x, int y, BOOL isdraw)
 			if(b) {
 				/* skip small debounce */
 				if (pd->touchdown_tm_table[k] - last_air_tm > 0.5f) {
+#ifndef XPLM300					
 					if (isdraw) {
 						/* draw vertical line */
 						draw_line(1, 1, 1, 1, 3, x_tmp, y + (_TD_CHART_HEIGHT / 4), x_tmp, y + (_TD_CHART_HEIGHT * 3 / 4));
 					}
+#endif					
 					touchtimes++;
 				}
 
@@ -772,9 +776,10 @@ static void drawcb(XPLMWindowID inWindowID, void *inRefcon)
 
 	x = left;
 	y = bottom;
-
+#ifndef XPLM300	
 	/*-- draw center line*/
 	draw_line(0, 0, 0, 1, 3, x, y + (_TD_CHART_HEIGHT / 2), x + (MAX_TABLE_ELEMENTS * 2), y + (_TD_CHART_HEIGHT / 2));
+#endif
 
 	int x_text = x + 5;
 	int y_text = y + 4;
@@ -782,7 +787,6 @@ static void drawcb(XPLMWindowID inWindowID, void *inRefcon)
 	/* print landing load data */
 	float landingVS, landingG[2];
 
-#if 1
 	int touch_idx = getfirsttouchdownpointidx(pd);
 	if (touch_idx >= 0) {
 		float landingPitch = pd->touchdown_pch_table[touch_idx];
@@ -804,18 +808,13 @@ static void drawcb(XPLMWindowID inWindowID, void *inRefcon)
 		strcat(g_info->landingString, text_to_print);
 
 		int width_text_to_print = (int)floor(XPLMMeasureString(xplmFont_Proportional, text_to_print, (int)strlen(text_to_print)));
+#ifndef XPLM300		
 		XPLMDrawString(color, x_text, y_text, text_to_print, NULL, xplmFont_Proportional);
+#endif		
 		x_text = x_text + width_text_to_print;
 	}
-#else
-	if (analyzeTouchDown(pd, text_buf, x, y, TRUE)) {
-		char *text_to_print = text_buf;
-		int width_text_to_print = (int)floor(XPLMMeasureString(xplmFont_Proportional, text_to_print, (int)strlen(text_to_print)));
-		XPLMDrawString(color, x_text, y_text, text_to_print, NULL, xplmFont_Proportional);
-		x_text = x_text + width_text_to_print;
-	}
-#endif
 
+#ifndef XPLM300
 	/*start a new line*/
 	x_text = x + 5;
 	y_text = y + 16;
@@ -857,13 +856,13 @@ static void drawcb(XPLMWindowID inWindowID, void *inRefcon)
 	float max_gs_recorded = get_max_val(pd, pd->touchdown_gs_table);
 	sprintf(text_buf, "Max %.02fknots ", max_gs_recorded*1.943844f);
 	x_text = draw_curve(pd->touchdown_gs_table, 0.24f, 0.35f, 0.8f, text_buf, x_text, y_text, x, y, x, y, max_gs_recorded, max_gs_recorded);
-
+#endif
 	/*-- title*/
 	color[0] = 1.0;
 	color[1] = 1.0;
 	color[2] = 1.0;
 	strcpy(text_buf, _PRONAMEVER_" by cpuwolf ");
-	x_text = x + 5;
+	x_text = x + 50;
 	y_text = y + _TD_CHART_HEIGHT - 15;
 #ifndef XPLM300		
 	XPLMDrawString(color, x_text, y_text, text_buf, NULL, xplmFont_Proportional);

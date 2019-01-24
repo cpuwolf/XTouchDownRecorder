@@ -178,7 +178,7 @@ void CEF_mousemove(struct cefui * pcef, int x, int y)
 {
 	CefMouseEvent evt;
 	evt.x = x;
-	evt.y = 40;
+	evt.y = y;
 	pcef->browser_->GetHost()->SendMouseMoveEvent(evt, false);
 	CEF_update();
 }
