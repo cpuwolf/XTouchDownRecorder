@@ -407,6 +407,11 @@ static int mousecb(XPLMWindowID inWindowID, int x, int y,
 
 	int left, top, right, bottom;
 	XPLMGetWindowGeometry(inWindowID, &left, &top, &right, &bottom);
+	XTDWinBox winbox;
+	winbox.posx=left;
+	winbox.posy = bottom;
+	winbox.width=right-left;
+	winbox.height=top-bottom;
 	switch (inMouse) {
 	case xplm_MouseDown:
 #ifndef XPLM300
@@ -414,7 +419,9 @@ static int mousecb(XPLMWindowID inWindowID, int x, int y,
 			g_info->show_touchdown_counter = 0;
 		} else 
 #endif
-		if (InBox(&(ref->link), x, y)) {
+		//if (InBox(&(ref->link), x, y)) {
+		//if (InBox(&winbox, x, y)) {
+		if (1) {
 #if defined(_WIN32)
 			ShellExecute(NULL, "open", g_info->g_NewsLink, NULL, NULL, SW_SHOWNORMAL);
 #elif defined(__linux__)
@@ -857,6 +864,8 @@ static void drawcb(XPLMWindowID inWindowID, void *inRefcon)
 	sprintf(text_buf, "Max %.02fknots ", max_gs_recorded*1.943844f);
 	x_text = draw_curve(pd->touchdown_gs_table, 0.24f, 0.35f, 0.8f, text_buf, x_text, y_text, x, y, x, y, max_gs_recorded, max_gs_recorded);
 #endif
+
+#ifndef XPLM300	
 	/*-- title*/
 	color[0] = 1.0;
 	color[1] = 1.0;
@@ -864,13 +873,11 @@ static void drawcb(XPLMWindowID inWindowID, void *inRefcon)
 	strcpy(text_buf, _PRONAMEVER_" by cpuwolf ");
 	x_text = x + 50;
 	y_text = y + _TD_CHART_HEIGHT - 15;
-#ifndef XPLM300		
+	
 	XPLMDrawString(color, x_text, y_text, text_buf, NULL, xplmFont_Proportional);
 
 	int width_text_to_print = (int)floor(XPLMMeasureString(xplmFont_Proportional, text_buf, (int)strlen(text_buf)));
-#else
-	int width_text_to_print = 0;
-#endif
+
 	x_text = x_text + width_text_to_print;
 
 	/* draw link*/
@@ -891,7 +898,7 @@ static void drawcb(XPLMWindowID inWindowID, void *inRefcon)
 	ref->link.height = 15;
 
 	XPLMDrawString(colr, x_text, y_text, text_buf, NULL, xplmFont_Proportional);
-
+#endif
 
 #ifndef XPLM300	
 	/*-- draw close button on top-right*/
