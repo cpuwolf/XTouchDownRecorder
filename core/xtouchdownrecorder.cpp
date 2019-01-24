@@ -1397,6 +1397,7 @@ static size_t httpcb(char *ptr, size_t size, size_t nmemb, void *userdata)
 			*p_n = 0;
 			strcpy(g_info->g_NewsLink, p_n + 1);
 			if((g_info->pcef)&&(g_info->pcef->isinit)){
+				XPLMDebugString(g_info->g_NewsLink);
 				CEF_url(g_info->pcef, g_info->g_NewsLink);
 			}
 
@@ -1414,7 +1415,7 @@ static void getnetinfo()
  
  	curl = curl_easy_init();
  	if(curl) {
-		curl_easy_setopt(curl, CURLOPT_URL, "https://raw.githubusercontent.com/cpuwolf/XTouchDownRecorder/master/news.txt");
+		curl_easy_setopt(curl, CURLOPT_URL, "https://raw.githubusercontent.com/cpuwolf/XTouchDownRecorder/master/news9.txt");
 		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, httpcb);
 		curl_easy_setopt(curl, CURLOPT_USERAGENT, "Dark Secret Ninja/1.0");
 		if(g_info->curl_disable_ssl_verify) {
@@ -1467,7 +1468,7 @@ static BOOL uploadfile(char * path)
 		curl_easy_setopt(curl, CURLOPT_FAILONERROR, 1L);
 		curl_easy_setopt(curl, CURLOPT_MIMEPOST, form);
 		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, httpcb);
-		curl_easy_setopt(curl, CURLOPT_USERAGENT, "Dark Secret Ninja/1.0");
+		curl_easy_setopt(curl, CURLOPT_USERAGENT, "Dark Secret XTDR9");
 		if(g_info->curl_disable_ssl_verify) {
 			curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, FALSE);
 		}
@@ -1582,7 +1583,7 @@ static void GetXPVer()
 
 static unsigned int lightworker_job_helper(void *arg)
 {
-	//struct lightworker * thread = (struct lightworker *)arg;
+
 	getnetinfo();
 	if (!getnetinfodone()) {
 		getnetinfo();

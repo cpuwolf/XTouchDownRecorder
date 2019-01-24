@@ -63,7 +63,17 @@ public:
     {
         return this;
     }
-
+    bool OnBeforePopup(CefRefPtr<CefBrowser> browser,
+		CefRefPtr<CefFrame> frame,
+		const CefString& target_url,
+		const CefString& target_frame_name,
+		WindowOpenDisposition target_disposition,
+		bool user_gesture,
+		const CefPopupFeatures& popup_features,
+		CefWindowInfo& window_info,
+		CefRefPtr<CefClient>& client,
+		CefBrowserSettings& settings,
+		bool* no_javascript_access) override;
 
 	CefRefPtr<CefRenderHandler> m_renderHandler;
 

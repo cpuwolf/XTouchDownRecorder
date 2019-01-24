@@ -31,9 +31,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "cef3.h"
 
-#include <XPLMPlugin.h>
-#include <XPLMDisplay.h>
-#include <XPLMGraphics.h>
+#include <XPLMUtilities.h>
 
 RenderHandler::RenderHandler()
 	: width_(2), height_(2), tex_(0)
@@ -85,6 +83,36 @@ BrowserClient::BrowserClient(RenderHandler *renderHandler)
 {
 }
 
+bool BrowserClient::OnBeforePopup(CefRefPtr<CefBrowser> browser,
+		CefRefPtr<CefFrame> frame,
+		const CefString& target_url,
+		const CefString& target_frame_name,
+		WindowOpenDisposition target_disposition,
+		bool user_gesture,
+		const CefPopupFeatures& popup_features,
+		CefWindowInfo& window_info,
+		CefRefPtr<CefClient>& client,
+		CefBrowserSettings& settings,
+		bool* no_javascript_access) 
+{
+	const char * purl;
+	purl=target_url.ToString().c_str();
+	XPLMDebugString("XTouchDownRecorder:Popup:\n");
+	XPLMDebugString(purl);
+#if defined(_WIN32)
+	ShellExecute(NULL, "open", purl, NULL, NULL, SW_SHOWNORMAL);
+#elif defined(__linux__)
+	char tmp[512];
+	sprintf(tmp, "sensible-browser %s&", purl);
+	system(tmp);
+#elif defined(__APPLE__)
+	char tmp[512];
+	sprintf(tmp, "open %s&", purl);
+	system(tmp);
+#endif
+	return true; //prevent popup
+}
+
 struct cefui * CEF_init(int w, int h)
 {
 	int exit_code;
@@ -119,7 +147,7 @@ struct cefui * CEF_init(int w, int h)
 	// browserSettings.windowless_frame_rate = 60; // 30 is default
 	pcef->client_ = new BrowserClient(render_handler_);
 
-	pcef->browser_ = CefBrowserHost::CreateBrowserSync(window_info, pcef->client_.get(), "https://x-plane.vip/xtdr/static/", browserSettings, nullptr);
+	pcef->browser_ = CefBrowserHost::CreateBrowserSync(window_info, pcef->client_.get(), "https://x-plane.vip/xtdr/static/tiny.html", browserSettings, nullptr);
 
 	pcef->isinit=true;
 	return pcef;
