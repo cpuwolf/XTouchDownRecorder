@@ -97,6 +97,7 @@ struct cefui * CEF_init(int w, int h)
 	CefMainArgs args;
 
 	CefSettings settings;
+	//settings.multi_threaded_message_loop = true ;
 	CefString(&settings.browser_subprocess_path).FromASCII("Resources\\plugins\\XTouchDownRecorder\\64\\xtouchdownrecorder_ui.exe");
 
 	bool result = CefInitialize(args, settings, nullptr, nullptr);
@@ -142,14 +143,16 @@ void CEF_mouseclick(struct cefui * pcef, int x, int y,bool up)
 	evt.x = x;
 	evt.y = y;
 	pcef->browser_->GetHost()->SendMouseClickEvent(evt, MBT_LEFT, up, 1);
+	//CEF_update();
 }
 
 void CEF_mousemove(struct cefui * pcef, int x, int y)
 {
 	CefMouseEvent evt;
 	evt.x = x;
-	evt.y = y;
+	evt.y = 40;
 	pcef->browser_->GetHost()->SendMouseMoveEvent(evt, false);
+	CEF_update();
 }
 
 void CEF_deinit(struct cefui * pcef)

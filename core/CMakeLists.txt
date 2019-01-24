@@ -2,7 +2,7 @@
 project(xtouchdownrecorder CXX)
 cmake_minimum_required(VERSION 2.8)
 
-set(CEF_ROOT "F:/works/cef_binary_3.3599.1858.g285dbb1_windows64_minimal")
+set(CEF_ROOT "F:/works/GitHub/cef/cef_binary_3.3578.1863.gbf8cff2_windows64_minimal")
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CEF_ROOT}/cmake")
 find_package(CEF REQUIRED)
 
@@ -44,7 +44,8 @@ COPY_FILES(xtouchdownrecorder "${CEF_BINARY_FILES}" "${CEF_BINARY_DIR}" "${TARGE
 COPY_FILES(xtouchdownrecorder "${CEF_RESOURCE_FILES}" "${CEF_RESOURCE_DIR}" "${TARGET_OUTPUT_DIRECTORY}")
 
 IF(WIN32)
-set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /MT")
+set(CMAKE_CXX_FLAGS_RELEASE "/MT" CACHE STRING "Optional flag specifying which runtime to use")
+#set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /MT")
 set(CompilerFlags
         CMAKE_CXX_FLAGS
         CMAKE_CXX_FLAGS_DEBUG

@@ -380,12 +380,15 @@ static BOOL InBox(XTDWinBox * box, int x, int y)
 static XPLMCursorStatus cursorcb(XPLMWindowID inWindowID,int x,int y,void * inRefcon)
 {
 	XTDWin * ref = (XTDWin *)inRefcon;
+	int left, top, right, bottom;
+	XPLMGetWindowGeometry(inWindowID, &left, &top, &right, &bottom);
+
 	if (InBox(&(ref->link), x, y)) {
 		return xplm_CursorHidden;
 	}
 
 	if((g_info->pcef)&&(g_info->pcef->isinit)){
-			CEF_mousemove(g_info->pcef, x, y);
+			CEF_mousemove(g_info->pcef, x-left, top-y);
 	}
 	return xplm_CursorDefault;
 }
@@ -395,6 +398,9 @@ static int mousecb(XPLMWindowID inWindowID, int x, int y,
 {
 	static int lastMouseX, lastMouseY;
 	XTDWin * ref = (XTDWin *)inRefcon;
+
+	int left, top, right, bottom;
+	XPLMGetWindowGeometry(inWindowID, &left, &top, &right, &bottom);
 	switch (inMouse) {
 	case xplm_MouseDown:
 #ifndef XPLM300
@@ -417,14 +423,14 @@ static int mousecb(XPLMWindowID inWindowID, int x, int y,
 		}
 
 		if((g_info->pcef)&&(g_info->pcef->isinit)){
-			CEF_mouseclick(g_info->pcef, x, y,false);
+			CEF_mouseclick(g_info->pcef, x-left, top-y,false);
 		}
 		lastMouseX = x;
 		lastMouseY = y;
 		break;
 	case xplm_MouseUp:
 		if((g_info->pcef)&&(g_info->pcef->isinit)){
-			CEF_mouseclick(g_info->pcef, x, y,true);
+			CEF_mouseclick(g_info->pcef, x-left, top-y,true);
 		}
 		break;
 #ifndef XPLM300
@@ -730,7 +736,6 @@ static void drawcb(XPLMWindowID inWindowID, void *inRefcon)
 
 	XPLMGetWindowGeometry(inWindowID, &left, &top, &right, &bottom);
 	if((g_info->pcef)&&(g_info->pcef->isinit)){
-		CEF_update();
 		int screen_x, screen_y;
 		int width_= right-left;
 		int height_=top-bottom;
@@ -752,6 +757,8 @@ static void drawcb(XPLMWindowID inWindowID, void *inRefcon)
 		glEnd();
 
 		glBindTexture(GL_TEXTURE_2D, 0);
+
+		CEF_update();
 	}
 #ifndef XPLM300	
 	XPLMDrawTranslucentDarkBox(left, top, right, bottom);
@@ -1497,10 +1504,6 @@ static float secondcb(float inElapsedSinceLastCall,
 	char tmpbuf[250];
 	float fps;
 	int counter;
-
-	if((g_info->pcef)&&(g_info->pcef->isinit)){
-		CEF_update();
-	}
 
 	if (is_on_ground()) {
 		if(is_taxing()) {
