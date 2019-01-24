@@ -1779,26 +1779,56 @@ PLUGIN_API int XPluginStart(char * outName, char * outSig, char * outDesc)
 		ref->win.posy = 900;
 	}
 
+
+#if 0	
+	if (g_info->conf.agree != 1) {
+		CreateAgreeWidgets(ref->win.posx, ref->win.posy);
+		return 1;
+	}
+#endif
+	return 1;
+}
+
+static int XPluginStartBH()
+{
+	XPLMMenuID plugins_menu;
+	int menuidx, i;
+	char path[256],buf[512];
+	const char cefpath[]="Resources\\plugins\\XTouchDownRecorder\\64\\xtouchdownrecorder_ui.exe";
+	XPLMPluginID addonid = XPLMGetMyID();
+	sprintf(path,"XTouchDownRecorder: addon id=%d\n",addonid);
+	XPLMDebugString(path);
+	XPLMGetPluginInfo(addonid, NULL, path, NULL, NULL);
+	sprintf(buf,"XTouchDownRecorder: addon path=%s\n", path);
+	XPLMDebugString(buf);
+	size_t plen =strlen(path);
+	if(plen > 10) {
+		for(i=plen-1;i>0;i--){
+			char *c= path+i;
+			if((*c=='/')||(*c=='\\')){
+				*c=0;
+				break;
+			}
+		}
+	}
+	plen =strlen(path);
+	if(plen > 10) {
+		strcat(path, "\\xtouchdownrecorder_ui.exe");
+	} else {
+		strcpy(path, cefpath);
+	}
+	sprintf(buf,"XTouchDownRecorder: CEF path=%s\n", path);
+	XPLMDebugString(buf);
+
 	XPLMDebugString("XTouchDownRecorder: start CEF\n");
-	g_info->pcef=CEF_init(_TD_CHART_WIDTH, _TD_CHART_HEIGHT);
+	g_info->pcef=CEF_init(_TD_CHART_WIDTH, _TD_CHART_HEIGHT, path);
 	if((g_info->pcef)&&(g_info->pcef->isinit)){
 		XPLMDebugString("XTouchDownRecorder: CEF_init OK\n");
 	} else {
 		XPLMDebugString("XTouchDownRecorder: CEF_init failed\n");
 		return 0;
 	}
-	if (g_info->conf.agree != 1) {
-		CreateAgreeWidgets(ref->win.posx, ref->win.posy);
-		return 1;
-	}
 
-	return XPluginStartBH();
-}
-
-static int XPluginStartBH()
-{
-	XPLMMenuID plugins_menu;
-	int menuidx;
 	/* register loopback starting at 10s */
 	XPLMRegisterFlightLoopCallback(flightcb, -1, g_info->winref);
 
@@ -1870,7 +1900,7 @@ PLUGIN_API void XPluginDisable(void)
 
 PLUGIN_API int XPluginEnable(void)
 {
-	return 1;
+	return XPluginStartBH();
 }
 
 PLUGIN_API void XPluginReceiveMessage(XPLMPluginID inForm, int inMessage, void * inParam) 

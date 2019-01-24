@@ -113,7 +113,7 @@ bool BrowserClient::OnBeforePopup(CefRefPtr<CefBrowser> browser,
 	return true; //prevent popup
 }
 
-struct cefui * CEF_init(int w, int h)
+struct cefui * CEF_init(int w, int h, const char * exepath)
 {
 	int exit_code;
 	RenderHandler* render_handler_;
@@ -126,7 +126,7 @@ struct cefui * CEF_init(int w, int h)
 
 	CefSettings settings;
 	//settings.multi_threaded_message_loop = true ;
-	CefString(&settings.browser_subprocess_path).FromASCII("Resources\\plugins\\XTouchDownRecorder\\64\\xtouchdownrecorder_ui.exe");
+	CefString(&settings.browser_subprocess_path).FromASCII(exepath);
 
 	bool result = CefInitialize(args, settings, nullptr, nullptr);
 	if (!result) {
