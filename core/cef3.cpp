@@ -143,7 +143,7 @@ void CEF_mouseclick(struct cefui * pcef, int x, int y,bool up)
 	evt.x = x;
 	evt.y = y;
 	pcef->browser_->GetHost()->SendMouseClickEvent(evt, MBT_LEFT, up, 1);
-	//CEF_update();
+	CEF_update();
 }
 
 void CEF_mousemove(struct cefui * pcef, int x, int y)

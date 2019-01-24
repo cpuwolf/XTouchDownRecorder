@@ -174,6 +174,7 @@ static XTDData *datarealtm, *datacopy;
 	pd->touchdown_gf_table = pd->pbuffer + (TOUCHDOWN_GF_IDX * MAX_TABLE_ELEMENTS);\
 	pd->touchdown_tw_table = pd->pbuffer + (TOUCHDOWN_TW_IDX * MAX_TABLE_ELEMENTS);
 
+static void toggle_touchdown();
 static XTDData * XTDMalloc()
 {
 	XTDData * pd;
@@ -392,7 +393,12 @@ static XPLMCursorStatus cursorcb(XPLMWindowID inWindowID,int x,int y,void * inRe
 	}
 	return xplm_CursorDefault;
 }
-
+static int rmousecb(XPLMWindowID inWindowID, int x, int y,
+	XPLMMouseStatus inMouse, void *inRefcon)
+{
+	toggle_touchdown();
+	return 1;
+}
 static int mousecb(XPLMWindowID inWindowID, int x, int y,
 				   XPLMMouseStatus inMouse, void *inRefcon)
 {
@@ -928,7 +934,7 @@ static float flightcb(float inElapsedSinceLastCall,
 		win.handleKeyFunc = keycb;
 		win.handleMouseClickFunc = mousecb;
 #ifdef XPLM300		
-		win.handleRightClickFunc = mousecb;
+		win.handleRightClickFunc = rmousecb;
 #endif
 		win.handleCursorFunc = cursorcb;			
 		win.handleMouseWheelFunc = dummy_wheel_cb;
