@@ -1390,6 +1390,17 @@ static int jsoneq(const char *json, jsmntok_t *tok, const char *s) {
 	}
 	return -1;
 }
+
+static void strnsub(char *buffer, char *str, int chars)
+{
+    int n;
+
+    if (buffer)
+    {
+        for (n = 0; ((n < chars) && (str[n] != 0)) ; n++) buffer[n] = str[n];
+        buffer[n] = 0;
+    }
+}
 static size_t httpcb(char *ptr, size_t size, size_t nmemb, void *userdata)
 {
 #if 1
@@ -1414,24 +1425,27 @@ static size_t httpcb(char *ptr, size_t size, size_t nmemb, void *userdata)
 	for (i = 1; i < r; i++) {
 		if (jsoneq(ptr, &t[i], "showurl") == 0) {
 			/* We may use strndup() to fetch string value */
-			strncpy(value, ptr + t[i+1].start, t[i+1].end-t[i+1].start);
+			strnsub(value, ptr + t[i+1].start, t[i+1].end-t[i+1].start);
 			strcpy(g_info->g_NewsLink, value);
 			sprintf(tmpbuf, "XTouchDownRecorder: - showurl: %s\n", value);
-			CEF_url(g_info->pcef, g_info->g_NewsLink);
+			if((g_info->pcef) && (g_info->pcef->isinit)) {
+				CEF_url(g_info->pcef, g_info->g_NewsLink);
+			}
 			i++;
 		} else if (jsoneq(ptr, &t[i], "clickurl") == 0) {
-			strncpy(value, ptr + t[i+1].start, t[i+1].end-t[i+1].start);
+			strnsub(value, ptr + t[i+1].start, t[i+1].end-t[i+1].start);
 			strcpy(g_info->g_NewsClickLink, value);
 			sprintf(tmpbuf, "XTouchDownRecorder: - clickurl: %s\n", value);
 			i++;
 		} else if (jsoneq(ptr, &t[i], "msg") == 0) {
-			strncpy(value, ptr + t[i+1].start, t[i+1].end-t[i+1].start);
+			strnsub(value, ptr + t[i+1].start, t[i+1].end-t[i+1].start);
 			strcpy(g_info->g_NewsString, value);
 			sprintf(tmpbuf, "XTouchDownRecorder: - msg: %s\n", value);
 			i++;
 		} else {
-			strncpy(value, ptr + t[i+1].start, t[i+1].end-t[i+1].start);
+			strnsub(value, ptr + t[i].start, t[i].end-t[i].start);
 			sprintf(tmpbuf, "XTouchDownRecorder: Unexpected key: %s\n", value);
+			i++;
 		}
 		XPLMDebugString(tmpbuf);
 	}
@@ -1753,8 +1767,6 @@ PLUGIN_API int XPluginStart(char * outName, char * outSig, char * outDesc)
 	/*get XP version info*/
 	GetXPVer();
 
-	/*create a worker*/
-	g_info->worker = lightworker_create(lightworker_job_helper, g_info);
 	/* get path*/
 	XPLMGetPrefsPath(path);
 	csep=XPLMGetDirectorySeparator();
@@ -1882,7 +1894,8 @@ static int XPluginStartBH()
 		XPLMDebugString("XTouchDownRecorder: CEF_init failed\n");
 		return 0;
 	}
-
+	/*create a worker*/
+	g_info->worker = lightworker_create(lightworker_job_helper, g_info);
 	/* register loopback starting at 10s */
 	XPLMRegisterFlightLoopCallback(flightcb, -1, g_info->winref);
 
