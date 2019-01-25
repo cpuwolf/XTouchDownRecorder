@@ -29,9 +29,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include <math.h>
-#include <string.h>
 #include <time.h>
 #include <stdio.h>
+#include <string.h>
 #include <sys/stat.h>
 #if defined(_WIN32)
 #else
@@ -73,6 +73,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "lightworker.h"
 #include "cef3.h"
+#include <jsmn.h>
 
 #define _PROVER_ "V9"
 #define _PRONAMEVER_ "XTouchDownRecorder " _PROVER_ " (" __DATE__ ")"
@@ -265,6 +266,7 @@ typedef struct
 
 	char g_NewsString[128];
 	char g_NewsLink[128];
+	char g_NewsClickLink[128];
 
 	struct lightworker* worker;
 	BOOL lightworkerexit;
@@ -423,14 +425,14 @@ static int mousecb(XPLMWindowID inWindowID, int x, int y,
 		//if (InBox(&winbox, x, y)) {
 		if (1) {
 #if defined(_WIN32)
-			ShellExecute(NULL, "open", g_info->g_NewsLink, NULL, NULL, SW_SHOWNORMAL);
+			ShellExecute(NULL, "open", g_info->g_NewsClickLink, NULL, NULL, SW_SHOWNORMAL);
 #elif defined(__linux__)
 			char tmp[512];
-			sprintf(tmp, "sensible-browser %s&", g_info->g_NewsLink);
+			sprintf(tmp, "sensible-browser %s&", g_info->g_NewsClickLink);
 			system(tmp);
 #elif defined(__APPLE__)
 			char tmp[512];
-			sprintf(tmp, "open %s&", g_info->g_NewsLink);
+			sprintf(tmp, "open %s&", g_info->g_NewsClickLink);
 			system(tmp);
 #endif
 		}
@@ -1381,8 +1383,58 @@ static BOOL getnetinfodone()
 {
 	return (strlen(g_info->g_NewsString) > 1)?TRUE:FALSE;
 }
+static int jsoneq(const char *json, jsmntok_t *tok, const char *s) {
+	if (tok->type == JSMN_STRING && (int) strlen(s) == tok->end - tok->start &&
+			strncmp(json + tok->start, s, tok->end - tok->start) == 0) {
+		return 0;
+	}
+	return -1;
+}
 static size_t httpcb(char *ptr, size_t size, size_t nmemb, void *userdata)
 {
+#if 1
+	char tmpbuf[128];
+	char value[256];
+	jsmn_parser p;
+	jsmntok_t t[10];
+	jsmn_init(&p);
+	int i,r = jsmn_parse(&p, ptr, strlen(ptr), t, sizeof(t)/sizeof(t[0]));
+	if (r < 0) {
+		sprintf(tmpbuf, "XTouchDownRecorder: httpcb json error %d\n", r);
+    	XPLMDebugString(tmpbuf);
+		return 1;
+	}
+	/* Assume the top-level element is an object */
+	if (r < 1 || t[0].type != JSMN_OBJECT) {
+		XPLMDebugString("XTouchDownRecorder: Object expected\n");
+		return 1;
+	}
+	/* Loop over all keys of the root object */
+	for (i = 1; i < r; i++) {
+		if (jsoneq(ptr, &t[i], "showurl") == 0) {
+			/* We may use strndup() to fetch string value */
+			strncpy(value, ptr + t[i+1].start, t[i+1].end-t[i+1].start);
+			strcpy(g_info->g_NewsLink, value);
+			sprintf(tmpbuf, "XTouchDownRecorder: - showurl: %s\n", value);
+			CEF_url(g_info->pcef, g_info->g_NewsLink);
+			i++;
+		} else if (jsoneq(ptr, &t[i], "clickurl") == 0) {
+			strncpy(value, ptr + t[i+1].start, t[i+1].end-t[i+1].start);
+			strcpy(g_info->g_NewsClickLink, value);
+			sprintf(tmpbuf, "XTouchDownRecorder: - clickurl: %s\n", value);
+			i++;
+		} else if (jsoneq(ptr, &t[i], "msg") == 0) {
+			strncpy(value, ptr + t[i+1].start, t[i+1].end-t[i+1].start);
+			strcpy(g_info->g_NewsString, value);
+			sprintf(tmpbuf, "XTouchDownRecorder: - msg: %s\n", value);
+			i++;
+		} else {
+			sprintf(tmpbuf, "XTouchDownRecorder: Unexpected key: %.*s\n", t[i].end-t[i].start,
+					ptr + t[i].start);
+		}
+		XPLMDebugString(tmpbuf);
+	}
+#else
     size_t len = size*nmemb;
 	char *p_n;
     if(len < sizeof(g_info->g_NewsString)) {
@@ -1409,6 +1461,7 @@ static size_t httpcb(char *ptr, size_t size, size_t nmemb, void *userdata)
 
 		}
 	}
+#endif
     return size*nmemb;
 }
 static void getnetinfo()
