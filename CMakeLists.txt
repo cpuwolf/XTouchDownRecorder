@@ -43,7 +43,7 @@ FUNCTION(add_xplane_sdk_definitions library_name)
     ELSEIF(UNIX)
         TARGET_COMPILE_DEFINITIONS(${library_name} PUBLIC -DAPL=0 -DIBM=0 -DLIN=1)
     ELSEIF(WIN32)
-        TARGET_COMPILE_OPTIONS(${library_name} PRIVATE "/MD$<$<CONFIG:Debug>:d>")
+        TARGET_COMPILE_OPTIONS(${library_name} PRIVATE "/MT$<$<CONFIG:Release>:>")
         TARGET_COMPILE_DEFINITIONS(${library_name} PUBLIC -DAPL=0 -DIBM=1 -DLIN=0)
     ENDIF()
 
@@ -53,6 +53,7 @@ ENDFUNCTION(add_xplane_sdk_definitions)
 
 # Set up an X-Plane plugin
 FUNCTION(add_xplane_plugin library_name ...)
+
     SET(FILES ${ARGV})
     LIST(REMOVE_AT FILES 0)
     MESSAGE(STATUS "Making X-Plane plugin called ${library_name}")

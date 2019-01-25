@@ -2,6 +2,8 @@
 project(xtouchdownrecorder CXX)
 cmake_minimum_required(VERSION 2.8)
 
+
+
 set(CEF_ROOT "F:/works/GitHub/cef/cef_binary_3.3578.1863.gbf8cff2_windows64_minimal")
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CEF_ROOT}/cmake")
 find_package(CEF REQUIRED)
@@ -24,6 +26,7 @@ IF(WIN32)
 set(CMAKE_USE_WINSSL ON CACHE BOOL "libcurl winssl" FORCE)
 ENDIF()
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+
 add_subdirectory(../curl-7.58.0/ curl/)
 
 
@@ -34,30 +37,19 @@ set(LIBCURL_DIR ${PROJECT_SOURCE_DIR}/../curl-7.58.0)
 set (LIBS ${LIBS} ${CEF_LIBRARIES} )
 
 find_path(LIBCURL_INCLUDE_DIR curl/curl.h HINTS ${LIBCURL_DIR}/include)
-include_directories(${LIBCURL_INCLUDE_DIR} ${CEF_INCLUDE_DIRS})
+include_directories(${LIBCURL_INCLUDE_DIR} ${CEF_INCLUDE_DIRS} ../jsmn/)
+TARGET_COMPILE_OPTIONS(libcurl PRIVATE "/MT$<$<CONFIG:Release>:>")
+
+
 # Set up the plugin
-add_xplane_plugin(xtouchdownrecorder xtouchdownrecorder.cpp lightworker.cpp cef3.cpp)
+add_xplane_plugin(xtouchdownrecorder xtouchdownrecorder.cpp lightworker.cpp cef3.cpp ../jsmn/jsmn.c)
 
 add_dependencies(${PROJECT_NAME} libcurl libcef_dll_wrapper)
 
 COPY_FILES(xtouchdownrecorder "${CEF_BINARY_FILES}" "${CEF_BINARY_DIR}" "${TARGET_OUTPUT_DIRECTORY}")
 COPY_FILES(xtouchdownrecorder "${CEF_RESOURCE_FILES}" "${CEF_RESOURCE_DIR}" "${TARGET_OUTPUT_DIRECTORY}")
 
-IF(WIN32)
-set(CMAKE_CXX_FLAGS_RELEASE "/MT" CACHE STRING "Optional flag specifying which runtime to use")
-#set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /MT")
-set(CompilerFlags
-        CMAKE_CXX_FLAGS
-        CMAKE_CXX_FLAGS_DEBUG
-        CMAKE_CXX_FLAGS_RELEASE
-        CMAKE_C_FLAGS
-        CMAKE_C_FLAGS_DEBUG
-        CMAKE_C_FLAGS_RELEASE
-        )
-foreach(CompilerFlag ${CompilerFlags})
-  string(REPLACE "/MD" "/MT" ${CompilerFlag} "${${CompilerFlag}}")
-endforeach()
-ENDIF()
+
 
 
 #if (CURL_FOUND)
@@ -71,6 +63,7 @@ PRINT_CEF_CONFIG()
 
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /SUBSYSTEM:WINDOWS /ENTRY:mainCRTStartup")
 add_executable (xtouchdownrecorder_ui cef3_ui.cpp)
+TARGET_COMPILE_OPTIONS(xtouchdownrecorder_ui PRIVATE "/MT$<$<CONFIG:Release>:>")
 target_link_libraries (xtouchdownrecorder_ui libcef_lib libcef_dll_wrapper)
 
 
