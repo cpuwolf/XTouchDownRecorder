@@ -754,31 +754,7 @@ static void drawcb(XPLMWindowID inWindowID, void *inRefcon)
 						 );
 
 	XPLMGetWindowGeometry(inWindowID, &left, &top, &right, &bottom);
-	if((g_info->pcef)&&(g_info->pcef->isinit)){
-		int screen_x, screen_y;
-		int width_= right-left;
-		int height_=top-bottom;
-		#define MARGIN_SIZE 0
-		XPLMGetScreenSize(&screen_x, &screen_y);
-		XPLMSetGraphicsState(1, 1, 0, 1, 1, 1, 1);
 
-		glBindTexture(GL_TEXTURE_2D, *(g_info->pcef->ceftxt));
-
-		glBegin(GL_QUADS);
-		glTexCoord2f(0.0, 1.0);
-		glVertex2f(left, bottom);
-		glTexCoord2f(0.0, 0.0);
-		glVertex2f(left, top);
-		glTexCoord2f(1.0, 0.0);
-		glVertex2f(right,top);
-		glTexCoord2f(1.0, 1.0);
-		glVertex2f(right, bottom);
-		glEnd();
-
-		glBindTexture(GL_TEXTURE_2D, 0);
-
-		CEF_update();
-	}
 #ifndef XPLM300	
 	XPLMDrawTranslucentDarkBox(left, top, right, bottom);
 #endif	
@@ -822,6 +798,8 @@ static void drawcb(XPLMWindowID inWindowID, void *inRefcon)
 #endif		
 		x_text = x_text + width_text_to_print;
 	}
+	sprintf(text_buf, "offline");		
+	XPLMDrawString(color, x_text, y_text, text_buf, NULL, xplmFont_Proportional);
 
 #ifndef XPLM300
 	/*start a new line*/
@@ -913,7 +891,32 @@ static void drawcb(XPLMWindowID inWindowID, void *inRefcon)
 	glVertex2i(right - 1, top - 10);
 	glEnd();
 	glEnable(GL_TEXTURE_2D);
-#endif	
+#endif
+	if((g_info->pcef)&&(g_info->pcef->isinit)){
+		int screen_x, screen_y;
+		int width_= right-left;
+		int height_=top-bottom;
+		#define MARGIN_SIZE 0
+		XPLMGetScreenSize(&screen_x, &screen_y);
+		XPLMSetGraphicsState(1, 1, 0, 1, 1, 1, 1);
+
+		glBindTexture(GL_TEXTURE_2D, *(g_info->pcef->ceftxt));
+
+		glBegin(GL_QUADS);
+		glTexCoord2f(0.0, 1.0);
+		glVertex2f(left, bottom);
+		glTexCoord2f(0.0, 0.0);
+		glVertex2f(left, top);
+		glTexCoord2f(1.0, 0.0);
+		glVertex2f(right,top);
+		glTexCoord2f(1.0, 1.0);
+		glVertex2f(right, bottom);
+		glEnd();
+
+		glBindTexture(GL_TEXTURE_2D, 0);
+
+		CEF_update();
+	}
 }
 
 static float flightcb(float inElapsedSinceLastCall,
