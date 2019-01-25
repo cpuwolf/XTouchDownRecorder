@@ -1393,12 +1393,13 @@ static int jsoneq(const char *json, jsmntok_t *tok, const char *s) {
 static size_t httpcb(char *ptr, size_t size, size_t nmemb, void *userdata)
 {
 #if 1
+	size_t len = size*nmemb;
 	char tmpbuf[128];
 	char value[256];
 	jsmn_parser p;
 	jsmntok_t t[10];
 	jsmn_init(&p);
-	int i,r = jsmn_parse(&p, ptr, strlen(ptr), t, sizeof(t)/sizeof(t[0]));
+	int i,r = jsmn_parse(&p, ptr, len, t, sizeof(t)/sizeof(t[0]));
 	if (r < 0) {
 		sprintf(tmpbuf, "XTouchDownRecorder: httpcb json error %d\n", r);
     	XPLMDebugString(tmpbuf);
@@ -1429,8 +1430,8 @@ static size_t httpcb(char *ptr, size_t size, size_t nmemb, void *userdata)
 			sprintf(tmpbuf, "XTouchDownRecorder: - msg: %s\n", value);
 			i++;
 		} else {
-			sprintf(tmpbuf, "XTouchDownRecorder: Unexpected key: %.*s\n", t[i].end-t[i].start,
-					ptr + t[i].start);
+			strncpy(value, ptr + t[i+1].start, t[i+1].end-t[i+1].start);
+			sprintf(tmpbuf, "XTouchDownRecorder: Unexpected key: %s\n", value);
 		}
 		XPLMDebugString(tmpbuf);
 	}
