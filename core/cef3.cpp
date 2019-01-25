@@ -113,7 +113,7 @@ bool BrowserClient::OnBeforePopup(CefRefPtr<CefBrowser> browser,
 	return true; //prevent popup
 }
 
-struct cefui * CEF_init(int w, int h, const char * exepath)
+struct cefui * CEF_init(int w, int h, const char * exepath, const char * dbgpath)
 {
 	int exit_code;
 	RenderHandler* render_handler_;
@@ -125,8 +125,11 @@ struct cefui * CEF_init(int w, int h, const char * exepath)
 	CefMainArgs args;
 
 	CefSettings settings;
-	//settings.multi_threaded_message_loop = true ;
+	
 	CefString(&settings.browser_subprocess_path).FromASCII(exepath);
+	CefString(&settings.log_file).FromASCII(dbgpath);
+	settings.log_severity= LOGSEVERITY_WARNING;
+	
 
 	bool result = CefInitialize(args, settings, nullptr, nullptr);
 	if (!result) {

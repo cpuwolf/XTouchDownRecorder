@@ -1859,7 +1859,7 @@ static int XPluginStartBH()
 {
 	XPLMMenuID plugins_menu;
 	int menuidx, i;
-	char path[256],buf[512];
+	char path[256],buf[512], pathdbg[128];
 	const char cefpath[]="Resources\\plugins\\XTouchDownRecorder\\64\\xtouchdownrecorder_ui.exe";
 	XPLMPluginID addonid = XPLMGetMyID();
 	sprintf(path,"XTouchDownRecorder: addon id=%d\n",addonid);
@@ -1886,8 +1886,12 @@ static int XPluginStartBH()
 	sprintf(buf,"XTouchDownRecorder: CEF path=%s\n", path);
 	XPLMDebugString(buf);
 
+	strcpy(pathdbg, g_info->g_xppath);
+	strcat(pathdbg, "\\xtouchdownrecorder_debug.log");
+	
+
 	XPLMDebugString("XTouchDownRecorder: start CEF\n");
-	g_info->pcef=CEF_init(_TD_CHART_WIDTH, _TD_CHART_HEIGHT, path);
+	g_info->pcef=CEF_init(_TD_CHART_WIDTH, _TD_CHART_HEIGHT, path, pathdbg);
 	if((g_info->pcef)&&(g_info->pcef->isinit)){
 		XPLMDebugString("XTouchDownRecorder: CEF_init OK\n");
 	} else {
