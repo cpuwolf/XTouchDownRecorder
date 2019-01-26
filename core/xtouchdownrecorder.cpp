@@ -768,10 +768,10 @@ static void drawcb(XPLMWindowID inWindowID, void *inRefcon)
 	/*-- draw center line*/
 	draw_line(0, 0, 0, 1, 3, x, y + (_TD_CHART_HEIGHT / 2), x + (MAX_TABLE_ELEMENTS * 2), y + (_TD_CHART_HEIGHT / 2));
 #endif
-#if 0
+
 	int x_text = x + 5;
 	int y_text = y + 4;
-
+#if 0
 	/* print landing load data */
 	float landingVS, landingG[2];
 
@@ -1289,6 +1289,7 @@ static void write_log_file()
 	/*back compatible */
 	movefile("XTouchDownRecorderLog.txt", path);
 	strftime(tmbuf, sizeof(tmbuf), "%c", loc_time_tm);
+	strncpy(g_info->local_time, tmbuf, sizeof(g_info->local_time));
 	ofile = fopen(path, "a");
 	if (ofile) {
 		fprintf(ofile, "%s [%s][%s] %s %s %s\n", tmbuf, g_info->logAircraftIcao,
