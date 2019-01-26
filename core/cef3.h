@@ -92,7 +92,7 @@ struct cefui
 #ifdef __cplusplus
 extern "C" {
 #endif
-struct cefui * CEF_init(int w, int h, const char * exepath, const char *);
+struct cefui * CEF_init(int w, int h, const char *, const char *, const char *);
 void CEF_update();
 void CEF_url(struct cefui * pcef,char * url);
 void CEF_mouseclick(struct cefui * pcef, int x, int y,bool up);

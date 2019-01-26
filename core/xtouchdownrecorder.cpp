@@ -1235,6 +1235,23 @@ static void enumfolder()
 #endif
 }
 
+static void append_log_file()
+{
+	char path[512];
+	FILE *ofile;
+	sprintf(path, "%sXTouchDownRecorderLog.txt", g_info->g_xppath);
+	ofile = fopen(path, "a");
+	if (ofile) {
+		fprintf(ofile, "%s [%s][%s] %s %s %s\n", g_info->local_time, g_info->logAircraftIcao,
+			g_info->logAircraftTail, g_info->logAirportId, g_info->logAirportName,
+			g_info->g_NewsClickLink);
+		fclose(ofile);
+	}
+	else {
+		XPLMDebugString("XTouchDownRecorder: XTouchDownRecorderLog.txt open error\n");
+	}
+}
+
 static void trimtail(char * str)
 {
 	char *end;
@@ -1248,13 +1265,10 @@ static void trimtail(char * str)
 /* work thread context, so you are free */
 static void write_log_file()
 {
-	FILE *ofile;
 	struct tm *loc_time_tm,*gm_time_tm;
 	struct tm time_tm,gtime_tm;
 	int num;
-	
-
-	static char tmbuf[100], path[512];
+	char tmbuf[100], path[512];
 	loc_time_tm = localtime(&g_info->touchTime);
 	memcpy(&time_tm, loc_time_tm, sizeof(time_tm));
 	loc_time_tm = &time_tm;
@@ -1285,27 +1299,17 @@ static void write_log_file()
 	trimtail(g_info->logAircraftIcao);
 
 	sprintf(path, "%sXTouchDownRecorderLog.txt", g_info->g_xppath);
-
 	/*back compatible */
 	movefile("XTouchDownRecorderLog.txt", path);
 	strftime(tmbuf, sizeof(tmbuf), "%c", loc_time_tm);
 	strncpy(g_info->local_time, tmbuf, sizeof(g_info->local_time));
-	ofile = fopen(path, "a");
-	if (ofile) {
-		fprintf(ofile, "%s [%s][%s] %s %s %s\n", tmbuf, g_info->logAircraftIcao,
-			g_info->logAircraftTail, g_info->logAirportId, g_info->logAirportName,
-			g_info->landingString);
-		fclose(ofile);
-	}
-	else {
-		XPLMDebugString("XTouchDownRecorder: XTouchDownRecorderLog.txt open error\n");
-	}
 
+#if 0
 	/*reuse tmbuf, generating file name*/
 	strftime(tmbuf, sizeof(tmbuf), "XTD-%F-%H%M%S.csv", loc_time_tm);
 	sprintf(path, "%s%s", g_info->g_xppath, tmbuf);
-	//create_csv_file(path);
-
+	create_csv_file(path);
+#endif
 	XPLMDebugString("XTouchDownRecorder: writing json\n");
 	/*reuse tmbuf, generating file name*/
 	strftime(tmbuf, sizeof(tmbuf), "XTD-%F-%H%M%S.json", loc_time_tm);
@@ -1314,7 +1318,7 @@ static void write_log_file()
 	create_json_file(path, gm_time_tm);
 
 	tryuploadfile(path);
-	XPLMDebugString("XTouchDownRecorder: upload done\n");
+	XPLMDebugString("XTouchDownRecorder: up done\n");
 }
 
 static void write_config_file()
@@ -1348,6 +1352,7 @@ static void enumfolder_async()
 {
 	lightworker_queue_put_single(g_info->worker,1051, NULL, NULL);
 }
+
 static BOOL getnetinfodone()
 {
 	return (strlen(g_info->g_NewsString) > 1)?TRUE:FALSE;
@@ -1418,6 +1423,7 @@ static size_t httpcb(char *ptr, size_t size, size_t nmemb, void *userdata)
 		}
 		XPLMDebugString(tmpbuf);
 	}
+	
 #else
     size_t len = size*nmemb;
 	char *p_n;
@@ -1448,6 +1454,7 @@ static size_t httpcb(char *ptr, size_t size, size_t nmemb, void *userdata)
 #endif
     return size*nmemb;
 }
+
 static void getnetinfo()
 {
 	CURL *curl;
@@ -1535,6 +1542,7 @@ static BOOL uploadfile(char * path)
 			XPLMDebugString(tmpbuf);
 			sprintf(tmpbuf, "XTouchDownRecorder: Upload time %.0f sec\n", total_time);
 			XPLMDebugString(tmpbuf);
+			append_log_file();
 			ret = TRUE;
 		}
 
@@ -1642,6 +1650,7 @@ static unsigned int lightworker_job_helper(void *arg)
 				break;
 			case 1051:
 				enumfolder();
+				break;
 			}
 		}
 	}
@@ -1905,7 +1914,7 @@ static int XPluginStartBH()
 	
 
 	XPLMDebugString("XTouchDownRecorder: start CEF\n");
-	g_info->pcef=CEF_init(_TD_CHART_WIDTH, _TD_CHART_HEIGHT, path, pathdbg);
+	g_info->pcef=CEF_init(_TD_CHART_WIDTH, _TD_CHART_HEIGHT, path, pathdbg, g_info->g_xppath);
 	if((g_info->pcef)&&(g_info->pcef->isinit)){
 		XPLMDebugString("XTouchDownRecorder: CEF_init OK\n");
 	} else {
