@@ -75,7 +75,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "cef3.h"
 #include <jsmn.h>
 
-#define _PROVER_ "V9"
+#define _PROVER_ "V9b"
 #define _PRONAMEVER_ "XTouchDownRecorder " _PROVER_ " (" __DATE__ ")"
 
 static BOOL uploadfile(char * path);
@@ -257,6 +257,7 @@ typedef struct
 	float XPTouchDownFpm;
 	float XPTouchDownLoad;
 	time_t touchTime;
+	char local_time[50];
 
 	char logAirportId[50];
 	char logAirportName[256];
@@ -712,8 +713,8 @@ static BOOL analyzeTouchDown(XTDData * pd, char *text_buf, int x, int y, BOOL is
 		/*-- draw touch point vertical lines*/
 		int bouncedtimes = drawtouchdownpoints(pd, x, y, isdraw);
 		char *text_to_print = text_buf;
-		sprintf(text_to_print, "%.01fFpm %.02fG %.02fDegree %.01fKnots %s", landingVS, landingG[0],
-			landingPitch, landingGs*1.943844f, (bouncedtimes > 1 ? "Bounced" : ""));
+		sprintf(text_to_print, "%.01fFpm %.02fDegree %.01fKnots", landingVS,
+			landingPitch, landingGs*1.943844f);
 		/*update content for file output*/
 		strcat(g_info->landingString, text_to_print);
 		return TRUE;
@@ -754,6 +755,8 @@ static void drawcb(XPLMWindowID inWindowID, void *inRefcon)
 						 );
 
 	XPLMGetWindowGeometry(inWindowID, &left, &top, &right, &bottom);
+	ref->win.posx = left;
+	ref->win.posy = bottom;
 
 #ifndef XPLM300	
 	XPLMDrawTranslucentDarkBox(left, top, right, bottom);
@@ -765,7 +768,7 @@ static void drawcb(XPLMWindowID inWindowID, void *inRefcon)
 	/*-- draw center line*/
 	draw_line(0, 0, 0, 1, 3, x, y + (_TD_CHART_HEIGHT / 2), x + (MAX_TABLE_ELEMENTS * 2), y + (_TD_CHART_HEIGHT / 2));
 #endif
-
+#if 0
 	int x_text = x + 5;
 	int y_text = y + 4;
 
@@ -798,6 +801,7 @@ static void drawcb(XPLMWindowID inWindowID, void *inRefcon)
 #endif		
 		x_text = x_text + width_text_to_print;
 	}
+#endif
 	sprintf(text_buf, "offline");		
 	XPLMDrawString(color, x_text, y_text, text_buf, NULL, xplmFont_Proportional);
 
@@ -919,51 +923,13 @@ static void drawcb(XPLMWindowID inWindowID, void *inRefcon)
 	}
 }
 
+
+
 static float flightcb(float inElapsedSinceLastCall,
 	float inElapsedTimeSinceLastFlightLoop, int inCounter,
 	void *inRefcon)
 {
 	float ret = -1.0f;
-	XTDWin * ref = (XTDWin *)inRefcon;
-	if (!g_info->g_win) {
-		//ref->win.posx = 10;
-		//ref->win.posy = 900;
-		ref->win.width = _TD_CHART_WIDTH;
-		ref->win.height = _TD_CHART_HEIGHT;
-		/*close button*/
-		ref->close.width = 10;
-		ref->close.height = 10;
-		XPLMCreateWindow_t win;
-		memset(&win, 0, sizeof(win));
-		win.structSize = sizeof(win);
-		win.left = ref->win.posx;
-		win.top = ref->win.posy;
-		win.right = ref->win.posx + ref->win.width;
-		win.bottom = ref->win.posy - ref->win.height;
-		win.visible = 1;
-		win.drawWindowFunc = drawcb;
-		win.handleKeyFunc = keycb;
-		win.handleMouseClickFunc = mousecb;
-#ifdef XPLM300		
-		win.handleRightClickFunc = rmousecb;
-#endif
-		win.handleCursorFunc = cursorcb;			
-		win.handleMouseWheelFunc = dummy_wheel_cb;
-		win.refcon = inRefcon;
-#ifdef XPLM300
-		win.layer = xplm_WindowLayerFloatingWindows;
-		win.decorateAsFloatingWindow = xplm_WindowDecorationRoundRectangle;
-#endif
-		g_info->g_win = XPLMCreateWindowEx(&win);
-#ifdef XPLM300		
-		XPLMSetWindowPositioningMode(g_info->g_win, xplm_WindowPositionFree, -1);
-		XPLMSetWindowResizingLimits(g_info->g_win, ref->win.width, ref->win.height, ref->win.width, ref->win.height);
-		XPLMSetWindowTitle(g_info->g_win, _PRONAMEVER_);
-		//XPWidgetID AgreeMainWidgetButton = XPCreateWidget(x+100, y-170, x+240, y-190,
-		//			1, "Agree", 0, AgreeMainWidget,
-		//			xpWidgetClass_Button);
-#endif
-	}
 
 	if((g_info->pcef)&&(g_info->pcef->isinit)){
 		CEF_update();
@@ -1278,7 +1244,6 @@ static void trimtail(char * str)
 	// Write new null terminator character
 	end[1] = '\0';
 }
-
 
 /* work thread context, so you are free */
 static void write_log_file()
@@ -1746,6 +1711,51 @@ void CreateAgreeWidgets(int x, int y)
 	XPShowWidget(AgreeMainWidget);
 }
 
+static void creatmainwin(void)
+{
+	
+	XTDWin * ref = g_info->winref;
+	if (!g_info->g_win) {
+		//ref->win.posx = 10;
+		//ref->win.posy = 900;
+		ref->win.width = _TD_CHART_WIDTH;
+		ref->win.height = _TD_CHART_HEIGHT;
+		/*close button*/
+		ref->close.width = 10;
+		ref->close.height = 10;
+		XPLMCreateWindow_t win;
+		memset(&win, 0, sizeof(win));
+		win.structSize = sizeof(win);
+		win.left = ref->win.posx;
+		win.top = ref->win.posy;
+		win.right = ref->win.posx + ref->win.width;
+		win.bottom = ref->win.posy - ref->win.height;
+		win.visible = 1;
+		win.drawWindowFunc = drawcb;
+		win.handleKeyFunc = keycb;
+		win.handleMouseClickFunc = mousecb;
+#ifdef XPLM300		
+		win.handleRightClickFunc = rmousecb;
+#endif
+		win.handleCursorFunc = cursorcb;			
+		win.handleMouseWheelFunc = dummy_wheel_cb;
+		win.refcon = ref;
+#ifdef XPLM300
+		win.layer = xplm_WindowLayerFloatingWindows;
+		win.decorateAsFloatingWindow = xplm_WindowDecorationRoundRectangle;
+#endif
+		g_info->g_win = XPLMCreateWindowEx(&win);
+#ifdef XPLM300		
+		XPLMSetWindowPositioningMode(g_info->g_win, xplm_WindowPositionFree, -1);
+		XPLMSetWindowResizingLimits(g_info->g_win, ref->win.width, ref->win.height, ref->win.width, ref->win.height);
+		XPLMSetWindowTitle(g_info->g_win, _PRONAMEVER_);
+		//XPWidgetID AgreeMainWidgetButton = XPCreateWidget(x+100, y-170, x+240, y-190,
+		//			1, "Agree", 0, AgreeMainWidget,
+		//			xpWidgetClass_Button);
+#endif
+	}
+}
+
 PLUGIN_API int XPluginStart(char * outName, char * outSig, char * outDesc)
 {
 	char path[600], *prefpath;
@@ -1918,6 +1928,8 @@ static int XPluginStartBH()
 				menucb, NULL);
 	XPLMAppendMenuItem(g_info->tdr_menu, "Show/Hide", NULL, 1);
 	enumfolder_async();
+
+	creatmainwin();
 
 	return 1;
 }
