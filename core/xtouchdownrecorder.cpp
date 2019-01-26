@@ -34,6 +34,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <string.h>
 #include <sys/stat.h>
 #if defined(_WIN32)
+#include <windows.h>
+#include <direct.h>
 #else
 #include <dirent.h>
 #endif
@@ -1882,7 +1884,7 @@ static int XPluginStartBH()
 {
 	XPLMMenuID plugins_menu;
 	int menuidx, i;
-	char path[256],buf[512], pathdbg[128];
+	char path[256],buf[512], pathdbg[128],pathcache[128];
 	const char cefpath[]="Resources\\plugins\\XTouchDownRecorder\\64\\xtouchdownrecorder_ui.exe";
 	XPLMPluginID addonid = XPLMGetMyID();
 	sprintf(path,"XTouchDownRecorder: addon id=%d\n",addonid);
@@ -1910,11 +1912,18 @@ static int XPluginStartBH()
 	XPLMDebugString(buf);
 
 	strcpy(pathdbg, g_info->g_xppath);
-	strcat(pathdbg, "\\xtouchdownrecorder_debug.log");
+	strcat(pathdbg, "\\XTouchDownRecorderdebug.log");
 	
-
+	strcpy(pathcache, g_info->g_xppath);
+	strcat(pathcache, "\\XTouchDownRecordercache");
+#if defined(_WIN32)
+	_mkdir(pathcache);
+#else 
+	mkdir(pathcache, 0733);
+#endif	
+	
 	XPLMDebugString("XTouchDownRecorder: start CEF\n");
-	g_info->pcef=CEF_init(_TD_CHART_WIDTH, _TD_CHART_HEIGHT, path, pathdbg, g_info->g_xppath);
+	g_info->pcef=CEF_init(_TD_CHART_WIDTH, _TD_CHART_HEIGHT, path, pathdbg, pathcache);
 	if((g_info->pcef)&&(g_info->pcef->isinit)){
 		XPLMDebugString("XTouchDownRecorder: CEF_init OK\n");
 	} else {
