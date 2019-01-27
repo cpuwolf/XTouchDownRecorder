@@ -84,6 +84,7 @@ public:
 struct cefui
 {
 	bool isinit;
+	int errorcode;
 	CefRefPtr<CefBrowser> browser_;
 	CefRefPtr<BrowserClient> client_;
 	GLuint * ceftxt;
