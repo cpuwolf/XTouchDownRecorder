@@ -80,7 +80,7 @@ set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /SUBSYSTEM:WINDOWS /ENTRY:
 TARGET_COMPILE_OPTIONS(xtouchdownrecorder_ui PRIVATE "/MT$<$<CONFIG:Release>:>")
 ENDIF()
 MESSAGE(STATUS "X-Plane cef lib ${CEF_LIBRARIES}")
-target_link_libraries (xtouchdownrecorder_ui libcef_dll_wrapper)
+target_link_libraries (xtouchdownrecorder_ui libcef_lib libcef_dll_wrapper)
 
 
 
