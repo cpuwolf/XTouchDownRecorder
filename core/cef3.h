@@ -3,6 +3,7 @@
 #define XTDCEF3_H
 
 #include <include/cef_app.h>
+#include <include/cef_base.h>
 #include <include/cef_client.h>
 #include <include/cef_render_handler.h>
 #include <include/cef_life_span_handler.h>
