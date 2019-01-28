@@ -678,8 +678,8 @@ static int getfirsttouchdownpointidx(XTDData * pd)
 		b = pd->touchdown_air_table[k];
 		if(b != last_air_recorded) {
 			if(b) {
-				if(max_agl_recorded > 0.5f) {
-					/* touchdown at least from AGL 0.5 meter to Ground: ignore annoying plane load touch down */
+				if(max_agl_recorded > 1.0f) {
+					/* touchdown at least from AGL 1.0 meter to Ground: ignore annoying plane load touch down */
 					g_info->IsTouchDown = TRUE;
 					g_info->XPTouchDownTM = pd->touchdown_tm_table[k];
 					g_info->XPTouchDownWeight = pd->touchdown_tw_table[k];
