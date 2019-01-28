@@ -56,8 +56,8 @@ add_xplane_plugin(xtouchdownrecorder xtouchdownrecorder.cpp lightworker.cpp cef3
 
 add_dependencies(${PROJECT_NAME} libcurl libcef_dll_wrapper)
 
-COPY_FILES(xtouchdownrecorder "${CEF_BINARY_FILES}" "${CEF_BINARY_DIR}" "${TARGET_OUTPUT_DIRECTORY}")
-COPY_FILES(xtouchdownrecorder "${CEF_RESOURCE_FILES}" "${CEF_RESOURCE_DIR}" "${TARGET_OUTPUT_DIRECTORY}")
+COPY_FILES(xtouchdownrecorder "${CEF_BINARY_FILES}" "${CEF_BINARY_DIR}" "${CMAKE_BINARY_DIR}/cef")
+COPY_FILES(xtouchdownrecorder "${CEF_RESOURCE_FILES}" "${CEF_RESOURCE_DIR}" "${CMAKE_BINARY_DIR}/cef")
 
 
 
