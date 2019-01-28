@@ -401,12 +401,24 @@ static XPLMCursorStatus cursorcb(XPLMWindowID inWindowID,int x,int y,void * inRe
 static int rmousecb(XPLMWindowID inWindowID, int x, int y,
 	XPLMMouseStatus inMouse, void *inRefcon)
 {
-	toggle_touchdown();
-	return 1;
+	int ret = 0;
+	int left, top, right, bottom;
+	XPLMGetWindowGeometry(inWindowID, &left, &top, &right, &bottom);
+	XTDWinBox winbox;
+	winbox.posx=left;
+	winbox.posy = top;
+	winbox.width=right-left;
+	winbox.height=top-bottom;
+	if (InBox(&winbox, x, y)) {
+		toggle_touchdown();
+		ret =1;
+	}
+	return ret;
 }
 static int mousecb(XPLMWindowID inWindowID, int x, int y,
 				   XPLMMouseStatus inMouse, void *inRefcon)
 {
+	int ret = 0;
 	static int lastMouseX, lastMouseY;
 	XTDWin * ref = (XTDWin *)inRefcon;
 
@@ -414,7 +426,7 @@ static int mousecb(XPLMWindowID inWindowID, int x, int y,
 	XPLMGetWindowGeometry(inWindowID, &left, &top, &right, &bottom);
 	XTDWinBox winbox;
 	winbox.posx=left;
-	winbox.posy = bottom;
+	winbox.posy = top;
 	winbox.width=right-left;
 	winbox.height=top-bottom;
 	switch (inMouse) {
@@ -425,30 +437,23 @@ static int mousecb(XPLMWindowID inWindowID, int x, int y,
 		} else 
 #endif
 		//if (InBox(&(ref->link), x, y)) {
-		//if (InBox(&winbox, x, y)) {
-		if (0) {
-#if defined(_WIN32)
-			ShellExecute(NULL, "open", g_info->g_NewsClickLink, NULL, NULL, SW_SHOWNORMAL);
-#elif defined(__linux__)
-			char tmp[512];
-			sprintf(tmp, "sensible-browser %s&", g_info->g_NewsClickLink);
-			system(tmp);
-#elif defined(__APPLE__)
-			char tmp[512];
-			sprintf(tmp, "open %s&", g_info->g_NewsClickLink);
-			system(tmp);
-#endif
+		if (InBox(&winbox, x, y)) {
+			if((g_info->pcef)&&(g_info->pcef->isinit)){
+			CEF_mouseclick(g_info->pcef, x-left, top-y,false);
+			}
+			ret = 1;
 		}
 
-		if((g_info->pcef)&&(g_info->pcef->isinit)){
-			CEF_mouseclick(g_info->pcef, x-left, top-y,false);
-		}
+		
 		lastMouseX = x;
 		lastMouseY = y;
 		break;
 	case xplm_MouseUp:
-		if((g_info->pcef)&&(g_info->pcef->isinit)){
-			CEF_mouseclick(g_info->pcef, x-left, top-y,true);
+		if (InBox(&winbox, x, y)) {
+			if((g_info->pcef)&&(g_info->pcef->isinit)){
+				CEF_mouseclick(g_info->pcef, x-left, top-y,true);
+				ret = 1;
+			}
 		}
 		break;
 #ifndef XPLM300
@@ -465,7 +470,7 @@ static int mousecb(XPLMWindowID inWindowID, int x, int y,
 		break;
 #endif
 	}
-	return 1;
+	return ret;
 }
 
 static void draw_line(float r,float g, float b, float alpha, float width, int x1, int y1, int x2, int y2)
