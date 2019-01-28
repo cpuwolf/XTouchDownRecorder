@@ -83,6 +83,21 @@ BrowserClient::BrowserClient(RenderHandler *renderHandler)
 {
 }
 
+static void openbrowser(char * purl)
+{
+#if defined(_WIN32)
+	ShellExecute(NULL, "open", purl, NULL, NULL, SW_SHOWNORMAL);
+#elif defined(__linux__)
+	char tmp[512];
+	sprintf(tmp, "sensible-browser %s&", purl);
+	system(tmp);
+#elif defined(__APPLE__)
+	char tmp[512];
+	sprintf(tmp, "open %s&", purl);
+	system(tmp);
+#endif
+}
+
 bool BrowserClient::OnBeforePopup(CefRefPtr<CefBrowser> browser,
 		CefRefPtr<CefFrame> frame,
 		const CefString& target_url,
@@ -95,22 +110,40 @@ bool BrowserClient::OnBeforePopup(CefRefPtr<CefBrowser> browser,
 		CefBrowserSettings& settings,
 		bool* no_javascript_access) 
 {
-	const char * purl;
-	purl=target_url.ToString().c_str();
-	XPLMDebugString("XTouchDownRecorder:Popup:\n");
-	XPLMDebugString(purl);
-#if defined(_WIN32)
-	ShellExecute(NULL, "open", purl, NULL, NULL, SW_SHOWNORMAL);
-#elif defined(__linux__)
-	char tmp[512];
-	sprintf(tmp, "sensible-browser %s&", purl);
-	system(tmp);
-#elif defined(__APPLE__)
-	char tmp[512];
-	sprintf(tmp, "open %s&", purl);
-	system(tmp);
-#endif
+	const wchar_t * purl;
+	std::wstring str=target_url.ToWString();
+	purl=str.c_str();
+	size_t wlen = wcslen(purl);
+ 	size_t len = WideCharToMultiByte(CP_ACP, 0, purl, wlen, NULL, 0, NULL, NULL);
+ 	char *m_char = new char[len + 1];
+ 	memset(m_char, 0, len + 1);
+ 	WideCharToMultiByte(CP_ACP, 0, purl, wlen, m_char, len, NULL, NULL);
+	XPLMDebugString("XTouchDownRecorder:onPopup:\n");
+	XPLMDebugString(m_char);
+	openbrowser(m_char);
+	delete[] m_char;
 	return true; //prevent popup
+}
+
+void BrowserClient::OnLoadError( CefRefPtr< CefBrowser > browser, 
+    	CefRefPtr< CefFrame > frame, 
+    	CefLoadHandler::ErrorCode errorCode, 
+    	const CefString& errorText, const CefString& failedUrl )
+{
+	char tmp[512];
+	const wchar_t * purl;
+	std::wstring str=failedUrl.ToWString();
+	purl=str.c_str();
+	size_t wlen = wcslen(purl);
+ 	size_t len = WideCharToMultiByte(CP_UTF8, 0, purl, wlen, NULL, 0, NULL, NULL);
+ 	char *m_char = new char[len + 1];
+ 	memset(m_char, 0, len + 1);
+ 	WideCharToMultiByte(CP_UTF8, 0, purl, wlen, m_char, len, NULL, NULL);
+	sprintf(tmp, "XTouchDownRecorder:onload error code=%d:\n", errorCode);
+	XPLMDebugString(tmp);
+	XPLMDebugString(m_char);
+	openbrowser(m_char);
+	delete[] m_char;
 }
 
 struct cefui * CEF_init(int w, int h, const char * exepath, const char * dbgpath, const char * cachepath)

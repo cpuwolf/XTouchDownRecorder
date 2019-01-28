@@ -426,7 +426,7 @@ static int mousecb(XPLMWindowID inWindowID, int x, int y,
 #endif
 		//if (InBox(&(ref->link), x, y)) {
 		//if (InBox(&winbox, x, y)) {
-		if (1) {
+		if (0) {
 #if defined(_WIN32)
 			ShellExecute(NULL, "open", g_info->g_NewsClickLink, NULL, NULL, SW_SHOWNORMAL);
 #elif defined(__linux__)
