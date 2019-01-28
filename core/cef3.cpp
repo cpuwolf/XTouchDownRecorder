@@ -142,7 +142,7 @@ void BrowserClient::OnLoadError( CefRefPtr< CefBrowser > browser,
 	sprintf(tmp, "XTouchDownRecorder:onload error code=%d:\n", errorCode);
 	XPLMDebugString(tmp);
 	XPLMDebugString(m_char);
-	openbrowser(m_char);
+	//openbrowser(m_char);
 	delete[] m_char;
 }
 
