@@ -77,7 +77,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "cef3.h"
 #include <jsmn.h>
 
-#define _PROVER_ "V9b"
+#define _PROVER_ "V9"
 #define _PRONAMEVER_ "XTouchDownRecorder " _PROVER_ " (" __DATE__ ")"
 
 static BOOL uploadfile(char * path);
@@ -1469,7 +1469,7 @@ static void getnetinfo()
  	if(curl) {
 		curl_easy_setopt(curl, CURLOPT_URL, "https://raw.githubusercontent.com/cpuwolf/XTouchDownRecorder/master/news9.txt");
 		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, httpcb);
-		curl_easy_setopt(curl, CURLOPT_USERAGENT, "Dark Secret Ninja/1.0");
+		curl_easy_setopt(curl, CURLOPT_USERAGENT, "Dark Secret XTDR9");
 		if(g_info->curl_disable_ssl_verify) {
 			curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, FALSE);
 		}
@@ -1928,6 +1928,9 @@ static int XPluginStartBH()
 		XPLMDebugString("XTouchDownRecorder: CEF_init OK\n");
 	} else {
 		XPLMDebugString("XTouchDownRecorder: CEF_init failed\n");
+		if(g_info->pcef) {
+			sprintf(buf,"XTouchDownRecorder: CEF error code=%d\n", g_info->pcef->errorcode);
+		}
 		return 0;
 	}
 	/*create a worker*/

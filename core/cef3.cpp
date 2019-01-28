@@ -115,7 +115,6 @@ bool BrowserClient::OnBeforePopup(CefRefPtr<CefBrowser> browser,
 
 struct cefui * CEF_init(int w, int h, const char * exepath, const char * dbgpath, const char * cachepath)
 {
-	int exit_code;
 	RenderHandler* render_handler_;
 
 	struct cefui * pcef = (struct cefui *)malloc(sizeof(struct cefui));
@@ -134,7 +133,7 @@ struct cefui * CEF_init(int w, int h, const char * exepath, const char * dbgpath
 
 	bool result = CefInitialize(args, settings, nullptr, nullptr);
 	if (!result) {
-		exit_code = -1;
+		pcef->errorcode = -1;
 		return pcef;
 	}
 	
