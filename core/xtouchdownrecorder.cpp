@@ -763,7 +763,7 @@ static void drawcb(XPLMWindowID inWindowID, void *inRefcon)
 
 	XPLMGetWindowGeometry(inWindowID, &left, &top, &right, &bottom);
 	ref->win.posx = left;
-	ref->win.posy = bottom;
+	ref->win.posy = top;
 
 #ifndef XPLM300	
 	XPLMDrawTranslucentDarkBox(left, top, right, bottom);
@@ -1938,6 +1938,7 @@ static int XPluginStartBH()
 		}
 		return 0;
 	}
+	creatmainwin();
 	/*create a worker*/
 	g_info->worker = lightworker_create(lightworker_job_helper, g_info);
 	/* register loopback starting at 10s */
@@ -1956,7 +1957,7 @@ static int XPluginStartBH()
 	XPLMAppendMenuItem(g_info->tdr_menu, "Show/Hide", NULL, 1);
 	enumfolder_async();
 
-	creatmainwin();
+	
 
 	return 1;
 }

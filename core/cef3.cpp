@@ -111,17 +111,19 @@ bool BrowserClient::OnBeforePopup(CefRefPtr<CefBrowser> browser,
 		bool* no_javascript_access) 
 {
 	const wchar_t * purl;
+	char m_char[512];
 	std::wstring str=target_url.ToWString();
 	purl=str.c_str();
 	size_t wlen = wcslen(purl);
  	size_t len = WideCharToMultiByte(CP_ACP, 0, purl, wlen, NULL, 0, NULL, NULL);
- 	char *m_char = new char[len + 1];
- 	memset(m_char, 0, len + 1);
- 	WideCharToMultiByte(CP_ACP, 0, purl, wlen, m_char, len, NULL, NULL);
-	XPLMDebugString("XTouchDownRecorder:onPopup:\n");
-	XPLMDebugString(m_char);
-	openbrowser(m_char);
-	delete[] m_char;
+	XPLMDebugString("XTouchDownRecorder:onPopup: Start\n");
+	if ((len > 1) && (len+1<sizeof(m_char))) {
+		memset(m_char, 0, sizeof(m_char));
+		WideCharToMultiByte(CP_ACP, 0, purl, wlen, m_char, len, NULL, NULL);
+		XPLMDebugString(m_char);
+		openbrowser(m_char);
+	}
+	XPLMDebugString("\nXTouchDownRecorder:onPopup End:\n");
 	return true; //prevent popup
 }
 
@@ -130,20 +132,6 @@ void BrowserClient::OnLoadError( CefRefPtr< CefBrowser > browser,
     	CefLoadHandler::ErrorCode errorCode, 
     	const CefString& errorText, const CefString& failedUrl )
 {
-	char tmp[512];
-	const wchar_t * purl;
-	std::wstring str=failedUrl.ToWString();
-	purl=str.c_str();
-	size_t wlen = wcslen(purl);
- 	size_t len = WideCharToMultiByte(CP_UTF8, 0, purl, wlen, NULL, 0, NULL, NULL);
- 	char *m_char = new char[len + 1];
- 	memset(m_char, 0, len + 1);
- 	WideCharToMultiByte(CP_UTF8, 0, purl, wlen, m_char, len, NULL, NULL);
-	sprintf(tmp, "XTouchDownRecorder:onload error code=%d:\n", errorCode);
-	XPLMDebugString(tmp);
-	XPLMDebugString(m_char);
-	//openbrowser(m_char);
-	delete[] m_char;
 }
 
 struct cefui * CEF_init(int w, int h, const char * exepath, const char * dbgpath, const char * cachepath)
