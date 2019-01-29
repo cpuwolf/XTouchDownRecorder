@@ -436,25 +436,21 @@ static int mousecb(XPLMWindowID inWindowID, int x, int y,
 			g_info->show_touchdown_counter = 0;
 		} else 
 #endif
-		//if (InBox(&(ref->link), x, y)) {
-		if (InBox(&winbox, x, y)) {
-			if((g_info->pcef)&&(g_info->pcef->isinit)){
-			CEF_mouseclick(g_info->pcef, x-left, top-y,false);
-			}
-			ret = 1;
-		}
 
+		if((g_info->pcef)&&(g_info->pcef->isinit)){
+		CEF_mouseclick(g_info->pcef, x-left, top-y,false);
+		}
+		ret = 1;
 		
 		lastMouseX = x;
 		lastMouseY = y;
 		break;
 	case xplm_MouseUp:
-		if (InBox(&winbox, x, y)) {
-			if((g_info->pcef)&&(g_info->pcef->isinit)){
-				CEF_mouseclick(g_info->pcef, x-left, top-y,true);
-				ret = 1;
-			}
+		if((g_info->pcef)&&(g_info->pcef->isinit)){
+			CEF_mouseclick(g_info->pcef, x-left, top-y,true);
+			ret = 1;
 		}
+
 		break;
 #ifndef XPLM300
 	case xplm_MouseDrag:

@@ -127,12 +127,6 @@ bool BrowserClient::OnBeforePopup(CefRefPtr<CefBrowser> browser,
 	return true; //prevent popup
 }
 
-void BrowserClient::OnLoadError( CefRefPtr< CefBrowser > browser, 
-    	CefRefPtr< CefFrame > frame, 
-    	CefLoadHandler::ErrorCode errorCode, 
-    	const CefString& errorText, const CefString& failedUrl )
-{
-}
 
 struct cefui * CEF_init(int w, int h, const char * exepath, const char * dbgpath, const char * cachepath)
 {

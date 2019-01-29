@@ -76,10 +76,6 @@ public:
 		CefBrowserSettings& settings,
 		bool* no_javascript_access) override;
 
-    void OnLoadError( CefRefPtr< CefBrowser > browser, 
-    	CefRefPtr< CefFrame > frame, 
-    	CefLoadHandler::ErrorCode errorCode, 
-    	const CefString& errorText, const CefString& failedUrl ) override;
 
 	CefRefPtr<CefRenderHandler> m_renderHandler;
 
