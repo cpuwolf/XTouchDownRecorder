@@ -142,7 +142,7 @@ struct cefui * CEF_init(int w, int h, const char * exepath, const char * dbgpath
 	
 	CefString(&settings.browser_subprocess_path).FromASCII(exepath);
 	CefString(&settings.log_file).FromASCII(dbgpath);
-	CefString(&settings.cache_path ).FromASCII(cachepath);
+	//CefString(&settings.cache_path ).FromASCII(cachepath);
 	settings.log_severity= LOGSEVERITY_WARNING;
 	
 

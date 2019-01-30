@@ -77,7 +77,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "cef3.h"
 #include <jsmn.h>
 
-#define _PROVER_ "V9"
+#define _PROVER_ "V9c"
 #define _PRONAMEVER_ "XTouchDownRecorder " _PROVER_ " (" __DATE__ ")"
 
 static BOOL uploadfile(char * path);
@@ -86,7 +86,7 @@ static BOOL uploadfile(char * path);
 #define CURVE_LEN 2
 
 static XPLMDataRef gearFRef,gForceRef,vertSpeedRef,pitchRef,elevatorRef,engRef,aglRef,
-tmRef,gndSpeedRef,latRef,longRef,tailRef,icaoRef, totalWeightRef,fpsRef ;
+tmRef,gndSpeedRef,latRef,longRef,tailRef,icaoRef, totalWeightRef,fpsRef,vxRef ;
 
 
 typedef struct
@@ -106,6 +106,7 @@ typedef struct
 	float *touchdown_gs_table;
 	float *touchdown_gf_table;
 	float *touchdown_tw_table;
+	float *touchdown_vx_table;
 
 	float pbuffer[1];
 }XTDData;
@@ -121,8 +122,9 @@ enum
 	TOUCHDOWN_AGL_IDX,
 	TOUCHDOWN_TM_IDX,
 	TOUCHDOWN_GS_IDX,
-	TOUCHDOWN_TW_IDX,
 	TOUCHDOWN_GF_IDX,
+	TOUCHDOWN_TW_IDX,
+	TOUCHDOWN_VX_IDX,
 	MAX_TOUCHDOWN_IDX
 };
 
@@ -175,7 +177,8 @@ static XTDData *datarealtm, *datacopy;
 	pd->touchdown_tm_table = pd->pbuffer + (TOUCHDOWN_TM_IDX * MAX_TABLE_ELEMENTS);\
 	pd->touchdown_gs_table = pd->pbuffer + (TOUCHDOWN_GS_IDX * MAX_TABLE_ELEMENTS);\
 	pd->touchdown_gf_table = pd->pbuffer + (TOUCHDOWN_GF_IDX * MAX_TABLE_ELEMENTS);\
-	pd->touchdown_tw_table = pd->pbuffer + (TOUCHDOWN_TW_IDX * MAX_TABLE_ELEMENTS);
+	pd->touchdown_tw_table = pd->pbuffer + (TOUCHDOWN_TW_IDX * MAX_TABLE_ELEMENTS);\
+	pd->touchdown_vx_table = pd->pbuffer + (TOUCHDOWN_VX_IDX * MAX_TABLE_ELEMENTS);
 
 static void toggle_touchdown();
 static XTDData * XTDMalloc()
@@ -210,6 +213,7 @@ static float lastGs = 0.0;
 
 static float lastTotalKg = 0.0;
 static float lastGearN = 0.0;
+static float lastVx=0.0;
 
 #define _TD_CHART_HEIGHT 200
 #define _TD_CHART_WIDTH (MAX_TABLE_ELEMENTS*CURVE_LEN)
@@ -289,6 +293,11 @@ typedef struct
 XTDInfo * g_info;
 static int XPluginStartBH(void);
 
+static bool CEF_ready()
+{
+	return ((g_info->pcef) && (g_info->pcef->isinit));
+}
+
 static BOOL check_ground(float n)
 {
 	if ( n != 0.0f ) {
@@ -346,6 +355,7 @@ void collect_flight_data()
 	lastGs = XPLMGetDataf(gndSpeedRef);
 	lastTotalKg = XPLMGetDataf(totalWeightRef);
 	lastGearN = XPLMGetDataf(gearFRef);
+	lastVx = XPLMGetDataf(vxRef);
 
 	/*-- fill the table */
 	pd->touchdown_vs_table[iw] = lastVS;
@@ -360,6 +370,7 @@ void collect_flight_data()
 
 	pd->touchdown_gf_table[iw] = lastGearN;
 	pd->touchdown_tw_table[iw] = lastTotalKg;
+	pd->touchdown_vx_table[iw] = lastVx;
 
 	_BUFFER_INSERT_BACK(pd);
 
@@ -393,7 +404,7 @@ static XPLMCursorStatus cursorcb(XPLMWindowID inWindowID,int x,int y,void * inRe
 		return xplm_CursorHidden;
 	}
 
-	if((g_info->pcef)&&(g_info->pcef->isinit)){
+	if(CEF_ready()){
 			CEF_mousemove(g_info->pcef, x-left, top-y);
 	}
 	return xplm_CursorDefault;
@@ -437,7 +448,7 @@ static int mousecb(XPLMWindowID inWindowID, int x, int y,
 		} else 
 #endif
 
-		if((g_info->pcef)&&(g_info->pcef->isinit)){
+		if(CEF_ready()){
 		CEF_mouseclick(g_info->pcef, x-left, top-y,false);
 		}
 		ret = 1;
@@ -446,7 +457,7 @@ static int mousecb(XPLMWindowID inWindowID, int x, int y,
 		lastMouseY = y;
 		break;
 	case xplm_MouseUp:
-		if((g_info->pcef)&&(g_info->pcef->isinit)){
+		if(CEF_ready()){
 			CEF_mouseclick(g_info->pcef, x-left, top-y,true);
 			ret = 1;
 		}
@@ -899,7 +910,7 @@ static void drawcb(XPLMWindowID inWindowID, void *inRefcon)
 	glEnd();
 	glEnable(GL_TEXTURE_2D);
 #endif
-	if((g_info->pcef)&&(g_info->pcef->isinit)){
+	if(CEF_ready()){
 		int screen_x, screen_y;
 		int width_= right-left;
 		int height_=top-bottom;
@@ -934,7 +945,7 @@ static float flightcb(float inElapsedSinceLastCall,
 {
 	float ret = -1.0f;
 
-	if((g_info->pcef)&&(g_info->pcef->isinit)){
+	if(CEF_ready()){
 		CEF_update();
 	}
 
@@ -1059,6 +1070,8 @@ static void create_json_file(char * path, struct tm *tblock)
 		create_json_arrayf(ofile, "total weight(Kg)", "touchdown_tw_table", pd->touchdown_tw_table);
 		create_json_array_join(ofile);
 		create_json_arrayf(ofile, "gear force(N)", "touchdown_gf_table", pd->touchdown_gf_table);
+		create_json_array_join(ofile);
+		create_json_arrayf(ofile, "side speed(meter/s)", "touchdown_vx_table", pd->touchdown_vx_table);
 		fprintf(ofile, "]\n");
 		/*write end*/
 		fprintf(ofile, "}");
@@ -1117,6 +1130,7 @@ static void create_csv_file(char * path)
 		write_csv_file(ofile, pd->touchdown_gs_table, "\"ground speed(meter/s)\"");
 		write_csv_file(ofile, pd->touchdown_tw_table, "\"total weight(Kg)\"");
 		write_csv_file(ofile, pd->touchdown_gf_table, "\"gear force(N)\"");
+		write_csv_file(ofile, pd->touchdown_vx_table, "\"side speed(meter/s)\"");
 		fclose(ofile);
 	}
 	else {
@@ -1405,7 +1419,7 @@ static size_t httpcb(char *ptr, size_t size, size_t nmemb, void *userdata)
 			strnsub(value, ptr + t[i+1].start, t[i+1].end-t[i+1].start);
 			strcpy(g_info->g_NewsLink, value);
 			sprintf(tmpbuf, "XTouchDownRecorder: - showurl: %s\n", value);
-			if((g_info->pcef) && (g_info->pcef->isinit)) {
+			if(CEF_ready()) {
 				CEF_url(g_info->pcef, g_info->g_NewsLink);
 			}
 			i++;
@@ -1447,7 +1461,7 @@ static size_t httpcb(char *ptr, size_t size, size_t nmemb, void *userdata)
 		if (p_n + 1 < g_info->g_NewsString + len) {
 			*p_n = 0;
 			strcpy(g_info->g_NewsLink, p_n + 1);
-			if((g_info->pcef)&&(g_info->pcef->isinit)){
+			if(CEF_ready()){
 				XPLMDebugString(g_info->g_NewsLink);
 				CEF_url(g_info->pcef, g_info->g_NewsLink);
 			}
@@ -1577,7 +1591,7 @@ static float secondcb(float inElapsedSinceLastCall,
 		}
 		g_info->ground_counter = g_info->ground_counter + 1;
 		//recalibrate stop time
-		fps= XPLMGetDataf(fpsRef);
+		fps= XPLMGetDataf(fpsRef)*1000.0f;
 		counter = (int)((float)MAX_TABLE_ELEMENTS/1.7f/fps);
 		if ((counter > 10) && (counter< 200)){
 			g_info->counterafttd = counter;
@@ -1838,6 +1852,7 @@ PLUGIN_API int XPluginStart(char * outName, char * outSig, char * outDesc)
 	icaoRef = XPLMFindDataRef("sim/aircraft/view/acf_ICAO");
 	totalWeightRef = XPLMFindDataRef("sim/flightmodel/weight/m_total");
 	fpsRef = XPLMFindDataRef("sim/operation/misc/frame_rate_period");
+	vxRef = XPLMFindDataRef("sim/flightmodel/forces/vx_air_on_acf");
 
 	/* MAC OS */
 	XPLMEnableFeature("XPLM_USE_NATIVE_PATHS", 1);
@@ -1878,7 +1893,7 @@ PLUGIN_API int XPluginStart(char * outName, char * outSig, char * outDesc)
 		return 1;
 	}
 #endif
-	return 1;
+	return XPluginStartBH();
 }
 
 static int XPluginStartBH()
@@ -1925,7 +1940,7 @@ static int XPluginStartBH()
 	
 	XPLMDebugString("XTouchDownRecorder: start CEF\n");
 	g_info->pcef=CEF_init(_TD_CHART_WIDTH, _TD_CHART_HEIGHT, path, pathdbg, pathcache);
-	if((g_info->pcef)&&(g_info->pcef->isinit)){
+	if(CEF_ready()){
 		XPLMDebugString("XTouchDownRecorder: CEF_init OK\n");
 	} else {
 		XPLMDebugString("XTouchDownRecorder: CEF_init failed\n");
@@ -1934,7 +1949,7 @@ static int XPluginStartBH()
 		}
 		return 0;
 	}
-	creatmainwin();
+	
 	/*create a worker*/
 	g_info->worker = lightworker_create(lightworker_job_helper, g_info);
 	/* register loopback starting at 10s */
@@ -1942,6 +1957,7 @@ static int XPluginStartBH()
 
 	/* register loopback in 1s */
 	XPLMRegisterFlightLoopCallback(secondcb, 1.0f, NULL);
+	XPLMDebugString("XTouchDownRecorder: loop done\n");
 
 	g_info->ToggleCommand = XPLMCreateCommand("cpuwolf/XTouchDownRecorder/Toggle", "Toggle TouchDownRecorder Chart");
 	XPLMRegisterCommandHandler(g_info->ToggleCommand, ToggleCommandHandler, 0, NULL);
@@ -1951,9 +1967,12 @@ static int XPluginStartBH()
 	g_info->tdr_menu = XPLMCreateMenu("XTouchDownRecorder", plugins_menu, menuidx,
 				menucb, NULL);
 	XPLMAppendMenuItem(g_info->tdr_menu, "Show/Hide", NULL, 1);
+	XPLMDebugString("XTouchDownRecorder: start enum\n");
 	enumfolder_async();
 
-	
+	creatmainwin();
+
+	CEF_update();
 
 	return 1;
 }
@@ -1967,7 +1986,7 @@ PLUGIN_API void	XPluginStop(void)
 	g_info->lightworkerexit = TRUE;
 	lightworker_destroy(g_info->worker);
 
-	if((g_info->pcef)&&(g_info->pcef->isinit)){
+	if(CEF_ready()){
 		CEF_deinit(g_info->pcef);
 	}
 
@@ -2010,7 +2029,7 @@ PLUGIN_API void XPluginDisable(void)
 
 PLUGIN_API int XPluginEnable(void)
 {
-	return XPluginStartBH();
+	return 1;
 }
 
 PLUGIN_API void XPluginReceiveMessage(XPLMPluginID inForm, int inMessage, void * inParam) 
