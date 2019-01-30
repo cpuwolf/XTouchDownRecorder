@@ -22,6 +22,10 @@ class RenderHandler : public CefRenderHandler
 {
 public:
 	RenderHandler();
+	~RenderHandler()
+	{
+		glDeleteTextures(1, &tex_);
+	}
 
 	void init(GLuint ** ceftxt);
 	void resize(int w, int h);

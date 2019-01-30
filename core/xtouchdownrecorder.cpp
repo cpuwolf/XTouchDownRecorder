@@ -910,7 +910,7 @@ static void drawcb(XPLMWindowID inWindowID, void *inRefcon)
 	glEnd();
 	glEnable(GL_TEXTURE_2D);
 #endif
-	if(CEF_ready()){
+	if(CEF_ready() && (g_info->pcef->ceftxt)){
 		int screen_x, screen_y;
 		int width_= right-left;
 		int height_=top-bottom;
@@ -933,8 +933,8 @@ static void drawcb(XPLMWindowID inWindowID, void *inRefcon)
 
 		glBindTexture(GL_TEXTURE_2D, 0);
 
-		CEF_update();
 	}
+	CEF_update();
 }
 
 
@@ -1590,18 +1590,24 @@ static float secondcb(float inElapsedSinceLastCall,
 			}
 		}
 		g_info->ground_counter = g_info->ground_counter + 1;
-		//recalibrate stop time
-		fps= XPLMGetDataf(fpsRef)*1000.0f;
-		counter = (int)((float)MAX_TABLE_ELEMENTS/1.7f/fps);
-		if ((counter > 10) && (counter< 200)){
-			g_info->counterafttd = counter;
-		}
-		if (g_info->ground_counter == g_info->counterafttd) {
+		
+		if (g_info->ground_counter == 1) {
+			//recalibrate stop time
+			fps= XPLMGetDataf(fpsRef)*1000.0f;
+			counter = (int)((float)MAX_TABLE_ELEMENTS/2.7f/fps);
+			if ((counter > 2) && (counter< g_info->counterafttd)){
+				g_info->counterafttd = counter;
+				sprintf(tmpbuf, "XTouchDownRecorder: touchdown counter=%d\n", counter);
+				XPLMDebugString(tmpbuf);
+			}
+		} else if (g_info->ground_counter == g_info->counterafttd) {
 			time(&g_info->touchTime);
 			/*-- stop data collection*/
 			g_info->collect_touchdown_data = FALSE;
+			XPLMDebugString("XTouchDownRecorder: touchdown");
 		} else if (g_info->ground_counter == (g_info->counterafttd+1)) {
 			XTDCopy(datacopy, datarealtm);
+			XPLMDebugString("XTouchDownRecorder: touchdown log");
 			if(analyzeTouchDown(datacopy, tmpbuf, 0, 0, FALSE)){
 				write_log_file_async();
 			}
@@ -1757,7 +1763,7 @@ static void creatmainwin(void)
 		win.top = ref->win.posy;
 		win.right = ref->win.posx + ref->win.width;
 		win.bottom = ref->win.posy - ref->win.height;
-		win.visible = 1;
+		win.visible = 0;
 		win.drawWindowFunc = drawcb;
 		win.handleKeyFunc = keycb;
 		win.handleMouseClickFunc = mousecb;
@@ -1972,7 +1978,7 @@ static int XPluginStartBH()
 
 	creatmainwin();
 
-	CEF_update();
+	//CEF_update();
 
 	return 1;
 }
@@ -1986,10 +1992,6 @@ PLUGIN_API void	XPluginStop(void)
 	g_info->lightworkerexit = TRUE;
 	lightworker_destroy(g_info->worker);
 
-	if(CEF_ready()){
-		CEF_deinit(g_info->pcef);
-	}
-
 	if (g_info->g_win) {
 		XTDWin *ref=(XTDWin *)XPLMGetWindowRefCon(g_info->g_win);
 		if (ref) {
@@ -2001,6 +2003,11 @@ PLUGIN_API void	XPluginStop(void)
 		XPLMDestroyWindow(g_info->g_win);
 		//g_win = NULL;
 	}
+
+	if(CEF_ready()){
+		CEF_deinit(g_info->pcef);
+	}
+	XPLMDebugString("XTouchDownRecorder: CEF close\n");
 	if (g_info->tdr_menu) {
 		XPLMClearAllMenuItems(g_info->tdr_menu);
 		XPLMDestroyMenu(g_info->tdr_menu);
@@ -2017,6 +2024,7 @@ PLUGIN_API void	XPluginStop(void)
 
 	/*write configuration*/
 	write_config_file();
+	XPLMDebugString("XTouchDownRecorder: write config\n");
 
 	if (!g_info) {
 		free(g_info);

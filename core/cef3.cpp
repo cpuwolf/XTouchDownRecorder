@@ -40,6 +40,7 @@ RenderHandler::RenderHandler()
 
 void RenderHandler::init(GLuint ** ceftxt)
 {
+	XPLMDebugString("\nXTouchDownRecorder:render start:\n");
 	glGenTextures(1, &tex_);
 	glBindTexture(GL_TEXTURE_2D, tex_);
 
@@ -58,6 +59,7 @@ void RenderHandler::init(GLuint ** ceftxt)
 	glBindTexture(GL_TEXTURE_2D, 0);
 
 	*ceftxt = &tex_;
+	XPLMDebugString("\nXTouchDownRecorder:render End:\n");
 }
 void RenderHandler::resize(int w, int h)
 {
@@ -142,7 +144,7 @@ struct cefui * CEF_init(int w, int h, const char * exepath, const char * dbgpath
 	
 	CefString(&settings.browser_subprocess_path).FromASCII(exepath);
 	CefString(&settings.log_file).FromASCII(dbgpath);
-	//CefString(&settings.cache_path ).FromASCII(cachepath);
+	CefString(&settings.cache_path ).FromASCII(cachepath);
 	settings.log_severity= LOGSEVERITY_WARNING;
 	
 
@@ -186,18 +188,26 @@ void CEF_url(struct cefui * pcef,char * url)
 void CEF_mouseclick(struct cefui * pcef, int x, int y,bool up)
 {
 	CefMouseEvent evt;
+	CefRefPtr<CefBrowserHost> host;
+	host = pcef->browser_->GetHost();
 	evt.x = x;
 	evt.y = y;
-	pcef->browser_->GetHost()->SendMouseClickEvent(evt, MBT_LEFT, up, 1);
+	if(host) {
+		host->SendMouseClickEvent(evt, MBT_LEFT, up, 1);
+	}
 	CEF_update();
 }
 
 void CEF_mousemove(struct cefui * pcef, int x, int y)
 {
 	CefMouseEvent evt;
+	CefRefPtr<CefBrowserHost> host;
+	host = pcef->browser_->GetHost();
 	evt.x = x;
 	evt.y = y;
-	pcef->browser_->GetHost()->SendMouseMoveEvent(evt, false);
+	if(host) {
+		pcef->browser_->GetHost()->SendMouseMoveEvent(evt, false);
+	}
 	CEF_update();
 }
 
