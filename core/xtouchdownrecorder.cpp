@@ -77,7 +77,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "cef3.h"
 #include <jsmn.h>
 
-#define _PROVER_ "V9c"
+#define _PROVER_ "V9d"
 #define _PRONAMEVER_ "XTouchDownRecorder " _PROVER_ " (" __DATE__ ")"
 
 static BOOL uploadfile(char * path);
@@ -258,6 +258,7 @@ typedef struct
 	BOOL IsTouchDown;
 	unsigned int ground_counter;
 	unsigned int taxi_counter;
+	unsigned int air_counter;
 	float XPTouchDownTM;
 	float XPTouchDownWeight;
 	float XPTouchDownFpm;
@@ -436,20 +437,20 @@ static int mousecb(XPLMWindowID inWindowID, int x, int y,
 	int left, top, right, bottom;
 	XPLMGetWindowGeometry(inWindowID, &left, &top, &right, &bottom);
 	XTDWinBox winbox;
-	winbox.posx=left;
+	winbox.posx = left;
 	winbox.posy = top;
-	winbox.width=right-left;
-	winbox.height=top-bottom;
+	winbox.width = right-left;
+	winbox.height = top-bottom;
 	switch (inMouse) {
 	case xplm_MouseDown:
 #ifndef XPLM300
 		if (InBox(&(ref->close), x, y)) {
 			g_info->show_touchdown_counter = 0;
-		} else 
+		} 
 #endif
 
 		if(CEF_ready()){
-		CEF_mouseclick(g_info->pcef, x-left, top-y,false);
+			CEF_mouseclick(g_info->pcef, x-left, top-y,false);
 		}
 		ret = 1;
 		
@@ -474,6 +475,10 @@ static int mousecb(XPLMWindowID inWindowID, int x, int y,
 		/* update close button*/
 		ref->close.posx = ref->win.posx + ref->win.width - ref->close.width;
 		ref->close.posy = ref->win.posy;
+
+		if(CEF_ready()){
+			CEF_update();
+		}
 		break;
 #endif
 	}
@@ -582,7 +587,7 @@ static int gettouchdownanddraw(XTDData * pd, int idx, float * pfpm, float pg[],i
 				delta_tm_expect = delta_tm;
 				last_k = k;
 			}
-#ifndef XPLM300			
+#ifdef XTDR_DEBUG_CHART			
 			/*draw second axis*/
 			if (isdraw) {
 				draw_line(0, 0, 0, 1, 3, x_tmp, y, x_tmp, y + _TD_CHART_HEIGHT);
@@ -653,7 +658,7 @@ static int drawtouchdownpoints(XTDData * pd, int x, int y, BOOL isdraw)
 			if(b) {
 				/* skip small debounce */
 				if (pd->touchdown_tm_table[k] - last_air_tm > 0.5f) {
-#ifndef XPLM300					
+#ifdef XTDR_DEBUG_CHART					
 					if (isdraw) {
 						/* draw vertical line */
 						draw_line(1, 1, 1, 1, 3, x_tmp, y + (_TD_CHART_HEIGHT / 4), x_tmp, y + (_TD_CHART_HEIGHT * 3 / 4));
@@ -778,7 +783,7 @@ static void drawcb(XPLMWindowID inWindowID, void *inRefcon)
 
 	x = left;
 	y = bottom;
-#ifndef XPLM300	
+#ifdef XTDR_DEBUG_CHART	
 	/*-- draw center line*/
 	draw_line(0, 0, 0, 1, 3, x, y + (_TD_CHART_HEIGHT / 2), x + (MAX_TABLE_ELEMENTS * 2), y + (_TD_CHART_HEIGHT / 2));
 #endif
@@ -810,7 +815,7 @@ static void drawcb(XPLMWindowID inWindowID, void *inRefcon)
 		strcat(g_info->landingString, text_to_print);
 
 		int width_text_to_print = (int)floor(XPLMMeasureString(xplmFont_Proportional, text_to_print, (int)strlen(text_to_print)));
-#ifndef XPLM300		
+#ifdef XTDR_DEBUG_CHART		
 		XPLMDrawString(color, x_text, y_text, text_to_print, NULL, xplmFont_Proportional);
 #endif		
 		x_text = x_text + width_text_to_print;
@@ -819,7 +824,7 @@ static void drawcb(XPLMWindowID inWindowID, void *inRefcon)
 	sprintf(text_buf, "offline");		
 	XPLMDrawString(color, x_text, y_text, text_buf, NULL, xplmFont_Proportional);
 
-#ifndef XPLM300
+#ifdef XTDR_DEBUG_CHART
 	/*start a new line*/
 	x_text = x + 5;
 	y_text = y + 16;
@@ -863,7 +868,7 @@ static void drawcb(XPLMWindowID inWindowID, void *inRefcon)
 	x_text = draw_curve(pd->touchdown_gs_table, 0.24f, 0.35f, 0.8f, text_buf, x_text, y_text, x, y, x, y, max_gs_recorded, max_gs_recorded);
 #endif
 
-#ifndef XPLM300	
+#ifdef XTDR_DEBUG_CHART	
 	/*-- title*/
 	color[0] = 1.0;
 	color[1] = 1.0;
@@ -897,19 +902,6 @@ static void drawcb(XPLMWindowID inWindowID, void *inRefcon)
 
 	XPLMDrawString(colr, x_text, y_text, text_buf, NULL, xplmFont_Proportional);
 #endif
-
-#ifndef XPLM300	
-	/*-- draw close button on top-right*/
-	glDisable(GL_TEXTURE_2D);
-	glColor3f(1.0, 1.0, 1.0);
-	glBegin(GL_LINES);
-	glVertex2i(right - 1, top - 1);
-	glVertex2i(right - 10, top - 10);
-	glVertex2i(right - 10, top - 1);
-	glVertex2i(right - 1, top - 10);
-	glEnd();
-	glEnable(GL_TEXTURE_2D);
-#endif
 	if(CEF_ready() && (g_info->pcef->ceftxt)){
 		int screen_x, screen_y;
 		int width_= right-left;
@@ -935,6 +927,19 @@ static void drawcb(XPLMWindowID inWindowID, void *inRefcon)
 
 	}
 	CEF_update();
+#ifndef XPLM300	
+	/*-- draw close button on top-right*/
+	glDisable(GL_TEXTURE_2D);
+	glColor3f(1.0, 1.0, 1.0);
+	glBegin(GL_LINES);
+	glVertex2i(right - 1, top - 1);
+	glVertex2i(right - 10, top - 10);
+	glVertex2i(right - 10, top - 1);
+	glVertex2i(right - 1, top - 10);
+	glEnd();
+	glEnable(GL_TEXTURE_2D);
+#endif
+
 }
 
 
@@ -1591,19 +1596,11 @@ static float secondcb(float inElapsedSinceLastCall,
 		}
 		g_info->ground_counter = g_info->ground_counter + 1;
 		
-		if (g_info->ground_counter == 1) {
-			//recalibrate stop time
-			fps= XPLMGetDataf(fpsRef)*1000.0f;
-			counter = (int)((float)MAX_TABLE_ELEMENTS/2.7f/fps);
-			if ((counter > 2) && (counter< g_info->counterafttd)){
-				g_info->counterafttd = counter;
-				sprintf(tmpbuf, "XTouchDownRecorder: touchdown counter=%d\n", counter);
-				XPLMDebugString(tmpbuf);
-			}
-		} else if (g_info->ground_counter == g_info->counterafttd) {
+		if (g_info->ground_counter == g_info->counterafttd) {
 			time(&g_info->touchTime);
 			/*-- stop data collection*/
 			g_info->collect_touchdown_data = FALSE;
+			g_info->air_counter = 0;
 			XPLMDebugString("XTouchDownRecorder: touchdown");
 		} else if (g_info->ground_counter == (g_info->counterafttd+1)) {
 			XTDCopy(datacopy, datarealtm);
@@ -1613,11 +1610,23 @@ static float secondcb(float inElapsedSinceLastCall,
 			}
 		}
 	} else {
+		if (g_info->air_counter == 10) {
+			//recalibrate stop time
+			fps= XPLMGetDataf(fpsRef)*1000.0f;
+			counter = (int)((float)MAX_TABLE_ELEMENTS/2.0f/fps);
+			if ((counter > 2) && (counter< g_info->counterafttd)){
+				g_info->counterafttd = counter;
+				sprintf(tmpbuf, "XTouchDownRecorder: touchdown stop dynamic counter=%d\n", counter);
+				XPLMDebugString(tmpbuf);
+			}
+			g_info->ground_counter = 0;
+			g_info->IsTouchDown = FALSE;
+			g_info->taxi_counter = 0;
+		}
 		/*-- in the air*/
-		g_info->ground_counter = 0;
+		g_info->air_counter =  g_info->air_counter + 1;
 		g_info->collect_touchdown_data = TRUE;
-		g_info->IsTouchDown = FALSE;
-		g_info->taxi_counter = 0;
+
 	}
 	/*-- count down*/
 	if (g_info->show_touchdown_counter > 0) {
