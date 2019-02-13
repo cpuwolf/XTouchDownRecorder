@@ -1601,12 +1601,15 @@ static float secondcb(float inElapsedSinceLastCall,
 			/*-- stop data collection*/
 			g_info->collect_touchdown_data = FALSE;
 			g_info->air_counter = 0;
-			XPLMDebugString("XTouchDownRecorder: touchdown");
+			XPLMDebugString("XTouchDownRecorder: touchdown\n");
 		} else if (g_info->ground_counter == (g_info->counterafttd+1)) {
 			XTDCopy(datacopy, datarealtm);
-			XPLMDebugString("XTouchDownRecorder: touchdown log");
+			XPLMDebugString("XTouchDownRecorder: touchdown log\n");
 			if(analyzeTouchDown(datacopy, tmpbuf, 0, 0, FALSE)){
 				write_log_file_async();
+			} else {
+				sprintf(tmpbuf, "XTouchDownRecorder: touchdown miss counter=%d\n", g_info->counterafttd);
+				XPLMDebugString(tmpbuf);
 			}
 		}
 	} else {
