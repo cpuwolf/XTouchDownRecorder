@@ -681,27 +681,33 @@ static int drawtouchdownpoints(XTDData * pd, int x, int y, BOOL isdraw)
 static int getfirsttouchdownpointidx(XTDData * pd)
 {
 	int k,tmpc;
+	char tmpbuf[128];
 	_BUFFER_GO_START(pd,k,tmpc);
 	BOOL last_air_recorded = pd->touchdown_air_table[k];
 	float last_agl_recorded = pd->touchdown_agl_table[k];
 	float last_air_tm = pd->touchdown_tm_table[k];
 	BOOL b;
 	float max_agl_recorded = get_max_val(pd, pd->touchdown_agl_table);
+	/* touchdown at least from AGL 1.0 meter to Ground: ignore annoying plane load touch down */
+	if(max_agl_recorded < 0.2f) {
+		sprintf(tmpbuf, "XTouchDownRecorder: Bad max AGL %f\n", max_agl_recorded);
+		XPLMDebugString(tmpbuf);
+		return -1;
+	}
 	while(!BUFFER_GO_IS_END(k,tmpc)) {
 		/*if aircraft has been reloaded, there will be jump in time */
 		if (fabs(pd->touchdown_tm_table[k] - last_air_tm) > 5.0f) {
+			XPLMDebugString("XTouchDownRecorder: Bad time jump\n");
 			return -1;
 		}
 		b = pd->touchdown_air_table[k];
 		if(b != last_air_recorded) {
 			if(b) {
-				if(max_agl_recorded > 1.0f) {
-					/* touchdown at least from AGL 1.0 meter to Ground: ignore annoying plane load touch down */
-					g_info->IsTouchDown = TRUE;
-					g_info->XPTouchDownTM = pd->touchdown_tm_table[k];
-					g_info->XPTouchDownWeight = pd->touchdown_tw_table[k];
-					return k;
-				}
+				
+				g_info->IsTouchDown = TRUE;
+				g_info->XPTouchDownTM = pd->touchdown_tm_table[k];
+				g_info->XPTouchDownWeight = pd->touchdown_tw_table[k];
+				return k;
 			}
 		}
 		last_air_recorded = b;
@@ -1589,7 +1595,7 @@ static float secondcb(float inElapsedSinceLastCall,
 		if(is_taxing()) {
 			g_info->taxi_counter++;
 			if (g_info->taxi_counter == 6) {
-				if(_BUFFER_FULL(datarealtm)) {
+				if(_BUFFER_FULL(datarealtm)&&(g_info->IsTouchDown)) {
 					g_info->show_touchdown_counter = 20;
 				}
 			}
