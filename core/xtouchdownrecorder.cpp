@@ -986,7 +986,9 @@ static int create_json_int(FILE *ofile, const char * label, int d)
 }
 static int create_json_str(FILE *ofile, const char * label, const char * str)
 {
-	return fprintf(ofile, "\"%s\": \"%s\",\n", label, str);
+	fprintf(ofile, "\"%s\": \"", label);
+	fwrite(str, strlen(str), 1, ofile);
+	return fprintf(ofile, "\",\n", label);
 }
 /*function template*/
 #define CREATE_JSON_ARRAY(ofile,_label,name,mytable,fmt,base) \
@@ -1812,6 +1814,12 @@ PLUGIN_API int XPluginStart(char * outName, char * outSig, char * outDesc)
 	char path[600], *prefpath;
 	const char *csep;
 
+	/* MAC OS */
+	XPLMEnableFeature("XPLM_USE_NATIVE_PATHS", 1);
+#ifdef XPLM300
+	XPLMEnableFeature("XPLM_USE_NATIVE_WIDGET_WINDOWS", 1);
+#endif
+
 	/* Plugin details */
 	sprintf(outName, _PRONAMEVER_" %s %s", __DATE__ , __TIME__);
 	strcpy(outSig, "cpuwolf.xtouchdownrecorder");
@@ -1833,6 +1841,7 @@ PLUGIN_API int XPluginStart(char * outName, char * outSig, char * outDesc)
 
 	/* get path*/
 	XPLMGetPrefsPath(path);
+
 	csep=XPLMGetDirectorySeparator();
 	prefpath = XPLMExtractFileAndPath(path);
 	/* copy pref path */
@@ -1878,11 +1887,7 @@ PLUGIN_API int XPluginStart(char * outName, char * outSig, char * outDesc)
 	fpsRef = XPLMFindDataRef("sim/operation/misc/frame_rate_period");
 	vxRef = XPLMFindDataRef("sim/flightmodel/forces/vx_air_on_acf");
 
-	/* MAC OS */
-	XPLMEnableFeature("XPLM_USE_NATIVE_PATHS", 1);
-#ifdef XPLM300
-	XPLMEnableFeature("XPLM_USE_NATIVE_WIDGET_WINDOWS", 1);
-#endif
+
 #if defined(__linux__)
 	g_info->curl_disable_ssl_verify = TRUE;
 #endif
