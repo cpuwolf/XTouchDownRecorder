@@ -77,7 +77,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "cef3.h"
 #include <jsmn.h>
 
-#define _PROVER_ "V9d"
+#define _PROVER_ "V9e"
 #define _PRONAMEVER_ "XTouchDownRecorder " _PROVER_ " (" __DATE__ ")"
 
 static BOOL uploadfile(char * path);
@@ -688,6 +688,13 @@ static int getfirsttouchdownpointidx(XTDData * pd)
 	float last_air_tm = pd->touchdown_tm_table[k];
 	BOOL b;
 	float max_agl_recorded = get_max_val(pd, pd->touchdown_agl_table);
+	float max_gs_recorded = get_max_val(pd, pd->touchdown_gs_table);
+	/* touchdown Ground Speed must greater than 10kts: ignore annoying plane load touch down */
+	if(max_gs_recorded < 5.3f) {
+		sprintf(tmpbuf, "XTouchDownRecorder: Bad max GS %f mps\n", max_gs_recorded);
+		XPLMDebugString(tmpbuf);
+		return -1;
+	}
 	/* touchdown at least from AGL 1.0 meter to Ground: ignore annoying plane load touch down */
 	if(max_agl_recorded < 0.2f) {
 		sprintf(tmpbuf, "XTouchDownRecorder: Bad max AGL %f\n", max_agl_recorded);
