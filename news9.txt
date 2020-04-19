@@ -1,5 +1,6 @@
 {
 "msg": "V10 beta 3 is ready",
 "showurl": "https://x-plane.vip/xtdr/static/tiny.html",
-"clickurl": "https://x-plane.vip/xtdr/static/index.html"
+"clickurl": "https://x-plane.vip/xtdr/static/index.html",
+"version": "V10b4"
 }
