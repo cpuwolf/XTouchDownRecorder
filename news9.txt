@@ -1,6 +1,6 @@
 {
-"msg": "click me V10b5",
+"msg": "update V10b6",
 "showurl": "https://x-plane.vip/xtdr/static/tiny.html",
 "clickurl": "https://x-plane.vip/xtdr/static/index.html",
-"version": "V10b5"
+"version": "V10b6"
 }
