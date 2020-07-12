@@ -1,6 +1,6 @@
 {
-"msg": "update V10b6",
+"msg": "V10b7 is XP11.50b14 ready",
 "showurl": "https://x-plane.vip/xtdr/static/tiny.html",
 "clickurl": "https://x-plane.vip/xtdr/static/index.html",
-"version": "V10b6"
+"version": "V10b7"
 }
