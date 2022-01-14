@@ -1,0 +1,5 @@
+{
+"msg": "welcome v8 is on-the-fly",
+"showurl": "https://x-plane.vip/xtdr/static/tiny.html",
+"clickurl": "https://x-plane.vip/xtdr/static/index.html"
+}
