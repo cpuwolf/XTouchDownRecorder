@@ -15,6 +15,7 @@ it supports Windows, Mac, Linux x64 only
 * automatically pop up after landing
 * button/key assignment
 * :thumbsup:[XTouchDownRecorder Community](https://x-plane.vip/xtdr/)
+* VR is ready
 
 ## XTouchDownRecorder Community ##
 
@@ -23,6 +24,8 @@ it supports Windows, Mac, Linux x64 only
 ![XTouchDownRecorder clickme](img/xtdr_cme.gif)
 
 ![XTouchDownRecorder clickme](img/xtdr_web.gif)
+
+![XTouchDownRecorder clickme](img/xtdr_vr.gif)
 
 ## XTouchDownRecorder Youtube ##
 
