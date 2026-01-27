@@ -19,7 +19,7 @@ Don't just guess how your landing went—know exactly what happened.
 *   **💾 Auto-Logging:** Every landing is saved locally to `TouchDownRecorderLog.txt` for your records.
 *   **👓 VR Ready:** Fully optimized for Virtual Reality users.
 *   **⚡ Instant Feedback:** The analysis chart automatically pops up after landing (configurable via button/key assignment).
-*   :apple:  lowest supported version macOS Big Sur (11.0)
+*   :apple:  lowest supported version 11.0 ![macOS](https://img.shields.io/badge/macOS%20Big%20Sur-red)
 
 ---
 
