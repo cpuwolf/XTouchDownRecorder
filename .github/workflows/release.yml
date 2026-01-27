@@ -278,5 +278,5 @@ jobs:
           gzip: folders
           token: ${{ secrets.GITHUB_TOKEN }}
           files: >
-            README_${{ github.ref_name }}.txt:README.txt
+            README_${{ github.ref_name }}.txt:release/README.txt
 
