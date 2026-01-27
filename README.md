@@ -4,7 +4,7 @@
 
 **Master your landings.** XTouchDownRecorder is a comprehensive flight data recorder designed specifically to analyze aircraft touchdown performance. Whether you are a casual simmer or training for realism, get immediate feedback on your landing rate, G-force, and pitch.
 
-![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20Mac%20%7C%20Linux-blue) ![X-Plane](https://img.shields.io/badge/Sim-X--Plane%2010%2F11-orange) ![VR Ready](https://img.shields.io/badge/VR-Ready-green)
+![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20Mac%20%7C%20Linux-blue) ![X-Plane](https://img.shields.io/badge/Sim-X--Plane%2010%2F11%2F12-orange) ![VR Ready](https://img.shields.io/badge/VR-Ready-green)
 
 ---
 
@@ -19,6 +19,7 @@ Don't just guess how your landing went—know exactly what happened.
 *   **💾 Auto-Logging:** Every landing is saved locally to `TouchDownRecorderLog.txt` for your records.
 *   **👓 VR Ready:** Fully optimized for Virtual Reality users.
 *   **⚡ Instant Feedback:** The analysis chart automatically pops up after landing (configurable via button/key assignment).
+*   :apple:  lowest supported version 11.0 ![macOS](https://img.shields.io/badge/macOS%20Big%20Sur-red)
 
 ---
 
@@ -87,7 +88,6 @@ Visualize your performance with detailed charts. Analyze your flare, touchdown p
 
 If you enjoy this tool and it helps you become a better pilot, consider supporting the development!
 
-*   **Developer:** [cpuwolf](https://x-plane.vip/xtdr/)
 *   **Support via Patreon:** [patreon.com/cpuwolf](https://www.patreon.com/cpuwolf)
 *   **Donate via PayPal:** [paypal.me/cpuwolf](https://www.paypal.me/cpuwolf)
 *   **QQ Group:** 378072629
