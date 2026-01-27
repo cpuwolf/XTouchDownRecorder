@@ -1,0 +1,271 @@
+# This is a basic workflow to help you get started with Actions
+
+name: XTouchDownRecorder Package for Skunkcrafts
+
+# Controls when the workflow will run
+on:
+  push:
+    tags:
+      - '*'
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  # This workflow contains a single job called "build"
+  build:
+    # Execute only if we have "push + tag name" that starts with "v"
+    if: github.event_name == 'push' && ( startsWith(github.ref_name, 'v') || startsWith(github.ref_name, 'b') || startsWith(github.ref_name, 't') || startsWith(github.ref_name, '0.') )
+
+    # The type of runner that the job will run on
+    runs-on: ubuntu-latest
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set reusable strings
+        id: strings
+        shell: bash
+        run: |
+          echo "addon XTouchDownRecorder" >> "$GITHUB_OUTPUT" 
+
+      - name: setup crc32 tool
+        shell: bash
+        run: |
+          sudo apt install -y libarchive-zip-perl
+          TAG=${GITHUB_REF##*/}
+          
+          if [ ! -z "$TAG" ]; then
+            VERSION="$TAG"
+          
+            echo "VERSION=${VERSION}" > version.mak
+          
+          else 
+            exit -1  ## abort script
+          fi
+
+          echo -e "TAG: ${TAG}\nThe content of version.mak is"
+          cat version.mak
+          
+      - name: Prepare SkunkCrafts Updater
+        shell: bash
+        run: |
+          # at this point version.mak should have the version number
+          source version.mak
+          # RELEASE_FOLDER=release/${{ steps.strings.outputs.scenery-name }}
+          RELEASE_FOLDER=release
+          mkdir -p ${RELEASE_FOLDER}
+          cp -r ./source/* "${RELEASE_FOLDER}/"
+          
+          # ls -lR release                  
+          
+          file_size_bytes() {
+            file="$1"
+            local bytes
+            if [[ "$OSTYPE" == "darwin"* ]]; then
+            # macOS
+            bytes=$(stat -f "%z" "$file")
+            elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
+            # Linux
+            bytes=$(stat -c "%s" "$file")
+            else
+          echo "Error: Unsupported operating system for file size check."
+            return 1
+            fi
+          
+            echo $bytes            
+          }
+          
+          
+          ## SkunkCrafts
+            sed -e "s|@VERSION@|${VERSION}|g" skunkcrafts_updater.cfg.template > "${RELEASE_FOLDER}/skunkcrafts_updater.cfg"
+            sed -e "s|@VERSION@|${VERSION}|g" skunkcrafts_updater_beta.cfg.template > "${RELEASE_FOLDER}/skunkcrafts_updater_beta.cfg"
+
+          # create crc32 checksum for all values and write to skunkcrafts_updater_whitelist.txt
+          # format is <filename>|<crc32 checksum>
+          # include subdirectories
+          rm -f ${RELEASE_FOLDER}/skunkcrafts_updater_whitelist.txt
+          rm -f ${RELEASE_FOLDER}/skunkcrafts_updater_sizeslist.txt
+          find ${RELEASE_FOLDER}/ -type f ! \( -name '*skunkcrafts_updater*' -o -path '*skunkcrafts_updater*' \) -print0 | while IFS= read -r -d '' file; do
+            checksum_hex=$(crc32 "$file")
+            # get file size in bytes
+            file_size_in_bytes=$(file_size_bytes "$file")
+          
+            # Convert hex checksum to uint32 decimal
+            checksum_decimal=$((16#$checksum_hex))
+            # Remove "release/" prefix from $file
+            modified_file="${file#${RELEASE_FOLDER}/}"
+            # Remove the first character (should be "/")
+            if [[ "$modified_file" == /* ]]; then
+              modified_file="${modified_file:1}"
+            fi                        
+            echo "${modified_file}|$checksum_decimal" >> ${RELEASE_FOLDER}/skunkcrafts_updater_whitelist.txt            
+            echo "${modified_file}|$file_size_in_bytes" >> ${RELEASE_FOLDER}/skunkcrafts_updater_sizeslist.txt            
+          done
+          
+          echo -e "SkunkCrafts updater:\n--------------->"
+          cat ${RELEASE_FOLDER}/skunkcrafts_updater.cfg
+          echo -e "<--------------"
+
+          echo -e "\n\nSkunkCrafts whitelist - crc32:\n--------------->"
+          cat ${RELEASE_FOLDER}/skunkcrafts_updater_whitelist.txt
+          echo -e "<--------------"
+
+          echo -e "\n\nSkunkCrafts sizelist - bytes:\n--------------->"
+          cat ${RELEASE_FOLDER}/skunkcrafts_updater_sizeslist.txt
+          echo -e "<--------------"
+
+          touch ${RELEASE_FOLDER}/skunkcrafts_updater_blacklist.txt                  
+          
+          
+          # TAG=${GITHUB_REF##*/}          
+          TARGET_BRANCH=""
+          if [[ $VERSION == *"-test"* || $VERSION == t* ]]     # if TAG contains -test or starts with "t"
+          then
+            echo "This is a just a build test"
+            TARGET_BRANCH="build-test"
+          elif [[ $VERSION == *"-beta"* || $VERSION == b* ]]        # if TAG contains -beta or starts with "b"
+          then
+            echo "This is a beta release"
+            TARGET_BRANCH="beta"
+          elif [[ $VERSION == v* ]]        # if TAG starts with "v"
+          then
+            echo "This is a 'release'"
+            TARGET_BRANCH="release"
+          elif [[ $VERSION == 0* ]]        # if TAG starts with "0" means that we only do a dry run without pushing to github
+          then
+            TARGET_BRANCH="dry-run"
+          fi
+          
+          
+          # debug which files are part of the branch     
+          # ls -lR release
+          
+          echo -e "TARGET_BRANCH - ${TARGET_BRANCH}"
+          
+          ## Create target branch
+          git checkout -b ${TARGET_BRANCH}
+          
+          if [ -d "TARGET_BRANCH" ]; then
+            echo "Directory ${TARGET_BRANCH} does exist."
+            git rm -r -f  ${TARGET_BRANCH}/*
+          else 
+            echo "Directory '${TARGET_BRANCH}' doesn't exist."
+          fi
+          
+          echo -e "Configuring git before pushing branch '${TARGET_BRANCH}' ."
+          git config --global user.email "cpuwolf@gmail.com"
+          git config --global user.name "Wei Shuai"
+
+          # Display branches
+          echo "-----"
+          echo -e "Display Branches"
+          git branch -a
+          # display folders
+          echo "-----"
+          ls -l          
+          echo "-----"
+          
+          echo "Preparing branch: ${TARGET_BRANCH}"          
+          echo "-----"
+          git add .         
+          echo -e "\n--------->"
+          ls -lR .
+          echo -e "\n<---------"
+          
+          
+          echo -e "\nCommit branch ${TARGET_BRANCH}\n---------------------"
+          git commit -m "new ${TARGET_BRANCH} - ${VERSION}"
+          
+          git remote add authenticated-origin "https://${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}"
+          
+          ### Push the branch back.. or not
+          if [[ $TARGET_BRANCH != "dry-run" ]]; then          
+            echo -e "\nPushing ${TARGET_BRANCH}\n---------------------"
+            git push authenticated-origin ${TARGET_BRANCH} --force
+          
+            # git push -f -u origin ${TARGET_BRANCH} ## will fail since there is no TOKEN          
+          
+            echo -e "TARGET_BRANCH - ${TARGET_BRANCH}"
+            echo -e "\ngithub.ref - ${{ github.ref }} - ${{ github.ref_name }} \n"
+          else
+            echo "Will not push back the '$TARGET_BRANCH'. It is only for tests."
+          fi
+
+
+
+      - name: Compress Plugin Files
+        if: ( startsWith(github.ref_name, 'v') )
+        shell: bash
+        run: |
+          # Prepare the release compressed file
+          VERSION=${GITHUB_REF##*/}
+          #source version.mak
+          echo -e "\nVERSION=${VERSION}\n"
+          
+          file_size_mb() {
+            file="$1"
+          
+            local bytes
+            if [[ "$OSTYPE" == "darwin"* ]]; then
+              # macOS
+              bytes=$(stat -f "%z" "$file")
+            elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
+              # Linux
+              bytes=$(stat -c "%s" "$file")
+            else
+              echo "Error: Unsupported operating system for file size check."
+              return 1
+            fi
+          
+            echo $(echo "scale=2; $bytes / (1024 * 1024)" | bc -l)
+          }
+          
+          echo -e "\n---------"
+          
+          folder_to_compress="${{ github.workspace }}/release"
+          output_file="${{ github.workspace }}/${{ steps.strings.outputs.scenery-name }}-${VERSION}.7z"
+          split_size="60m"
+          
+          echo "Compressing '$folder_to_compress' to '$output_file'..."
+          (cd ./release && 7z a -t7z "${{ github.workspace }}/${{ steps.strings.outputs.scenery-name }}-${VERSION}.7z" *)
+          
+          # Check the size of the compressed file          
+          compressed_size=$(file_size_mb "$output_file")
+          echo -e "\n>> Initial compressed file size: ${compressed_size}M <<\n"          
+          
+          # Check if the size is greater than 98M
+          if (( $(echo "$compressed_size > 98" | bc -l) )); 
+          then
+            echo "Compressed file size exceeds 98M."
+            # Delete the previous compressed file
+            echo "Deleting previous compressed file: '$output_file'"
+            rm -f "$output_file"
+          
+            # Compress again with splitting
+            echo "Compressing '$folder_to_compress' to '$output_base.7z.001' with volume size ${split_size}..."
+            (cd ./release && 7z a -t7z -v"$split_size" "${{ github.workspace }}/${{ steps.strings.outputs.scenery-name }}-${VERSION}.7z" *)
+          
+            echo "Folder compressed into multiple volumes with a maximum size of ${split_size} each."
+          else
+            echo "Folder compressed successfully to '$output_file'."          
+          fi
+
+          echo -e "\n---------"
+          ls -l
+          echo -e "\n---------"      
+
+      - name: Create Release
+        id: create_release
+        uses: softprops/action-gh-release@v2
+        if: ( startsWith(github.ref_name, 'v') )
+        with:
+          files: |
+            ${{ github.workspace }}/${{ steps.strings.outputs.scenery-name }}*7z*
+          prerelease: ${{ contains(github.ref_name, '-beta') || startsWith(github.ref_name, 'b') }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+

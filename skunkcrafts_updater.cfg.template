@@ -1,0 +1,7 @@
+zone|custom
+liveries|false
+module|https://raw.githubusercontent.com/cpuwolf/XTouchDownRecorder/refs/heads/release/release/
+version|@VERSION@
+disabled|false
+name|XTouchDownRecorder
+locked|false
