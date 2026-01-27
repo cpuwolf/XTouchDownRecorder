@@ -1,6 +1,6 @@
 zone|custom
 liveries|false
-module|https://raw.githubusercontent.com/cpuwolf/XTouchDownRecorder/refs/heads/beta/release/
+module|https://gitee.com/cpuwolf/XTouchDownRecorder/raw/beta/release
 version|@VERSION@
 disabled|false
 name|XTouchDownRecorder
