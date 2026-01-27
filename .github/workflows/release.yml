@@ -30,7 +30,7 @@ jobs:
         id: strings
         shell: bash
         run: |
-          echo "addon XTouchDownRecorder" >> "$GITHUB_OUTPUT" 
+          echo "plugin-name=XTouchDownRecorder" >> "$GITHUB_OUTPUT" 
 
       - name: setup crc32 tool
         shell: bash
@@ -55,7 +55,7 @@ jobs:
         run: |
           # at this point version.mak should have the version number
           source version.mak
-          # RELEASE_FOLDER=release/${{ steps.strings.outputs.scenery-name }}
+          # RELEASE_FOLDER=release/${{ steps.strings.outputs.plugin-name }}
           RELEASE_FOLDER=release
           mkdir -p ${RELEASE_FOLDER}
           cp -r ./source/* "${RELEASE_FOLDER}/"
@@ -227,11 +227,11 @@ jobs:
           echo -e "\n---------"
           
           folder_to_compress="${{ github.workspace }}/release"
-          output_file="${{ github.workspace }}/${{ steps.strings.outputs.scenery-name }}-${VERSION}.7z"
+          output_file="${{ github.workspace }}/${{ steps.strings.outputs.plugin-name }}-${VERSION}.7z"
           split_size="60m"
           
           echo "Compressing '$folder_to_compress' to '$output_file'..."
-          (cd ./release && 7z a -t7z "${{ github.workspace }}/${{ steps.strings.outputs.scenery-name }}-${VERSION}.7z" *)
+          (cd ./release && 7z a -t7z "${{ github.workspace }}/${{ steps.strings.outputs.plugin-name }}-${VERSION}.7z" *)
           
           # Check the size of the compressed file          
           compressed_size=$(file_size_mb "$output_file")
@@ -247,7 +247,7 @@ jobs:
           
             # Compress again with splitting
             echo "Compressing '$folder_to_compress' to '$output_base.7z.001' with volume size ${split_size}..."
-            (cd ./release && 7z a -t7z -v"$split_size" "${{ github.workspace }}/${{ steps.strings.outputs.scenery-name }}-${VERSION}.7z" *)
+            (cd ./release && 7z a -t7z -v"$split_size" "${{ github.workspace }}/${{ steps.strings.outputs.plugin-name }}-${VERSION}.7z" *)
           
             echo "Folder compressed into multiple volumes with a maximum size of ${split_size} each."
           else
@@ -264,7 +264,7 @@ jobs:
         if: ( startsWith(github.ref_name, 'v') )
         with:
           files: |
-            ${{ github.workspace }}/${{ steps.strings.outputs.scenery-name }}*7z*
+            ${{ github.workspace }}/${{ steps.strings.outputs.plugin-name }}*7z*
           prerelease: ${{ contains(github.ref_name, '-beta') || startsWith(github.ref_name, 'b') }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
