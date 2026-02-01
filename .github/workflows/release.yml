@@ -265,7 +265,7 @@ jobs:
         with:
           files: |
             ${{ github.workspace }}/${{ steps.strings.outputs.plugin-name }}*7z*
-          prerelease: ${{ contains(github.ref_name, '-beta') || startsWith(github.ref_name, 'b') }}
+          draft: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
