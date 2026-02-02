@@ -20,6 +20,7 @@ Don't just guess how your landing went—know exactly what happened.
 *   **👓 VR Ready:** Fully optimized for Virtual Reality users.
 *   **⚡ Instant Feedback:** The analysis chart automatically pops up after landing (configurable via button/key assignment).
 *   :apple:  lowest supported version 11.0 ![macOS](https://img.shields.io/badge/macOS%20Big%20Sur-red)
+*   **👓 SkunkCraftsUpdater:** Support update via SkunkCraftsUpdater.
 
 ---
 
@@ -81,6 +82,7 @@ Visualize your performance with detailed charts. Analyze your flare, touchdown p
 **Screenshots:**
 *   ![X-Plane 11 Interface](img/TouchDownRecorder_replay.jpg)
 *   ![X-Plane 10 Menu](img/TouchDownRecorder_xp10_menu.jpg)
+*   ![X-Plane 12 update](img/xtdr_skunk.gif)
 
 ---
 
