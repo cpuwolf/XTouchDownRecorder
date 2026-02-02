@@ -1,0 +1,6 @@
+LICENSE|5158
+64/win.xpl|651776
+64/carbon.ttf|16360
+64/mac.xpl|1076784
+64/lin.xpl|5958512
+README.txt|236
